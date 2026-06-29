@@ -104,6 +104,7 @@ import anhiutangerinee.kittisu.ui.theme.KernelSUTheme
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.backgroundImagePainter
 import anhiutangerinee.kittisu.ui.theme.blurSource
+import anhiutangerinee.kittisu.ui.theme.fullScreenBackgroundPainter
 import anhiutangerinee.kittisu.ui.util.LocalBlurState
 import anhiutangerinee.kittisu.ui.util.LocalHandlePageChange
 import anhiutangerinee.kittisu.ui.util.LocalPagerState
@@ -516,8 +517,8 @@ class MainActivity : ComponentActivity() {
                                                     ),
                                                     LocalSnackbarHost provides snackBarHostState,
                                                 ) {
-                                                    if(false) {
-                                                        val it = backgroundImagePainter!!
+                                                    if (ThemeConfig.fullScreenBackgroundUri != null && fullScreenBackgroundPainter != null) {
+                                                        val it = fullScreenBackgroundPainter!!
                                                         Box(
                                                             modifier = Modifier
                                                                 .fillMaxSize()
@@ -530,7 +531,7 @@ class MainActivity : ComponentActivity() {
                                                                     drawContent()
                                                                     drawRect(
                                                                         color = surfaceContainer.copy(
-                                                                            alpha = ThemeConfig.backgroundDim
+                                                                            alpha = ThemeConfig.fullScreenBackgroundDim
                                                                         )
                                                                     )
                                                                 }

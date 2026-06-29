@@ -128,8 +128,13 @@
     <string name="allowlist_restore_failed">Не вдалося відновити білий список: %1$s</string>
     <string name="backup_allowlist">Резервна копія білого списку</string>
     <string name="restore_allowlist">Відновити білий список</string>
-    <string name="settings_custom_background">Власний фон додатку</string>
-    <string name="settings_custom_background_summary">Вибрати зображення як фон</string>
+    <string name="settings_custom_background">Власний фон картки Working</string>
+    <string name="settings_custom_background_summary">Вибрати зображення як фон картки Working</string>
+    <string name="full_screen_background">Власний фон на весь екран</string>
+    <string name="full_screen_background_summary">Вибрати зображення 9:16 як фон на весь екран</string>
+    <string name="full_screen_background_preview_title">Попередній перегляд фону 9:16</string>
+    <string name="full_screen_background_blur">Розмиття фону на весь екран</string>
+    <string name="full_screen_background_blur_summary">Увімкнути ефект розмиття для фону на весь екран</string>
     <string name="home_android_version">Версія Android</string>
     <string name="home_device_model">Модель пристрою</string>
     <string name="su_not_allowed">Надання прав суперкористувача для %s заборонено</string>

@@ -197,8 +197,13 @@
     <string name="allowlist_restore_failed">Allowlist restore failed: %1$s</string>
     <string name="backup_allowlist">Backup Allowlist</string>
     <string name="restore_allowlist">Restore Allowlist</string>
-    <string name="settings_custom_background">Custom App Background</string>
-    <string name="settings_custom_background_summary">Select an image as background</string>
+    <string name="settings_custom_background">Custom Working Card Background</string>
+    <string name="settings_custom_background_summary">Select an image as working card background</string>
+    <string name="full_screen_background">Custom Background</string>
+    <string name="full_screen_background_summary">Select a 9:16 image as full-screen background</string>
+    <string name="full_screen_background_preview_title">Preview 9:16 Background</string>
+    <string name="full_screen_background_blur">Full-Screen Background Blur</string>
+    <string name="full_screen_background_blur_summary">Enable blur effect for full-screen background</string>
     <string name="settings_config_enable_blur">Enable Blur</string>
     <string name="settings_config_enable_blur_summary">Enable blur process for this app</string>
     <string name="settings_exp_draw_background_to_blur">Draw Custom background to blur</string>

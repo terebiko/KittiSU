@@ -67,7 +67,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -203,6 +206,69 @@ fun MoreSettingsScreen() {
         }
     }
 
+    val fullScreenCropLauncher = rememberLauncherForActivityResult(
+        object : ActivityResultContract<Uri, Uri?>() {
+            override fun createIntent(context: Context, input: Uri): Intent {
+                val tempFile = File(context.cacheDir, "fullscreen_background_crop_cache").apply {
+                    parentFile?.mkdirs()
+                    delete()
+                    createNewFile()
+                    deleteOnExit()
+                }
+
+                context.contentResolver.openInputStream(input)?.use { inputStream ->
+                    tempFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                val tempUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    tempFile
+                )
+
+                return Intent("com.android.camera.action.CROP").apply {
+                    setDataAndType(tempUri, "image/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    putExtra("crop", "true")
+
+                    val displayMetrics = context.resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
+                    val targetHeight = (screenWidth * 16) / 9
+
+                    putExtra("aspectX", 9)
+                    putExtra("aspectY", 16)
+                    putExtra("outputX", screenWidth)
+                    putExtra("outputY", targetHeight)
+                    putExtra("return-data", false)
+                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
+                }
+            }
+
+            override fun parseResult(
+                resultCode: Int,
+                intent: Intent?
+            ): Uri? {
+                return intent?.data
+            }
+        }
+    ) { uri: Uri? ->
+        uri?.let {
+            settingsState.pendingFullScreenBackgroundUri = it
+            settingsState.showFullScreenBackgroundPreview = true
+        }
+    }
+
+    val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            fullScreenCropLauncher.launch(uri)
+        }
+    }
+
     // 初始化设置
     LaunchedEffect(Unit) {
         settingsHandlers.initializeSettings()
@@ -213,6 +279,25 @@ fun MoreSettingsScreen() {
         state = settingsState,
         handlers = settingsHandlers
     )
+
+    if (settingsState.showFullScreenBackgroundPreview) {
+        settingsState.pendingFullScreenBackgroundUri?.let { uri ->
+            FullScreenBackgroundPreviewDialog(
+                uri = uri,
+                dim = settingsState.fullScreenBackgroundDim,
+                blur = settingsState.fullScreenBackgroundBlur,
+                onDismiss = {
+                    settingsState.showFullScreenBackgroundPreview = false
+                    settingsState.pendingFullScreenBackgroundUri = null
+                },
+                onConfirm = {
+                    settingsHandlers.handleFullScreenBackground(uri)
+                    settingsState.showFullScreenBackgroundPreview = false
+                    settingsState.pendingFullScreenBackgroundUri = null
+                }
+            )
+        }
+    }
 
     val navigator = LocalNavigator.current
 
@@ -578,6 +663,20 @@ private fun AppearanceSettings(
             },
             bottomContent = {
                 backgroundAdjustmentControls(state, handlers, coroutineScope)
+            }
+        )
+
+        expandableItem(
+            expanded = ThemeConfig.isFullScreenBackgroundEnabled,
+            topContent = {
+                FullScreenBackgroundSettings(
+                    state = state,
+                    handlers = handlers,
+                    pickImageLauncher = fullScreenPickImageLauncher,
+                )
+            },
+            bottomContent = {
+                fullScreenBackgroundAdjustmentControls(state, handlers, coroutineScope)
             }
         )
 
@@ -989,6 +1088,147 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
                 onCheckedChange = { isChecked ->
                     BackgroundManager.saveEnableHighContrastMode(context, isChecked)
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullScreenBackgroundSettings(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+    pickImageLauncher: ManagedActivityResultLauncher<String, Uri?>,
+) {
+    SettingsSwitchWidget(
+        icon = Icons.Filled.Wallpaper,
+        title = stringResource(id = R.string.full_screen_background),
+        description = stringResource(id = R.string.full_screen_background_summary),
+        checked = state.isFullScreenBackgroundEnabled,
+        onCheckedChange = { isChecked ->
+            if (isChecked) {
+                pickImageLauncher.launch("image/*")
+            } else {
+                handlers.handleRemoveFullScreenBackground()
+            }
+        },
+    )
+}
+
+@Composable
+private fun FullScreenBackgroundPreviewDialog(
+    uri: Uri,
+    dim: Float,
+    blur: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.full_screen_background_preview_title)) },
+        text = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(9f / 16f)
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(uri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = dim))
+                )
+                if (blur) {
+                    Text(
+                        text = "Blur enabled",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.White
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.apply))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
+}
+
+private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+    coroutineScope: CoroutineScope
+) {
+    item(topPadding = 1.dp) {
+        FullScreenDimSlider(state, handlers, coroutineScope)
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        item(topPadding = 1.dp) {
+            SettingsSwitchWidget(
+                icon = Icons.Filled.BlurOn,
+                title = stringResource(R.string.full_screen_background_blur),
+                description = stringResource(R.string.full_screen_background_blur_summary),
+                checked = state.fullScreenBackgroundBlur,
+                onCheckedChange = { isChecked ->
+                    handlers.handleFullScreenBlurChange(isChecked)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullScreenDimSlider(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+    coroutineScope: CoroutineScope
+) {
+    SettingsBaseWidget(
+        icon = Icons.Filled.LightMode,
+        title = stringResource(R.string.full_screen_background_dim),
+        descriptionColumnContent = {
+            val dimSliderValue by animateFloatAsState(
+                targetValue = state.fullScreenBackgroundDim,
+                label = "Full Screen Dim Slider Animation"
+            )
+
+            Slider(
+                value = dimSliderValue,
+                onValueChange = { newValue ->
+                    handlers.handleFullScreenDimChange(newValue)
+                },
+                onValueChangeFinished = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        CardConfig.save(handlers.activity)
+                    }
+                },
+                valueRange = 0f..1f,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        }
+    ) {
+        Box(contentAlignment = Alignment.CenterEnd) {
+            Text(
+                text = "${(state.fullScreenBackgroundDim * 100).roundToInt()}%",
+                style = MaterialTheme.typography.labelMediumEmphasized,
             )
         }
     }

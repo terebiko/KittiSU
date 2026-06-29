@@ -143,8 +143,13 @@
     <string name="allowlist_restore_failed">Khôi phục danh sách cho phép thất bại: %1$s</string>
     <string name="backup_allowlist">Sao lưu danh sách cho phép</string>
     <string name="restore_allowlist">Khôi phục danh sách cho phép</string>
-    <string name="settings_custom_background">Tuỳ chỉnh nền ứng dụng</string>
-    <string name="settings_custom_background_summary">Chọn một hình ảnh làm hình nền</string>
+    <string name="settings_custom_background">Tùy chỉnh nền thẻ Working</string>
+    <string name="settings_custom_background_summary">Chọn một hình ảnh làm nền cho thẻ Working</string>
+    <string name="full_screen_background">Hình nền tùy chỉnh</string>
+    <string name="full_screen_background_summary">Chọn ảnh 9:16 làm hình nền toàn màn hình</string>
+    <string name="full_screen_background_preview_title">Xem trước hình nền 9:16</string>
+    <string name="full_screen_background_blur">Làm mờ hình nền toàn màn hình</string>
+    <string name="full_screen_background_blur_summary">Bật hiệu ứng làm mờ cho hình nền toàn màn hình</string>
     <string name="home_android_version">Phiên bản Android</string>
     <string name="home_device_model">Model thiết bị</string>
     <string name="su_not_allowed">Không thể cấp quyền Superuser cho %s</string>

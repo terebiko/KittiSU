@@ -129,8 +129,13 @@
     <string name="allowlist_restore_failed">Falha na restauração do Allowlist: %1$s</string>
     <string name="backup_allowlist">Backup Permitido</string>
     <string name="restore_allowlist">Restaurar Allowlist</string>
-    <string name="settings_custom_background">Fundo personalizado do App</string>
-    <string name="settings_custom_background_summary">Selecione uma imagem como plano de fundo</string>
+    <string name="settings_custom_background">Fundo personalizado do Cartão Working</string>
+    <string name="settings_custom_background_summary">Selecione uma imagem como plano de fundo do cartão Working</string>
+    <string name="full_screen_background">Fundo personalizado em Tela Cheia</string>
+    <string name="full_screen_background_summary">Selecione uma imagem 9:16 como plano de fundo em tela cheia</string>
+    <string name="full_screen_background_preview_title">Visualização do Fundo 9:16</string>
+    <string name="full_screen_background_blur">Desfoque do Fundo em Tela Cheia</string>
+    <string name="full_screen_background_blur_summary">Ativar efeito de desfoque para o fundo em tela cheia</string>
     <string name="home_android_version">Android Version: </string>
     <string name="home_device_model">Modelo do aparelho</string>
     <string name="su_not_allowed">Conceder superusuário à %s não é permitido</string>

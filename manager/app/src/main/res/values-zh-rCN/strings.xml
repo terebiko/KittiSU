@@ -194,8 +194,13 @@
     <string name="allowlist_restore_failed">应用列表还原失败：%1$s</string>
     <string name="backup_allowlist">备份应用列表</string>
     <string name="restore_allowlist">还原应用列表</string>
-    <string name="settings_custom_background">自定义背景</string>
-    <string name="settings_custom_background_summary">选择一张图片作为应用背景</string>
+    <string name="settings_custom_background">自定义 Working 卡片背景</string>
+    <string name="settings_custom_background_summary">选择一张图片作为 Working 卡片背景</string>
+    <string name="full_screen_background">自定义全屏背景</string>
+    <string name="full_screen_background_summary">选择一张 9:16 图片作为全屏背景</string>
+    <string name="full_screen_background_preview_title">预览 9:16 背景</string>
+    <string name="full_screen_background_blur">全屏背景模糊</string>
+    <string name="full_screen_background_blur_summary">为全屏背景启用模糊效果</string>
     <string name="settings_config_enable_blur">启用模糊</string>
     <string name="settings_config_enable_blur_summary">对此 App 启用模糊处理</string>
     <string name="settings_exp_draw_background_to_blur">将自定义背景渲染到模糊</string>

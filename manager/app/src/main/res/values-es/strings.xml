@@ -128,8 +128,13 @@
     <string name="allowlist_restore_failed">Restauración de lista de permisos falló: %1$s</string>
     <string name="backup_allowlist">Copia de seguridad lista</string>
     <string name="restore_allowlist">Restaurar lista de permisos</string>
-    <string name="settings_custom_background">Fondo de aplicación personalizado</string>
-    <string name="settings_custom_background_summary">Seleccionar una imagen como fondo</string>
+    <string name="settings_custom_background">Fondo de tarjeta Working personalizado</string>
+    <string name="settings_custom_background_summary">Seleccionar una imagen como fondo de tarjeta Working</string>
+    <string name="full_screen_background">Fondo de pantalla completa personalizado</string>
+    <string name="full_screen_background_summary">Seleccionar una imagen 9:16 como fondo de pantalla completa</string>
+    <string name="full_screen_background_preview_title">Vista previa del fondo 9:16</string>
+    <string name="full_screen_background_blur">Desenfoque del fondo de pantalla completa</string>
+    <string name="full_screen_background_blur_summary">Habilitar efecto de desenfoque para el fondo de pantalla completa</string>
     <string name="home_android_version">Versión de Android</string>
     <string name="home_device_model">Modelo del dispositivo</string>
     <string name="su_not_allowed">No se permite conceder superusuario a %s</string>

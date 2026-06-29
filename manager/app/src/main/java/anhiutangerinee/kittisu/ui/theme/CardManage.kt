@@ -21,7 +21,7 @@ object CardConfig {
 
     var cardAlpha: Float
         get() = run {
-            if (isCustomBackgroundEnabled)
+            if (isCustomBackgroundEnabled || isFullScreenBackgroundEnabled)
                 _cardAlpha
             else
                 1f
@@ -39,6 +39,8 @@ object CardConfig {
         internal set
     var isCustomBackgroundEnabled by mutableStateOf(false)
         internal set
+    var isFullScreenBackgroundEnabled by mutableStateOf(false)
+        internal set
 
     var isCustomAlphaSet by mutableStateOf(false)
         internal set
@@ -51,6 +53,7 @@ object CardConfig {
     private object Keys {
         const val CARD_ALPHA = "card_alpha"
         const val CUSTOM_BACKGROUND_ENABLED = "custom_background_enabled"
+        const val FULL_SCREEN_BACKGROUND_ENABLED = "full_screen_background_enabled"
         const val IS_SHADOW_ENABLED = "is_shadow_enabled"
         const val IS_CUSTOM_ALPHA_SET = "is_custom_alpha_set"
         const val IS_USER_DARK_MODE_ENABLED = "is_user_dark_mode_enabled"
@@ -75,6 +78,14 @@ object CardConfig {
         }
     }
 
+    fun updateFullScreenBackground(enabled: Boolean) {
+        isFullScreenBackgroundEnabled = enabled
+        // 全屏背景时同样禁用阴影
+        if (enabled) {
+            updateShadow(false)
+        }
+    }
+
     fun updateThemePreference(darkMode: Boolean?, lightMode: Boolean?) {
         isUserDarkModeEnabled = darkMode ?: false
         isUserLightModeEnabled = lightMode ?: false
@@ -85,6 +96,7 @@ object CardConfig {
         cardElevation = 0.dp
         isShadowEnabled = true
         isCustomBackgroundEnabled = false
+        isFullScreenBackgroundEnabled = false
         isCustomAlphaSet = false
         isUserDarkModeEnabled = false
         isUserLightModeEnabled = false
@@ -105,6 +117,7 @@ object CardConfig {
         prefs.edit().apply {
             putFloat(Keys.CARD_ALPHA, cardAlpha)
             putBoolean(Keys.CUSTOM_BACKGROUND_ENABLED, isCustomBackgroundEnabled)
+            putBoolean(Keys.FULL_SCREEN_BACKGROUND_ENABLED, isFullScreenBackgroundEnabled)
             putBoolean(Keys.IS_SHADOW_ENABLED, isShadowEnabled)
             putBoolean(Keys.IS_CUSTOM_ALPHA_SET, isCustomAlphaSet)
             putBoolean(Keys.IS_USER_DARK_MODE_ENABLED, isUserDarkModeEnabled)
@@ -117,6 +130,7 @@ object CardConfig {
         val prefs = context.getSharedPreferences("card_settings", Context.MODE_PRIVATE)
         cardAlpha = prefs.getFloat(Keys.CARD_ALPHA, 1f).coerceIn(0f, 1f)
         isCustomBackgroundEnabled = prefs.getBoolean(Keys.CUSTOM_BACKGROUND_ENABLED, false)
+        isFullScreenBackgroundEnabled = prefs.getBoolean(Keys.FULL_SCREEN_BACKGROUND_ENABLED, false)
         isShadowEnabled = prefs.getBoolean(Keys.IS_SHADOW_ENABLED, true)
         isCustomAlphaSet = prefs.getBoolean(Keys.IS_CUSTOM_ALPHA_SET, false)
         isUserDarkModeEnabled = prefs.getBoolean(Keys.IS_USER_DARK_MODE_ENABLED, false)

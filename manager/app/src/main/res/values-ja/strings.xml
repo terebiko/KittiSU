@@ -136,8 +136,13 @@
     <string name="allowlist_restore_failed">許可リストの復元に失敗: %1$s</string>
     <string name="backup_allowlist">許可リストをバックアップ</string>
     <string name="restore_allowlist">許可リストを復元</string>
-    <string name="settings_custom_background">アプリの背景を変更</string>
-    <string name="settings_custom_background_summary">背景にする画像を選択してください</string>
+    <string name="settings_custom_background">Workingカードの背景を変更</string>
+    <string name="settings_custom_background_summary">Workingカードの背景にする画像を選択してください</string>
+    <string name="full_screen_background">フルスクリーン背景を変更</string>
+    <string name="full_screen_background_summary">9:16の画像をフルスクリーン背景として選択してください</string>
+    <string name="full_screen_background_preview_title">9:16背景のプレビュー</string>
+    <string name="full_screen_background_blur">フルスクリーン背景のぼかし</string>
+    <string name="full_screen_background_blur_summary">フルスクリーン背景のぼかし効果を有効にする</string>
     <string name="home_android_version">Android バージョン</string>
     <string name="home_device_model">デバイスモデル</string>
     <string name="su_not_allowed">「%s」にスーパーユーザー権限を付与することはできません</string>
