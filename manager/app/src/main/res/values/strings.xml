@@ -188,6 +188,7 @@
     <string name="unknown_module">Unknown module</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="apply">Apply</string>
     <string name="command_execution_failed">Failed to execute command: %1$s</string>
     <string name="allowlist_backup_success">Allowlist backed up successfully</string>
     <string name="allowlist_backup_failed">Failed to backup allowlist: %1$s</string>
@@ -204,6 +205,7 @@
     <string name="full_screen_background_preview_title">Preview 9:16 Background</string>
     <string name="full_screen_background_blur">Full-Screen Background Blur</string>
     <string name="full_screen_background_blur_summary">Enable blur effect for full-screen background</string>
+    <string name="full_screen_background_dim">Full-Screen Background Dim</string>
     <string name="settings_config_enable_blur">Enable Blur</string>
     <string name="settings_config_enable_blur_summary">Enable blur process for this app</string>
     <string name="settings_exp_draw_background_to_blur">Draw Custom background to blur</string>
