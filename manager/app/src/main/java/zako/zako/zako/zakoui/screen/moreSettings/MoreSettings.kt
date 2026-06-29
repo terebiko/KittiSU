@@ -207,69 +207,6 @@ fun MoreSettingsScreen() {
         }
     }
 
-    val fullScreenCropLauncher = rememberLauncherForActivityResult(
-        object : ActivityResultContract<Uri, Uri?>() {
-            override fun createIntent(context: Context, input: Uri): Intent {
-                val tempFile = File(context.cacheDir, "fullscreen_background_crop_cache").apply {
-                    parentFile?.mkdirs()
-                    delete()
-                    createNewFile()
-                    deleteOnExit()
-                }
-
-                context.contentResolver.openInputStream(input)?.use { inputStream ->
-                    tempFile.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-
-                val tempUri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    tempFile
-                )
-
-                return Intent("com.android.camera.action.CROP").apply {
-                    setDataAndType(tempUri, "image/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    putExtra("crop", "true")
-
-                    val displayMetrics = context.resources.displayMetrics
-                    val screenWidth = displayMetrics.widthPixels
-                    val targetHeight = (screenWidth * 16) / 9
-
-                    putExtra("aspectX", 9)
-                    putExtra("aspectY", 16)
-                    putExtra("outputX", screenWidth)
-                    putExtra("outputY", targetHeight)
-                    putExtra("return-data", false)
-                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
-                }
-            }
-
-            override fun parseResult(
-                resultCode: Int,
-                intent: Intent?
-            ): Uri? {
-                return intent?.data
-            }
-        }
-    ) { uri: Uri? ->
-        uri?.let {
-            settingsState.pendingFullScreenBackgroundUri = it
-            settingsState.showFullScreenBackgroundPreview = true
-        }
-    }
-
-    val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            fullScreenCropLauncher.launch(uri)
-        }
-    }
-
     // 初始化设置
     LaunchedEffect(Unit) {
         settingsHandlers.initializeSettings()
@@ -673,7 +610,6 @@ private fun AppearanceSettings(
                 FullScreenBackgroundSettings(
                     state = state,
                     handlers = handlers,
-                    pickImageLauncher = fullScreenPickImageLauncher,
                 )
             },
             bottomContent = {
@@ -1098,8 +1034,72 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
 private fun FullScreenBackgroundSettings(
     state: MoreSettingsState,
     handlers: MoreSettingsHandlers,
-    pickImageLauncher: ManagedActivityResultLauncher<String, Uri?>,
 ) {
+    val context = LocalContext.current
+
+    val fullScreenCropLauncher = rememberLauncherForActivityResult(
+        object : ActivityResultContract<Uri, Uri?>() {
+            override fun createIntent(context: Context, input: Uri): Intent {
+                val tempFile = File(context.cacheDir, "fullscreen_background_crop_cache").apply {
+                    parentFile?.mkdirs()
+                    delete()
+                    createNewFile()
+                    deleteOnExit()
+                }
+
+                context.contentResolver.openInputStream(input)?.use { inputStream ->
+                    tempFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                val tempUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    tempFile
+                )
+
+                return Intent("com.android.camera.action.CROP").apply {
+                    setDataAndType(tempUri, "image/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    putExtra("crop", "true")
+
+                    val displayMetrics = context.resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
+                    val targetHeight = (screenWidth * 16) / 9
+
+                    putExtra("aspectX", 9)
+                    putExtra("aspectY", 16)
+                    putExtra("outputX", screenWidth)
+                    putExtra("outputY", targetHeight)
+                    putExtra("return-data", false)
+                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
+                }
+            }
+
+            override fun parseResult(
+                resultCode: Int,
+                intent: Intent?
+            ): Uri? {
+                return intent?.data
+            }
+        }
+    ) { uri: Uri? ->
+        uri?.let {
+            state.pendingFullScreenBackgroundUri = it
+            state.showFullScreenBackgroundPreview = true
+        }
+    }
+
+    val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            fullScreenCropLauncher.launch(uri)
+        }
+    }
+
     SettingsSwitchWidget(
         icon = Icons.Filled.Wallpaper,
         title = stringResource(id = R.string.full_screen_background),
@@ -1107,7 +1107,7 @@ private fun FullScreenBackgroundSettings(
         checked = state.isFullScreenBackgroundEnabled,
         onCheckedChange = { isChecked ->
             if (isChecked) {
-                pickImageLauncher.launch("image/*")
+                fullScreenPickImageLauncher.launch("image/*")
             } else {
                 handlers.handleRemoveFullScreenBackground()
             }
