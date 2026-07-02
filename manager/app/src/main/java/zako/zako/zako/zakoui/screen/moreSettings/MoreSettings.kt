@@ -68,10 +68,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -217,25 +214,6 @@ fun MoreSettingsScreen() {
         state = settingsState,
         handlers = settingsHandlers
     )
-
-    if (settingsState.showFullScreenBackgroundPreview) {
-        settingsState.pendingFullScreenBackgroundUri?.let { uri ->
-            FullScreenBackgroundPreviewDialog(
-                uri = uri,
-                dim = settingsState.fullScreenBackgroundDim,
-                blur = settingsState.fullScreenBackgroundBlur,
-                onDismiss = {
-                    settingsState.showFullScreenBackgroundPreview = false
-                    settingsState.pendingFullScreenBackgroundUri = null
-                },
-                onConfirm = {
-                    settingsHandlers.handleFullScreenBackground(uri)
-                    settingsState.showFullScreenBackgroundPreview = false
-                    settingsState.pendingFullScreenBackgroundUri = null
-                }
-            )
-        }
-    }
 
     val navigator = LocalNavigator.current
 
@@ -1087,8 +1065,7 @@ private fun FullScreenBackgroundSettings(
         }
     ) { uri: Uri? ->
         uri?.let {
-            state.pendingFullScreenBackgroundUri = it
-            state.showFullScreenBackgroundPreview = true
+            handlers.handleFullScreenBackground(it)
         }
     }
 
@@ -1112,59 +1089,6 @@ private fun FullScreenBackgroundSettings(
                 handlers.handleRemoveFullScreenBackground()
             }
         },
-    )
-}
-
-@Composable
-private fun FullScreenBackgroundPreviewDialog(
-    uri: Uri,
-    dim: Float,
-    blur: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.full_screen_background_preview_title)) },
-        text = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(9f / 16f)
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(uri)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = dim))
-                )
-                if (blur) {
-                    Text(
-                        text = "Blur enabled",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.White
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(id = R.string.apply))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        }
     )
 }
 

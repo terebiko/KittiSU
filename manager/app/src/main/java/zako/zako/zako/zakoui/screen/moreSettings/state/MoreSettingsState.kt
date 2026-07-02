@@ -64,8 +64,6 @@ class MoreSettingsState(
     var isFullScreenBackgroundEnabled by mutableStateOf(ThemeConfig.isFullScreenBackgroundEnabled)
     var fullScreenBackgroundDim by mutableFloatStateOf(ThemeConfig.fullScreenBackgroundDim)
     var fullScreenBackgroundBlur by mutableStateOf(ThemeConfig.fullScreenBackgroundBlur)
-    var pendingFullScreenBackgroundUri by mutableStateOf<android.net.Uri?>(null)
-    var showFullScreenBackgroundPreview by mutableStateOf(false)
 
     // DPI 设置
     val systemDpi = context.resources.displayMetrics.densityDpi

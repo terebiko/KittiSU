@@ -284,11 +284,35 @@ object BackgroundManager {
     }
 
     fun saveFullScreenBackground(context: Context, uri: Uri?) {
+        val finalUri = uri?.let { copyFullScreenImageToInternalStorage(context, it) }
         context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit(commit = true) {
-            putString("full_screen_background", uri?.toString())
+            putString("full_screen_background", finalUri?.toString())
         }
-        ThemeConfig.fullScreenBackgroundUri = uri
-        ThemeConfig.isFullScreenBackgroundEnabled = uri != null
+        ThemeConfig.fullScreenBackgroundUri = finalUri
+        ThemeConfig.isFullScreenBackgroundEnabled = finalUri != null
+    }
+
+    private fun copyFullScreenImageToInternalStorage(context: Context, uri: Uri): Uri? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val fileName = "fullscreen_background.jpg"
+            val file = File(context.filesDir, fileName)
+
+            FileOutputStream(file).use { outputStream ->
+                val buffer = ByteArray(8 * 1024)
+                var read: Int
+                while (inputStream.read(buffer).also { read = it } != -1) {
+                    outputStream.write(buffer, 0, read)
+                }
+                outputStream.flush()
+            }
+            inputStream.close()
+
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            Log.e(TAG, "复制全屏背景图片失败: ${e.message}", e)
+            null
+        }
     }
 
     fun saveFullScreenBackgroundDim(context: Context, dim: Float) {
