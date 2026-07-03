@@ -316,9 +316,10 @@ object BackgroundManager {
     }
 
     fun saveFullScreenBackgroundDim(context: Context, dim: Float) {
-        ThemeConfig.fullScreenBackgroundDim = dim
+        val safeDim = dim.coerceIn(0f, 0.9f)
+        ThemeConfig.fullScreenBackgroundDim = safeDim
         context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit(commit = true) {
-            putFloat("full_screen_background_dim", dim)
+            putFloat("full_screen_background_dim", safeDim)
         }
     }
 
@@ -334,7 +335,7 @@ object BackgroundManager {
         val uriString = prefs.getString("full_screen_background", null)
         ThemeConfig.fullScreenBackgroundUri = uriString?.toUri()
         ThemeConfig.isFullScreenBackgroundEnabled = uriString != null
-        ThemeConfig.fullScreenBackgroundDim = prefs.getFloat("full_screen_background_dim", 0f).coerceIn(0f, 1f)
+        ThemeConfig.fullScreenBackgroundDim = prefs.getFloat("full_screen_background_dim", 0f).coerceIn(0f, 0.9f)
         ThemeConfig.fullScreenBackgroundBlur = prefs.getBoolean("full_screen_background_blur", false)
         ThemeConfig.fullScreenBackgroundImageLoaded = false
     }

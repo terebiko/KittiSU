@@ -39,7 +39,6 @@ class MoreSettingsHandlers(
         // 加载设置
         CardConfig.load(activity)
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
         state.isCustomBackgroundEnabled = ThemeConfig.customBackgroundUri != null
         state.isFullScreenBackgroundEnabled = ThemeConfig.isFullScreenBackgroundEnabled
         state.fullScreenBackgroundDim = ThemeConfig.fullScreenBackgroundDim
@@ -184,7 +183,6 @@ class MoreSettingsHandlers(
         activity.saveAndApplyCustomBackground(transformedUri)
         state.isCustomBackgroundEnabled = true
         CardConfig.cardAlpha = 0.55f
-        BackgroundManager.saveBackgroundDim(activity, 0.3f)
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, true)
         BackgroundManager.saveEnableHighContrastMode(activity, false)
@@ -193,7 +191,6 @@ class MoreSettingsHandlers(
         CardConfig.save(activity)
 
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
 
         Toast.makeText(
             activity,
@@ -215,9 +212,7 @@ class MoreSettingsHandlers(
         ThemeConfig.preventBackgroundRefresh = false
 
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
 
-        BackgroundManager.saveBackgroundDim(activity, 0f)
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, false)
         BackgroundManager.saveEnableHighContrastMode(activity, false)
@@ -244,14 +239,6 @@ class MoreSettingsHandlers(
             putBoolean("is_custom_alpha_set", true)
             putFloat("card_alpha", newValue)
         }
-    }
-
-    /**
-     * 处理卡片亮度变更
-     */
-    fun handleBackgroundDimChange(newValue: Float) {
-        state.backgroundDim = newValue
-        BackgroundManager.saveBackgroundDim(activity, newValue)
     }
 
     /**

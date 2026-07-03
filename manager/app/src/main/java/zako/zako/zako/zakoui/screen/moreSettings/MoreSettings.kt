@@ -916,16 +916,6 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
     handlers: MoreSettingsHandlers,
     coroutineScope: CoroutineScope,
 ) {
-    item(
-        topPadding = 1.dp
-    ) {
-        DimSlider(
-            state = state,
-            handlers = handlers,
-            coroutineScope = coroutineScope
-        )
-    }
-
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         item(
             topPadding = 1.dp,
@@ -1035,7 +1025,7 @@ private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
     coroutineScope: CoroutineScope
 ) {
     item(topPadding = 1.dp) {
-        FullScreenDimSlider(state, handlers, coroutineScope)
+        DimSlider(state, handlers, coroutineScope)
     }
 
     item(topPadding = 1.dp) {
@@ -1057,49 +1047,6 @@ private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
                 onCheckedChange = { isChecked ->
                     BackgroundManager.saveUseBackgroundSeedColor(context, isChecked)
                 }
-            )
-        }
-    }
-}
-
-@Composable
-private fun FullScreenDimSlider(
-    state: MoreSettingsState,
-    handlers: MoreSettingsHandlers,
-    coroutineScope: CoroutineScope
-) {
-    SettingsBaseWidget(
-        icon = Icons.Filled.LightMode,
-        title = stringResource(R.string.full_screen_background_dim),
-        descriptionColumnContent = {
-            val dimSliderValue by animateFloatAsState(
-                targetValue = state.fullScreenBackgroundDim,
-                label = "Full Screen Dim Slider Animation"
-            )
-
-            Slider(
-                value = dimSliderValue,
-                onValueChange = { newValue ->
-                    handlers.handleFullScreenDimChange(newValue)
-                },
-                onValueChangeFinished = {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        CardConfig.save(handlers.activity)
-                    }
-                },
-                valueRange = 0f..1f,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            )
-        }
-    ) {
-        Box(contentAlignment = Alignment.CenterEnd) {
-            Text(
-                text = "${(state.fullScreenBackgroundDim * 100).roundToInt()}%",
-                style = MaterialTheme.typography.labelMediumEmphasized,
             )
         }
     }
@@ -1164,21 +1111,21 @@ private fun DimSlider(
         title = stringResource(R.string.settings_background_dim),
         descriptionColumnContent = {
             val dimSliderValue by animateFloatAsState(
-                targetValue = state.backgroundDim,
+                targetValue = state.fullScreenBackgroundDim,
                 label = "Dim Slider Animation"
             )
 
             Slider(
                 value = dimSliderValue,
                 onValueChange = { newValue ->
-                    handlers.handleBackgroundDimChange(newValue)
+                    handlers.handleFullScreenDimChange(newValue)
                 },
                 onValueChangeFinished = {
                     coroutineScope.launch(Dispatchers.IO) {
                         CardConfig.save(handlers.activity)
                     }
                 },
-                valueRange = 0f..1f,
+                valueRange = 0f..0.9f,
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -1195,7 +1142,7 @@ private fun DimSlider(
             )
 
             Text(
-                text = "${(state.backgroundDim * 100).roundToInt()}%",
+                text = "${(state.fullScreenBackgroundDim * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMediumEmphasized,
             )
         }

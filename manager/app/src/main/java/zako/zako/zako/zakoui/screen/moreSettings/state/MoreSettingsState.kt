@@ -57,7 +57,6 @@ class MoreSettingsState(
 
     // 卡片配置状态
     var cardAlpha by mutableFloatStateOf(CardConfig.cardAlpha)
-    var backgroundDim by mutableFloatStateOf(ThemeConfig.backgroundDim)
     var isCustomBackgroundEnabled by mutableStateOf(ThemeConfig.customBackgroundUri != null)
 
     // Full-screen background state

@@ -530,7 +530,7 @@ class MainActivity : ComponentActivity() {
                                                                 .drawWithContent {
                                                                     drawContent()
                                                                     drawRect(
-                                                                        color = surfaceContainer.copy(
+                                                                        color = Color.Black.copy(
                                                                             alpha = ThemeConfig.fullScreenBackgroundDim
                                                                         )
                                                                     )
