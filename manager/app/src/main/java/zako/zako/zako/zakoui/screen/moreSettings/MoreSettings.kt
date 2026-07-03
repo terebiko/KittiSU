@@ -972,12 +972,15 @@ private fun FullScreenBackgroundSettings(
 
                     val displayMetrics = context.resources.displayMetrics
                     val screenWidth = displayMetrics.widthPixels
-                    val targetHeight = (screenWidth * 16) / 9
+                    val screenHeight = displayMetrics.heightPixels
+                    val divisor = gcd(screenWidth, screenHeight)
+                    val aspectX = screenWidth / divisor
+                    val aspectY = screenHeight / divisor
 
-                    putExtra("aspectX", 9)
-                    putExtra("aspectY", 16)
+                    putExtra("aspectX", aspectX)
+                    putExtra("aspectY", aspectY)
                     putExtra("outputX", screenWidth)
-                    putExtra("outputY", targetHeight)
+                    putExtra("outputY", screenHeight)
                     putExtra("return-data", false)
                     putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
                 }
@@ -1185,3 +1188,6 @@ private fun LanguageSetting(state: MoreSettingsState) {
         )
     }
 }
+
+private tailrec fun gcd(a: Int, b: Int): Int =
+    if (b == 0) a else gcd(b, a % b)
