@@ -481,10 +481,6 @@ private fun BackgroundLayer() {
         backgroundUri.value = ThemeConfig.customBackgroundUri
         if (backgroundUri.value == null) {
             backgroundImagePainter = null
-            backgroundSeedColor = 0
-            prefs.edit(commit = true) {
-                remove("cached_seed_color")
-            }
         }
     }
 
@@ -492,6 +488,10 @@ private fun BackgroundLayer() {
         fullScreenUri.value = ThemeConfig.fullScreenBackgroundUri
         if (fullScreenUri.value == null) {
             fullScreenBackgroundPainter = null
+            backgroundSeedColor = 0
+            prefs.edit(commit = true) {
+                remove("cached_seed_color")
+            }
         }
     }
 
@@ -584,20 +584,6 @@ private suspend fun Bitmap.extractSeedColor(
 
 @Composable
 private fun BackgroundInitializer(uri: Uri) {
-    val coroutineScope = rememberCoroutineScope()
-
-    val dynamicColorFromSystem =
-        if (Build.VERSION.SDK_INT >= 31)
-            colorResource(id = R.color.system_accent1_500).toArgb()
-        else -12417548
-
-    val prefs = LocalContext.current
-        .getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
-
-    val calcedCachedSeedColor =
-        prefs
-            .getInt("cached_seed_color", dynamicColorFromSystem)
-
     backgroundImagePainter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(LocalContext.current)
             .data(uri)
@@ -612,22 +598,26 @@ private fun BackgroundInitializer(uri: Uri) {
             Log.d("ThemeSystem", "背景加载成功")
             ThemeConfig.backgroundImageLoaded = true
             ThemeConfig.isThemeChanging = false
-            backgroundSeedColor = calcedCachedSeedColor
-            coroutineScope.launch {
-                backgroundSeedColor = it.result.drawable.toBitmap().extractSeedColor(
-                    fallbackColorArgb = calcedCachedSeedColor
-                )
-
-                prefs.edit(commit = true) {
-                    putInt("cached_seed_color", backgroundSeedColor)
-                }
-            }
         }
     )
 }
 
 @Composable
 private fun FullScreenBackgroundInitializer(uri: Uri) {
+    val coroutineScope = rememberCoroutineScope()
+
+    val dynamicColorFromSystem =
+        if (Build.VERSION.SDK_INT >= 31)
+            colorResource(id = R.color.system_accent1_500).toArgb()
+        else -12417548
+
+    val prefs = LocalContext.current
+        .getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+
+    val calcedCachedSeedColor =
+        prefs
+            .getInt("cached_seed_color", dynamicColorFromSystem)
+
     fullScreenBackgroundPainter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(LocalContext.current)
             .data(uri)
@@ -642,6 +632,16 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
         onSuccess = {
             Log.d("ThemeSystem", "Full-screen background loaded")
             ThemeConfig.fullScreenBackgroundImageLoaded = true
+            backgroundSeedColor = calcedCachedSeedColor
+            coroutineScope.launch {
+                backgroundSeedColor = it.result.drawable.toBitmap().extractSeedColor(
+                    fallbackColorArgb = calcedCachedSeedColor
+                )
+
+                prefs.edit(commit = true) {
+                    putInt("cached_seed_color", backgroundSeedColor)
+                }
+            }
         }
     )
 }

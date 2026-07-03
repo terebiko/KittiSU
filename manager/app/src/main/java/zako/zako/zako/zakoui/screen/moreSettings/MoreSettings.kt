@@ -919,16 +919,6 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
     item(
         topPadding = 1.dp
     ) {
-        AlphaSlider(
-            state = state,
-            handlers = handlers,
-            coroutineScope = coroutineScope
-        )
-    }
-
-    item(
-        topPadding = 1.dp
-    ) {
         DimSlider(
             state = state,
             handlers = handlers,
@@ -937,59 +927,6 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        expandableItem(
-            expanded = ThemeConfig.isEnableBlur,
-            topPadding = 1.dp,
-            topContent = {
-                val context = LocalContext.current
-
-                SettingsSwitchWidget(
-                    icon = Icons.Filled.BlurOn,
-                    title = stringResource(id = R.string.settings_config_enable_blur),
-                    description = stringResource(id = R.string.settings_config_enable_blur_summary),
-                    checked = ThemeConfig.isEnableBlur,
-                    onCheckedChange = { isChecked ->
-                        BackgroundManager.saveEnableBlur(context, isChecked)
-                    }
-                )
-            },
-            bottomContent = {
-                item(
-                    topPadding = 1.dp,
-                ) {
-                    val context = LocalContext.current
-
-                    SettingsSwitchWidget(
-                        icon = Icons.Filled.Draw,
-                        title = stringResource(id = R.string.settings_exp_draw_background_to_blur),
-                        description = stringResource(id = R.string.settings_exp_draw_background_to_blur_description),
-                        isError = true,
-                        checked = ThemeConfig.isEnableBlurExp,
-                        onCheckedChange = { isChecked ->
-                            BackgroundManager.saveEnableBlurExp(context, isChecked)
-                        }
-                    )
-                }
-            }
-        )
-
-        item(
-            visible = state.useDynamicColor,
-            topPadding = 1.dp,
-        ) {
-            val context = LocalContext.current
-
-            SettingsSwitchWidget(
-                icon = Icons.Filled.FormatColorFill,
-                title = stringResource(id = R.string.settings_config_use_custom_background_seed_color),
-                description = stringResource(id = R.string.settings_config_use_custom_background_seed_color_summary),
-                checked = ThemeConfig.isUseBackgroundSeedColor,
-                onCheckedChange = { isChecked ->
-                    BackgroundManager.saveUseBackgroundSeedColor(context, isChecked)
-                }
-            )
-        }
-
         item(
             topPadding = 1.dp,
         ) {
@@ -1101,15 +1038,24 @@ private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
         FullScreenDimSlider(state, handlers, coroutineScope)
     }
 
+    item(topPadding = 1.dp) {
+        AlphaSlider(state, handlers, coroutineScope)
+    }
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        item(topPadding = 1.dp) {
+        item(
+            visible = state.useDynamicColor,
+            topPadding = 1.dp,
+        ) {
+            val context = LocalContext.current
+
             SettingsSwitchWidget(
-                icon = Icons.Filled.BlurOn,
-                title = stringResource(R.string.full_screen_background_blur),
-                description = stringResource(R.string.full_screen_background_blur_summary),
-                checked = state.fullScreenBackgroundBlur,
+                icon = Icons.Filled.FormatColorFill,
+                title = stringResource(id = R.string.settings_config_use_custom_background_seed_color),
+                description = stringResource(id = R.string.settings_config_use_custom_background_seed_color_summary),
+                checked = ThemeConfig.isUseBackgroundSeedColor,
                 onCheckedChange = { isChecked ->
-                    handlers.handleFullScreenBlurChange(isChecked)
+                    BackgroundManager.saveUseBackgroundSeedColor(context, isChecked)
                 }
             )
         }
