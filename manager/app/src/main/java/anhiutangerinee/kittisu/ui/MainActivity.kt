@@ -21,7 +21,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
@@ -57,7 +56,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -148,12 +146,6 @@ import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 import kotlin.coroutines.resume
 import kotlin.math.abs
 
-data class ScrollState(
-    val isScrollingDown: MutableState<Boolean>,
-    val scrollOffset: MutableState<Float>,
-    val previousScrollOffset: MutableState<Float>
-)
-
 @Composable
 fun rememberScrollConnection(
     isScrollingDown: MutableState<Boolean>,
@@ -185,32 +177,6 @@ fun rememberScrollConnection(
             }
         }
     }
-}
-
-fun Modifier.horizontalSwipeNavigator(
-    currentPage: Int,
-    pageCount: Int,
-    onPageChange: (Int) -> Unit
-): Modifier = pointerInput(pageCount) {
-    var totalDrag = 0f
-    detectHorizontalDragGestures(
-        onDragStart = { totalDrag = 0f },
-        onHorizontalDrag = { change, dragAmount ->
-            change.consume()
-            totalDrag += dragAmount
-        },
-        onDragEnd = {
-            val threshold = 150f
-            if (abs(totalDrag) > threshold) {
-                val next = if (totalDrag < 0) {
-                    (currentPage + 1).coerceAtMost(pageCount - 1)
-                } else {
-                    (currentPage - 1).coerceAtLeast(0)
-                }
-                if (next != currentPage) onPageChange(next)
-            }
-        }
-    )
 }
 
 class MainActivity : ComponentActivity() {
@@ -926,12 +892,7 @@ fun MainScreen() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .blurSource()
-                                .nestedScroll(bottomBarScrollConnection)
-                                .horizontalSwipeNavigator(
-                                    currentPage = pagerState.currentPage,
-                                    pageCount = pages.size,
-                                    onPageChange = handlePageChange
-                                ),
+                                .nestedScroll(bottomBarScrollConnection),
                             state = pagerState,
                             userScrollEnabled = userScrollEnabled,
                         ) { pageIndex ->
@@ -969,12 +930,7 @@ fun MainScreen() {
                     HorizontalPager(
                         modifier = Modifier
                             .fillMaxSize()
-                            .blurSource()
-                            .horizontalSwipeNavigator(
-                                currentPage = pagerState.currentPage,
-                                pageCount = pages.size,
-                                onPageChange = handlePageChange
-                            ),
+                            .blurSource(),
                         state = pagerState,
                         userScrollEnabled = userScrollEnabled,
                     ) { pageIndex ->

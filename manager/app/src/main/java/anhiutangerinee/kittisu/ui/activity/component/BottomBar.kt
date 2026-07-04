@@ -9,8 +9,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import anhiutangerinee.kittisu.ui.screen.BottomBarDestination
+import kotlin.math.roundToInt
 
 @Composable
 fun BottomBar(
@@ -66,6 +67,7 @@ fun BottomBar(
     val itemSizePx = with(density) { itemSize.toPx() }
     val itemSpacingPx = with(density) { itemSpacing.toPx() }
     val containerPaddingPx = with(density) { containerPadding.toPx() }
+    val extraTouchAreaPx = with(density) { 20.dp.toPx() }
 
     val navBarWidth = (itemSize * destinations.size) +
             (itemSpacing * (destinations.size - 1)) +
@@ -82,6 +84,7 @@ fun BottomBar(
 
     var isDraggingPill by remember { mutableStateOf(false) }
     var dragTargetIndex by remember { mutableIntStateOf(effectiveSelectedIndex) }
+    var dragPointerX by remember { mutableFloatStateOf(-1f) }
 
     val animatedSelectedIndex by animateFloatAsState(
         targetValue = (if (isDraggingPill) dragTargetIndex else effectiveSelectedIndex).toFloat(),
@@ -126,35 +129,56 @@ fun BottomBar(
                         modifier = Modifier
                             .width(navBarWidth)
                             .height(72.dp)
+                            .pointerInput(destinations) {
+                                // Tap: short press without significant movement switches the tab
+                                // whose slot the pointer landed in.
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        if (!isDraggingPill) {
+                                            val index = ((offset.x - containerPaddingPx) /
+                                                    (itemSizePx + itemSpacingPx))
+                                                .toInt()
+                                                .coerceIn(0, destinations.lastIndex)
+                                            onPageChange(index)
+                                        }
+                                    }
+                                )
+                            }
                             .pointerInput(destinations, effectiveSelectedIndex) {
+                                // Drag: only activated when the gesture starts on the active pill
+                                // area (with a small extra touch slop). Tracks finger X in real
+                                // time and snaps to the nearest tab on release.
                                 detectDragGestures(
-                                    onDragStart = { offset ->
-                                        val extraTouchArea = 20.dp.toPx()
+                                    onDragStart = { offset: Offset ->
                                         val pillLeft = containerPaddingPx +
                                                 effectiveSelectedIndex * (itemSizePx + itemSpacingPx) -
-                                                extraTouchArea
-                                        val pillRight = pillLeft + itemSizePx + (extraTouchArea * 2)
+                                                extraTouchAreaPx
+                                        val pillRight = pillLeft + itemSizePx + (extraTouchAreaPx * 2)
 
                                         if (offset.x in pillLeft..pillRight) {
                                             isDraggingPill = true
                                             dragTargetIndex = effectiveSelectedIndex
+                                            dragPointerX = offset.x
                                         }
                                     },
                                     onDragEnd = {
                                         if (isDraggingPill) {
                                             onPageChange(dragTargetIndex)
                                             isDraggingPill = false
+                                            dragPointerX = -1f
                                         }
                                     },
                                     onDragCancel = {
                                         isDraggingPill = false
+                                        dragPointerX = -1f
                                     },
                                     onDrag = { change, _ ->
                                         if (isDraggingPill) {
                                             change.consume()
+                                            dragPointerX = change.position.x
                                             val index = ((change.position.x - containerPaddingPx) /
                                                     (itemSizePx + itemSpacingPx))
-                                                .toInt()
+                                                .roundToInt()
                                                 .coerceIn(0, destinations.lastIndex)
                                             dragTargetIndex = index
                                         }
@@ -171,13 +195,23 @@ fun BottomBar(
                                 .onSizeChanged { totalWidth = it.width }
                         ) {
                             if (totalWidth > 0 && destinations.isNotEmpty()) {
-                                val indicatorOffset = (itemSizePx + itemSpacingPx) * animatedSelectedIndex
+                                // During a pill drag, follow the finger in real time; otherwise
+                                // use the spring-animated slot-based offset.
+                                val indicatorOffset = if (isDraggingPill && dragPointerX >= 0f) {
+                                    (dragPointerX - containerPaddingPx - itemSizePx / 2f)
+                                        .coerceIn(
+                                            0f,
+                                            (itemSizePx + itemSpacingPx) * destinations.lastIndex
+                                        )
+                                } else {
+                                    (itemSizePx + itemSpacingPx) * animatedSelectedIndex
+                                }
 
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
                                         .padding(vertical = 8.dp)
-                                        .offset { IntOffset(x = indicatorOffset.toInt(), y = 0) }
+                                        .offset { IntOffset(x = indicatorOffset.roundToInt(), y = 0) }
                                         .width(itemSize)
                                         .graphicsLayer {
                                             scaleX = if (isDraggingPill) 1.1f else 1f
@@ -207,11 +241,7 @@ fun BottomBar(
                                     Box(
                                         modifier = Modifier
                                             .size(itemSize)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .clickable(
-                                                enabled = !isDraggingPill,
-                                                onClick = { onPageChange(index) }
-                                            ),
+                                            .clip(RoundedCornerShape(16.dp)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
