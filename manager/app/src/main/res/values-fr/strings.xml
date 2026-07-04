@@ -125,8 +125,13 @@
     <string name="allowlist_restore_failed">La restauration de la liste d\'autorisations a échoué : %1$s</string>
     <string name="backup_allowlist">Sauvegarder la liste blanche</string>
     <string name="restore_allowlist">Restaurer la liste blanche</string>
-    <string name="settings_custom_background">Arrière-plan personnalisé de l\'application</string>
-    <string name="settings_custom_background_summary">Image as arrière-plan</string>
+    <string name="settings_custom_background">Arrière-plan personnalisé de la carte Working</string>
+    <string name="settings_custom_background_summary">Sélectionner une image comme arrière-plan de la carte Working</string>
+    <string name="full_screen_background">Arrière-plan plein écran personnalisé</string>
+    <string name="full_screen_background_summary">Sélectionner une image 9:16 comme arrière-plan plein écran</string>
+    <string name="full_screen_background_preview_title">Aperçu de l\'arrière-plan 9:16</string>
+    <string name="full_screen_background_blur">Flou de l\'arrière-plan plein écran</string>
+    <string name="full_screen_background_blur_summary">Activer l\'effet de flou pour l\'arrière-plan plein écran</string>
     <string name="home_android_version">Version Android</string>
     <string name="home_device_model">Modèle du téléphone</string>
     <string name="su_not_allowed">Donner un super-utilisateur à %s n\'est pas autorisé</string>

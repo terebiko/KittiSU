@@ -131,8 +131,13 @@
     <string name="allowlist_restore_failed">فشل استعادة القائمة المسموحة: %1$s</string>
     <string name="backup_allowlist">قائمة النسخ الاحتياطي</string>
     <string name="restore_allowlist">استعادة قائمة المسموح بها</string>
-    <string name="settings_custom_background">خلفية التطبيق المخصصة</string>
-    <string name="settings_custom_background_summary">حدد صورة كخلفية</string>
+    <string name="settings_custom_background">خلفية بطاقة Working المخصصة</string>
+    <string name="settings_custom_background_summary">حدد صورة كخلفية لبطاقة Working</string>
+    <string name="full_screen_background">خلفية الشاشة الكاملة المخصصة</string>
+    <string name="full_screen_background_summary">حدد صورة 9:16 كخلفية للشاشة الكاملة</string>
+    <string name="full_screen_background_preview_title">معاينة خلفية 9:16</string>
+    <string name="full_screen_background_blur">ضبابية الخلفية الكاملة</string>
+    <string name="full_screen_background_blur_summary">تمكين تأثير الضبابية للخلفية الكاملة</string>
     <string name="home_android_version">‏إصدار Android</string>
     <string name="home_device_model">نوع الجهاز</string>
     <string name="su_not_allowed">لا يسمح بمنح المستخدم المتميز ل %s</string>

@@ -134,8 +134,13 @@
     <string name="allowlist_restore_failed">Gagal memulihkan daftar izin: %1$s</string>
     <string name="backup_allowlist">Cadangkan Daftar Izin</string>
     <string name="restore_allowlist">Pulihkan Daftar Izin</string>
-    <string name="settings_custom_background">Latar belakang kustom</string>
-    <string name="settings_custom_background_summary">Pilih gambar untuk latar belakang</string>
+    <string name="settings_custom_background">Latar Belakang Kartu Working Kustom</string>
+    <string name="settings_custom_background_summary">Pilih gambar untuk latar belakang kartu Working</string>
+    <string name="full_screen_background">Latar Belakang Layar Penuh Kustom</string>
+    <string name="full_screen_background_summary">Pilih gambar 9:16 sebagai latar belakang layar penuh</string>
+    <string name="full_screen_background_preview_title">Pratinjau Latar Belakang 9:16</string>
+    <string name="full_screen_background_blur">Kabur Latar Belakang Layar Penuh</string>
+    <string name="full_screen_background_blur_summary">Aktifkan efek kabur untuk latar belakang layar penuh</string>
     <string name="home_android_version">Versi Android</string>
     <string name="home_device_model">Model Perangkat</string>
     <string name="su_not_allowed">Memberikan hak superuser kepada %s tidak diizinkan</string>

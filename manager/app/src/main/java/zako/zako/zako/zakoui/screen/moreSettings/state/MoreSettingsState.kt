@@ -57,8 +57,12 @@ class MoreSettingsState(
 
     // 卡片配置状态
     var cardAlpha by mutableFloatStateOf(CardConfig.cardAlpha)
-    var backgroundDim by mutableFloatStateOf(ThemeConfig.backgroundDim)
     var isCustomBackgroundEnabled by mutableStateOf(ThemeConfig.customBackgroundUri != null)
+
+    // Full-screen background state
+    var isFullScreenBackgroundEnabled by mutableStateOf(ThemeConfig.isFullScreenBackgroundEnabled)
+    var fullScreenBackgroundDim by mutableFloatStateOf(ThemeConfig.fullScreenBackgroundDim)
+    var fullScreenBackgroundBlur by mutableStateOf(ThemeConfig.fullScreenBackgroundBlur)
 
     // DPI 设置
     val systemDpi = context.resources.displayMetrics.densityDpi

@@ -139,8 +139,13 @@
     <string name="allowlist_restore_failed">허용 목록 복원 실패: %1$s</string>
     <string name="backup_allowlist">허용 목록 백업</string>
     <string name="restore_allowlist">허용 목록 복원</string>
-    <string name="settings_custom_background">사용자 지정 앱 배경</string>
-    <string name="settings_custom_background_summary">배경으로 사용할 이미지를 선택합니다.</string>
+    <string name="settings_custom_background">Working 카드 사용자 지정 배경</string>
+    <string name="settings_custom_background_summary">Working 카드 배경으로 사용할 이미지를 선택합니다.</string>
+    <string name="full_screen_background">전체 화면 사용자 지정 배경</string>
+    <string name="full_screen_background_summary">9:16 이미지를 전체 화면 배경으로 선택합니다.</string>
+    <string name="full_screen_background_preview_title">9:16 배경 미리보기</string>
+    <string name="full_screen_background_blur">전체 화면 배경 흐림</string>
+    <string name="full_screen_background_blur_summary">전체 화면 배경에 흐림 효과를 사용합니다.</string>
     <string name="settings_card_alpha">카드 투명도</string>
     <string name="home_android_version">Android 버전</string>
     <string name="home_device_model">기기 모델</string>

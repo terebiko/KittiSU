@@ -223,7 +223,7 @@ fun SearchAppBar(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                if (ThemeConfig.isEnableBlur)
+                if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
                     MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha)
@@ -259,10 +259,10 @@ fun SearchAppBar(
             windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor =
-                    if (ThemeConfig.backgroundImageLoaded) Color.Transparent
+                    if (ThemeConfig.backgroundImageLoaded || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer,
                 scrolledContainerColor =
-                    if (ThemeConfig.backgroundImageLoaded) Color.Transparent
+                    if (ThemeConfig.backgroundImageLoaded || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer,
             ),
         )

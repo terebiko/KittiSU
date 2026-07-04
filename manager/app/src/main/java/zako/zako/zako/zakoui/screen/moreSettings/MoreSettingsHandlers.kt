@@ -39,8 +39,10 @@ class MoreSettingsHandlers(
         // 加载设置
         CardConfig.load(activity)
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
         state.isCustomBackgroundEnabled = ThemeConfig.customBackgroundUri != null
+        state.isFullScreenBackgroundEnabled = ThemeConfig.isFullScreenBackgroundEnabled
+        state.fullScreenBackgroundDim = ThemeConfig.fullScreenBackgroundDim
+        state.fullScreenBackgroundBlur = ThemeConfig.fullScreenBackgroundBlur
 
         // 设置主题模式
         state.themeMode = when (ThemeConfig.forceDarkMode) {
@@ -181,7 +183,6 @@ class MoreSettingsHandlers(
         activity.saveAndApplyCustomBackground(transformedUri)
         state.isCustomBackgroundEnabled = true
         CardConfig.cardAlpha = 0.55f
-        BackgroundManager.saveBackgroundDim(activity, 0.3f)
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, true)
         BackgroundManager.saveEnableHighContrastMode(activity, false)
@@ -190,7 +191,6 @@ class MoreSettingsHandlers(
         CardConfig.save(activity)
 
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
 
         Toast.makeText(
             activity,
@@ -212,9 +212,7 @@ class MoreSettingsHandlers(
         ThemeConfig.preventBackgroundRefresh = false
 
         state.cardAlpha = CardConfig.cardAlpha
-        state.backgroundDim = ThemeConfig.backgroundDim
 
-        BackgroundManager.saveBackgroundDim(activity, 0f)
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, false)
         BackgroundManager.saveEnableHighContrastMode(activity, false)
@@ -244,11 +242,68 @@ class MoreSettingsHandlers(
     }
 
     /**
-     * 处理卡片亮度变更
+     * 处理全屏背景
      */
-    fun handleBackgroundDimChange(newValue: Float) {
-        state.backgroundDim = newValue
-        BackgroundManager.saveBackgroundDim(activity, newValue)
+    fun handleFullScreenBackground(uri: Uri) {
+        BackgroundManager.saveFullScreenBackground(activity, uri)
+        state.isFullScreenBackgroundEnabled = true
+        state.fullScreenBackgroundDim = 0.3f
+        BackgroundManager.saveFullScreenBackgroundDim(activity, 0.3f)
+        BackgroundManager.saveFullScreenBackgroundBlur(activity, false)
+
+        CardConfig.updateFullScreenBackground(true)
+        if (!CardConfig.isCustomAlphaSet) {
+            CardConfig.cardAlpha = 0.55f
+        }
+        CardConfig.save(activity)
+        state.cardAlpha = CardConfig.cardAlpha
+
+        Toast.makeText(
+            activity,
+            activity.getString(R.string.background_set_success),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    /**
+     * 处理移除全屏背景
+     */
+    fun handleRemoveFullScreenBackground() {
+        BackgroundManager.clearFullScreenBackground(activity)
+        state.isFullScreenBackgroundEnabled = false
+        state.fullScreenBackgroundDim = 0f
+        BackgroundManager.saveFullScreenBackgroundDim(activity, 0f)
+        BackgroundManager.saveFullScreenBackgroundBlur(activity, false)
+
+        CardConfig.updateFullScreenBackground(false)
+        if (!CardConfig.isCustomBackgroundEnabled) {
+            CardConfig.cardAlpha = 1f
+            CardConfig.isCustomAlphaSet = false
+        }
+        CardConfig.save(activity)
+        state.cardAlpha = CardConfig.cardAlpha
+
+        Toast.makeText(
+            activity,
+            activity.getString(R.string.background_removed),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    /**
+     * 处理全屏背景暗度变更
+     */
+    fun handleFullScreenDimChange(newValue: Float) {
+        state.fullScreenBackgroundDim = newValue
+        BackgroundManager.saveFullScreenBackgroundDim(activity, newValue)
+    }
+
+    /**
+     * 处理全屏背景模糊变更
+     */
+    fun handleFullScreenBlurChange(newValue: Boolean) {
+        state.fullScreenBackgroundBlur = newValue
+        BackgroundManager.saveFullScreenBackgroundBlur(activity, newValue)
     }
 
     /**

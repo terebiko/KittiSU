@@ -188,8 +188,13 @@
     <string name="allowlist_restore_failed">應用程式列表還原失敗：%1$s</string>
     <string name="backup_allowlist">備份應用程式列表</string>
     <string name="restore_allowlist">還原應用程式列表</string>
-    <string name="settings_custom_background">自訂應用程式背景</string>
-    <string name="settings_custom_background_summary">選擇一張圖片作為應用程式背景</string>
+    <string name="settings_custom_background">自訂 Working 卡片背景</string>
+    <string name="settings_custom_background_summary">選擇一張圖片作為 Working 卡片背景</string>
+    <string name="full_screen_background">自訂全螢幕背景</string>
+    <string name="full_screen_background_summary">選擇一張 9:16 圖片作為全螢幕背景</string>
+    <string name="full_screen_background_preview_title">預覽 9:16 背景</string>
+    <string name="full_screen_background_blur">全螢幕背景模糊</string>
+    <string name="full_screen_background_blur_summary">為全螢幕背景啟用模糊效果</string>
     <string name="settings_card_alpha">卡片不透明度</string>
     <string name="home_android_version">Android 版本</string>
     <string name="home_device_model">裝置型號</string>

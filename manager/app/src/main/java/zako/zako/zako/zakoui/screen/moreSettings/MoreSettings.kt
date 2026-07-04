@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -581,6 +582,19 @@ private fun AppearanceSettings(
             }
         )
 
+        expandableItem(
+            expanded = ThemeConfig.isFullScreenBackgroundEnabled,
+            topContent = {
+                FullScreenBackgroundSettings(
+                    state = state,
+                    handlers = handlers,
+                )
+            },
+            bottomContent = {
+                fullScreenBackgroundAdjustmentControls(state, handlers, coroutineScope)
+            }
+        )
+
         // TODO Add HazeConfig and unify hazeState management
     }
 }
@@ -902,63 +916,126 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
     handlers: MoreSettingsHandlers,
     coroutineScope: CoroutineScope,
 ) {
-    item(
-        topPadding = 1.dp
-    ) {
-        AlphaSlider(
-            state = state,
-            handlers = handlers,
-            coroutineScope = coroutineScope
-        )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        item(
+            topPadding = 1.dp,
+        ) {
+            val context = LocalContext.current
+
+            SettingsSwitchWidget(
+                icon = Icons.Filled.Contrast,
+                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
+                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
+                checked = ThemeConfig.isHighContrastMode,
+                onCheckedChange = { isChecked ->
+                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun FullScreenBackgroundSettings(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+) {
+    val context = LocalContext.current
+
+    val fullScreenCropLauncher = rememberLauncherForActivityResult(
+        object : ActivityResultContract<Uri, Uri?>() {
+            override fun createIntent(context: Context, input: Uri): Intent {
+                val tempFile = File(context.cacheDir, "fullscreen_background_crop_cache").apply {
+                    parentFile?.mkdirs()
+                    delete()
+                    createNewFile()
+                    deleteOnExit()
+                }
+
+                context.contentResolver.openInputStream(input)?.use { inputStream ->
+                    tempFile.outputStream().use { outputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                val tempUri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    tempFile
+                )
+
+                return Intent("com.android.camera.action.CROP").apply {
+                    setDataAndType(tempUri, "image/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    putExtra("crop", "true")
+
+                    val displayMetrics = context.resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
+                    val screenHeight = displayMetrics.heightPixels
+                    val divisor = gcd(screenWidth, screenHeight)
+                    val aspectX = screenWidth / divisor
+                    val aspectY = screenHeight / divisor
+
+                    putExtra("aspectX", aspectX)
+                    putExtra("aspectY", aspectY)
+                    putExtra("outputX", screenWidth)
+                    putExtra("outputY", screenHeight)
+                    putExtra("return-data", false)
+                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
+                }
+            }
+
+            override fun parseResult(
+                resultCode: Int,
+                intent: Intent?
+            ): Uri? {
+                return intent?.data
+            }
+        }
+    ) { uri: Uri? ->
+        uri?.let {
+            handlers.handleFullScreenBackground(it)
+        }
     }
 
-    item(
-        topPadding = 1.dp
-    ) {
-        DimSlider(
-            state = state,
-            handlers = handlers,
-            coroutineScope = coroutineScope
-        )
+    val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            fullScreenCropLauncher.launch(uri)
+        }
+    }
+
+    SettingsSwitchWidget(
+        icon = Icons.Filled.Wallpaper,
+        title = stringResource(id = R.string.full_screen_background),
+        description = stringResource(id = R.string.full_screen_background_summary),
+        checked = state.isFullScreenBackgroundEnabled,
+        onCheckedChange = { isChecked ->
+            if (isChecked) {
+                fullScreenPickImageLauncher.launch("image/*")
+            } else {
+                handlers.handleRemoveFullScreenBackground()
+            }
+        },
+    )
+}
+
+private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+    coroutineScope: CoroutineScope
+) {
+    item(topPadding = 1.dp) {
+        DimSlider(state, handlers, coroutineScope)
+    }
+
+    item(topPadding = 1.dp) {
+        AlphaSlider(state, handlers, coroutineScope)
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        expandableItem(
-            expanded = ThemeConfig.isEnableBlur,
-            topPadding = 1.dp,
-            topContent = {
-                val context = LocalContext.current
-
-                SettingsSwitchWidget(
-                    icon = Icons.Filled.BlurOn,
-                    title = stringResource(id = R.string.settings_config_enable_blur),
-                    description = stringResource(id = R.string.settings_config_enable_blur_summary),
-                    checked = ThemeConfig.isEnableBlur,
-                    onCheckedChange = { isChecked ->
-                        BackgroundManager.saveEnableBlur(context, isChecked)
-                    }
-                )
-            },
-            bottomContent = {
-                item(
-                    topPadding = 1.dp,
-                ) {
-                    val context = LocalContext.current
-
-                    SettingsSwitchWidget(
-                        icon = Icons.Filled.Draw,
-                        title = stringResource(id = R.string.settings_exp_draw_background_to_blur),
-                        description = stringResource(id = R.string.settings_exp_draw_background_to_blur_description),
-                        isError = true,
-                        checked = ThemeConfig.isEnableBlurExp,
-                        onCheckedChange = { isChecked ->
-                            BackgroundManager.saveEnableBlurExp(context, isChecked)
-                        }
-                    )
-                }
-            }
-        )
-
         item(
             visible = state.useDynamicColor,
             topPadding = 1.dp,
@@ -972,22 +1049,6 @@ private fun SegmentedColumnScope.backgroundAdjustmentControls(
                 checked = ThemeConfig.isUseBackgroundSeedColor,
                 onCheckedChange = { isChecked ->
                     BackgroundManager.saveUseBackgroundSeedColor(context, isChecked)
-                }
-            )
-        }
-
-        item(
-            topPadding = 1.dp,
-        ) {
-            val context = LocalContext.current
-
-            SettingsSwitchWidget(
-                icon = Icons.Filled.Contrast,
-                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
-                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
-                checked = ThemeConfig.isHighContrastMode,
-                onCheckedChange = { isChecked ->
-                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
                 }
             )
         }
@@ -1053,21 +1114,21 @@ private fun DimSlider(
         title = stringResource(R.string.settings_background_dim),
         descriptionColumnContent = {
             val dimSliderValue by animateFloatAsState(
-                targetValue = state.backgroundDim,
+                targetValue = state.fullScreenBackgroundDim,
                 label = "Dim Slider Animation"
             )
 
             Slider(
                 value = dimSliderValue,
                 onValueChange = { newValue ->
-                    handlers.handleBackgroundDimChange(newValue)
+                    handlers.handleFullScreenDimChange(newValue)
                 },
                 onValueChangeFinished = {
                     coroutineScope.launch(Dispatchers.IO) {
                         CardConfig.save(handlers.activity)
                     }
                 },
-                valueRange = 0f..1f,
+                valueRange = 0f..0.9f,
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -1084,7 +1145,7 @@ private fun DimSlider(
             )
 
             Text(
-                text = "${(state.backgroundDim * 100).roundToInt()}%",
+                text = "${(state.fullScreenBackgroundDim * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMediumEmphasized,
             )
         }
@@ -1127,3 +1188,6 @@ private fun LanguageSetting(state: MoreSettingsState) {
         )
     }
 }
+
+private tailrec fun gcd(a: Int, b: Int): Int =
+    if (b == 0) a else gcd(b, a % b)

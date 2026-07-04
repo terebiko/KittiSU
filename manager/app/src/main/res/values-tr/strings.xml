@@ -186,8 +186,13 @@
     <string name="allowlist_restore_failed">İzin verilen listesi geri yükleme başarısız: %1$s</string>
     <string name="backup_allowlist">İzin verilen listesini yedekle</string>
     <string name="restore_allowlist">İzin verilen listesini geri yükle</string>
-    <string name="settings_custom_background">Özel Uygulama Arka Planı</string>
-    <string name="settings_custom_background_summary">Bir görüntü seçin ve arka plan olarak ayarlayın</string>
+    <string name="settings_custom_background">Özel Working Kart Arka Planı</string>
+    <string name="settings_custom_background_summary">Working kartı arka planı olarak bir görüntü seçin</string>
+    <string name="full_screen_background">Özel Tam Ekran Arka Planı</string>
+    <string name="full_screen_background_summary">Tam ekran arka planı olarak 9:16 görüntü seçin</string>
+    <string name="full_screen_background_preview_title">9:16 Arka Plan Önizlemesi</string>
+    <string name="full_screen_background_blur">Tam Ekran Arka Plan Bulanıklığı</string>
+    <string name="full_screen_background_blur_summary">Tam ekran arka planı için bulanıklık efektini etkinleştir</string>
     <string name="settings_card_alpha">Kart opaklığı</string>
     <string name="home_android_version">Android sürümü</string>
     <string name="home_device_model">Cihaz modeli</string>
