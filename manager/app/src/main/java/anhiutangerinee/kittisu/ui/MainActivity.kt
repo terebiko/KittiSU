@@ -15,11 +15,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -43,12 +52,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.paint
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
@@ -69,6 +82,7 @@ import androidx.navigationevent.compose.NavigationEventState
 import androidx.navigationevent.compose.rememberNavigationEventState
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
+import anhiutangerinee.kittisu.ui.activity.component.BottomBar
 import anhiutangerinee.kittisu.ui.activity.component.NavigationBar
 import anhiutangerinee.kittisu.ui.activity.util.ThemeChangeContentObserver
 import anhiutangerinee.kittisu.ui.activity.util.ThemeUtils
@@ -131,6 +145,40 @@ import zako.zako.zako.zakoui.screen.kernelFlash.KernelFlashScreen
 import zako.zako.zako.zakoui.screen.moreSettings.MoreSettingsScreen
 import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 import kotlin.coroutines.resume
+import kotlin.math.abs
+
+@Composable
+fun rememberScrollConnection(
+    isScrollingDown: MutableState<Boolean>,
+    scrollOffset: MutableState<Float>,
+    previousScrollOffset: MutableState<Float>,
+    threshold: Float = 50f
+): NestedScrollConnection {
+    return remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = scrollOffset.value + delta
+                scrollOffset.value = newOffset
+                val scrollDelta = previousScrollOffset.value - newOffset
+
+                if (abs(scrollDelta) > threshold) {
+                    isScrollingDown.value = scrollDelta > 0
+                    previousScrollOffset.value = newOffset
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity
+            ): Velocity {
+                previousScrollOffset.value = scrollOffset.value
+                return super.onPostFling(consumed, available)
+            }
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private lateinit var superUserViewModel: SuperUserViewModel
@@ -760,6 +808,9 @@ fun MainScreen() {
         initialPage = uiSelectedPage,
         pageCount = { pages.size }
     )
+    val isScrollingDown = remember { mutableStateOf(false) }
+    val scrollOffset = remember { mutableFloatStateOf(0f) }
+    val previousScrollOffset = remember { mutableFloatStateOf(0f) }
     var userScrollEnabled by remember { mutableStateOf(true) }
     var animating by remember { mutableStateOf(false) }
     var animateJob by remember { mutableStateOf<Job?>(null) }
@@ -824,47 +875,77 @@ fun MainScreen() {
             modifier = Modifier.fillMaxSize()
         ) {
             val isPortrait = maxWidth < maxHeight || (maxHeight / maxWidth > 1.4f)
-            val content = @Composable { paddingBottom: Dp ->
-                HorizontalPager(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blurSource(),
-                    state = pagerState,
-                    userScrollEnabled = userScrollEnabled,
-                ) { pageIndex ->
-                    if (pages.isEmpty()) return@HorizontalPager
-
-                    val snackBarHostState = remember { SnackbarHostState() }
-                    CompositionLocalProvider(
-                        LocalSnackbarHost provides snackBarHostState,
-                        LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
-                    ) {
-                        val destination = pages[pageIndex]
-                        destination.direction(paddingBottom)
-                    }
-                }
-            }
 
             if (isPortrait) {
+                val bottomBarScrollConnection = rememberScrollConnection(
+                    isScrollingDown = isScrollingDown,
+                    scrollOffset = scrollOffset,
+                    previousScrollOffset = previousScrollOffset
+                )
+                val showBottomBar = !isScrollingDown.value
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    bottomBar = {
-                        NavigationBar(
-                            destinations = pages,
-                            isBottomBar = true,
-                        )
-                    },
                     containerColor = Color.Transparent,
                 ) { innerPadding ->
-                    content(innerPadding.calculateBottomPadding())
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        HorizontalPager(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blurSource()
+                                .nestedScroll(bottomBarScrollConnection),
+                            state = pagerState,
+                            userScrollEnabled = userScrollEnabled,
+                        ) { pageIndex ->
+                            if (pages.isEmpty()) return@HorizontalPager
+
+                            val snackBarHostState = remember { SnackbarHostState() }
+                            CompositionLocalProvider(
+                                LocalSnackbarHost provides snackBarHostState,
+                                LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
+                            ) {
+                                val destination = pages[pageIndex]
+                                destination.direction(innerPadding.calculateBottomPadding())
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = showBottomBar,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .windowInsetsPadding(WindowInsets.navigationBars),
+                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                        ) {
+                            BottomBar(
+                                destinations = pages,
+                                selectedPage = pagerState.currentPage,
+                                onPageChange = handlePageChange
+                            )
+                        }
+                    }
                 }
             } else {
                 Row(modifier = Modifier.fillMaxSize()) {
-                    NavigationBar(
-                        destinations = pages,
-                        isBottomBar = false,
-                    )
-                    content(0.dp)
+                    NavigationBar(destinations = pages)
+                    HorizontalPager(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blurSource(),
+                        state = pagerState,
+                        userScrollEnabled = userScrollEnabled,
+                    ) { pageIndex ->
+                        if (pages.isEmpty()) return@HorizontalPager
+
+                        val snackBarHostState = remember { SnackbarHostState() }
+                        CompositionLocalProvider(
+                            LocalSnackbarHost provides snackBarHostState,
+                            LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
+                        ) {
+                            val destination = pages[pageIndex]
+                            destination.direction(0.dp)
+                        }
+                    }
                 }
             }
         }
