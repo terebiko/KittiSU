@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.navigationBars
@@ -14,10 +13,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailColors
@@ -28,14 +25,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -53,13 +45,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-// TODO Add FloatingBottomBar as an choice to user
 @SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NavigationBar(
     destinations: List<BottomBarDestination>,
-    isBottomBar: Boolean
 ) {
     val activity = LocalContext.current as MainActivity
 
@@ -96,66 +86,36 @@ fun NavigationBar(
         }
     }
 
-    if (isBottomBar) {
-        FlexibleBottomAppBar(
-            modifier = Modifier
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = 24.dp, vertical = 12.dp)
-                .clip(RoundedCornerShape(100))
-                .blurEffect(),
+    WideNavigationRail(
+        modifier = Modifier
+            .windowInsetsPadding(
+                WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
+            )
+            .blurEffect(),
+        colors = WideNavigationRailColors(
             containerColor =
                 if (ThemeConfig.isEnableBlur)
                     Color.Transparent
                 else
                     MaterialTheme.colorScheme.surfaceContainerHigh.copy(CardConfig.cardAlpha),
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ) {
-            destinations.forEachIndexed { index, destination ->
-                BottomBarNavigationItem(
-                    isSelected = index == page,
-                    destination = destination,
-                    onClick = {
-                        handlePageChange(index)
-                    },
-                    kpmModuleCount = kpmModuleCount,
-                    superuserCount = superuserCount,
-                    moduleCount = moduleCount,
-                    isHideOtherInfo = isHideOtherInfo,
-                )
-            }
-        }
-    } else {
-        WideNavigationRail(
-            modifier = Modifier
-                .windowInsetsPadding(
-                    WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
-                )
-                .blurEffect(),
-            colors = WideNavigationRailColors(
-                containerColor =
-                    if (ThemeConfig.isEnableBlur)
-                        Color.Transparent
-                    else
-                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(CardConfig.cardAlpha),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                modalContainerColor = WideNavigationRailDefaults.colors().modalContainerColor,
-                modalScrimColor = WideNavigationRailDefaults.colors().modalScrimColor,
-                modalContentColor = WideNavigationRailDefaults.colors().modalContentColor,
-            ),
-        ) {
-            destinations.forEachIndexed { index, destination ->
-                NavigationRailItem(
-                    isSelected = index == page,
-                    destination = destination,
-                    onClick = {
-                        handlePageChange(index)
-                    },
-                    kpmModuleCount = kpmModuleCount,
-                    superuserCount = superuserCount,
-                    moduleCount = moduleCount,
-                    isHideOtherInfo = isHideOtherInfo,
-                )
-            }
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            modalContainerColor = WideNavigationRailDefaults.colors().modalContainerColor,
+            modalScrimColor = WideNavigationRailDefaults.colors().modalScrimColor,
+            modalContentColor = WideNavigationRailDefaults.colors().modalContentColor,
+        ),
+    ) {
+        destinations.forEachIndexed { index, destination ->
+            NavigationRailItem(
+                isSelected = index == page,
+                destination = destination,
+                onClick = {
+                    handlePageChange(index)
+                },
+                kpmModuleCount = kpmModuleCount,
+                superuserCount = superuserCount,
+                moduleCount = moduleCount,
+                isHideOtherInfo = isHideOtherInfo,
+            )
         }
     }
 }
@@ -194,43 +154,6 @@ private fun NavigationRailItem(
             }
         },
         label = { }
-    )
-}
-
-@Composable
-private fun RowScope.BottomBarNavigationItem(
-    isSelected: Boolean,
-    destination: BottomBarDestination,
-    onClick: () -> Unit,
-    kpmModuleCount: Int,
-    superuserCount: Int,
-    moduleCount: Int,
-    isHideOtherInfo: Boolean
-) {
-    NavigationBarItem(
-        selected = isSelected,
-        onClick = onClick,
-        icon = {
-            BadgedBox(
-                badge = {
-                    DestinationBadge(
-                        dest = destination,
-                        superUser = superuserCount,
-                        module = moduleCount,
-                        kpm = kpmModuleCount,
-                        isHideOtherInfo = isHideOtherInfo,
-                    )
-                }
-            ) {
-                if (isSelected) {
-                    Icon(destination.iconSelected, stringResource(destination.label))
-                } else {
-                    Icon(destination.iconNotSelected, stringResource(destination.label))
-                }
-            }
-        },
-        label = { },
-        alwaysShowLabel = false
     )
 }
 
