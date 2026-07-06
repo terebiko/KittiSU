@@ -24,7 +24,7 @@
           "directUrl": "github-latest://JingMatrix/Vector",
           "stopIfFail": true,
           "rebootAfter": false,
-          "dependsOn": ["zygisksu"],
+          "dependsOn": [],
           "requirement": null
         },
         {
