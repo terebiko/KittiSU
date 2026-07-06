@@ -5,6 +5,8 @@
       "id": "zygisk-brene-suite",
       "destination": "Zygisk + BRENE Suite",
       "author": "KittiSU",
+      "committer": "@thanhhuybynight",
+      "team": "KittiSU Official",
       "requiresRebootAtEnd": true,
       "modules": [
         {
