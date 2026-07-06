@@ -1326,19 +1326,20 @@ fun ModuleItem(
                     }
                 }
             }
+        }
 
-            val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
-            val interactionSource = remember { MutableInteractionSource() }
+        val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
+        val interactionSource = remember { MutableInteractionSource() }
 
-            LaunchedEffect(module.dirId) {
-                viewModel.loadSize(module.dirId)
-            }
+        LaunchedEffect(module.dirId) {
+            viewModel.loadSize(module.dirId)
+        }
 
-            val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
+        val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
 
-            val sizeStr = sizes[module.dirId]
+        val sizeStr = sizes[module.dirId]
 
-            Column(
+        Column(
             modifier = Modifier
                 .run {
                     if (module.hasActionScript || module.hasWebUi) {
