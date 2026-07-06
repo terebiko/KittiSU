@@ -9,6 +9,7 @@ import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.CacheControl
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -122,14 +123,14 @@ private fun fetchLatestTagArchive(owner: String, repo: String): String? {
 
 private fun cacheBusted(url: String): String = "$url?t=${System.currentTimeMillis()}"
 
-private fun noCacheRequest(url: String): Request =
-    Request.Builder().url(url).header("Cache-Control", "no-cache, no-store, must-revalidate").build()
+private fun forceNetworkRequest(url: String): Request =
+    Request.Builder().url(url).cacheControl(CacheControl.FORCE_NETWORK).build()
 
 suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispatchers.IO) {
     if (!isNetworkAvailable(ksuApp)) return@withContext null
     val url = cacheBusted(joinUrl(baseUrl, "index.json"))
     runCatching {
-        ksuApp.okhttpClient.newCall(noCacheRequest(url)).execute().use { resp ->
+        ksuApp.okhttpClient.newCall(forceNetworkRequest(url)).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             val body = resp.body?.string() ?: return@use null
             val obj = JSONObject(body)
@@ -153,7 +154,7 @@ suspend fun fetchPresetFileWithSignature(
     val jsonUrl = cacheBusted(joinUrl(baseUrl, fileName))
     val signUrl = cacheBusted(joinUrl(baseUrl, "$fileName.sign"))
     val jsonContent = runCatching {
-        ksuApp.okhttpClient.newCall(noCacheRequest(jsonUrl)).execute().use { resp ->
+        ksuApp.okhttpClient.newCall(forceNetworkRequest(jsonUrl)).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             resp.body?.string()
         }
@@ -163,7 +164,7 @@ suspend fun fetchPresetFileWithSignature(
     } ?: return@withContext null to PresetVerificationStatus.UNVERIFIED
 
     val signatureContent = runCatching {
-        ksuApp.okhttpClient.newCall(noCacheRequest(signUrl)).execute().use { resp ->
+        ksuApp.okhttpClient.newCall(forceNetworkRequest(signUrl)).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             resp.body?.string()?.trim()
         }
