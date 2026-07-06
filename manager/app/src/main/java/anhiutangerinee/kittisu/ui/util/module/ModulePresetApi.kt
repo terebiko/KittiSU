@@ -188,6 +188,8 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
     val id = obj.optString("id", "").ifBlank { return null }
     val destination = obj.optString("destination", id)
     val author = obj.optString("author", "").ifBlank { null }
+    val committer = obj.optString("committer", "").ifBlank { null }
+    val team = obj.optString("team", "").ifBlank { null }
     val requiresReboot = obj.optBoolean("requiresRebootAtEnd", false)
     val modulesArr = obj.optJSONArray("modules") ?: JSONArray()
     val modules = (0 until modulesArr.length()).mapNotNull { parsePresetModule(modulesArr.optJSONObject(it)) }
@@ -195,6 +197,8 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
         id = id,
         destination = destination,
         author = author,
+        committer = committer,
+        team = team,
         requiresRebootAtEnd = requiresReboot,
         modules = modules
     )

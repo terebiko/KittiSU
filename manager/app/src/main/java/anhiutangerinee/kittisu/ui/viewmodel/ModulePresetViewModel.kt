@@ -363,6 +363,8 @@ class ModulePresetViewModel : ViewModel() {
             put("id", entry.id)
             put("destination", entry.destination)
             entry.author?.let { put("author", it) }
+            entry.committer?.let { put("committer", it) }
+            entry.team?.let { put("team", it) }
             put("requiresRebootAtEnd", entry.requiresRebootAtEnd)
             put("modules", modules)
         }

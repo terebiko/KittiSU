@@ -22,6 +22,8 @@ data class PresetEntry(
     val id: String,
     val destination: String,
     val author: String? = null,
+    val committer: String? = null,
+    val team: String? = null,
     val requiresRebootAtEnd: Boolean = false,
     val modules: List<PresetModule>
 ) : Parcelable

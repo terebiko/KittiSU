@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
@@ -203,9 +205,39 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
                 Spacer(Modifier.size(8.dp))
                 VerificationBadge(preset)
             }
-            preset.presetEntry.author?.takeIf { it.isNotBlank() }?.let { a ->
+            preset.presetEntry.committer?.takeIf { it.isNotBlank() }?.let { committer ->
                 Spacer(Modifier.height(6.dp))
-                Text(a, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (committer.startsWith("@")) {
+                        val username = committer.removePrefix("@")
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data("https://avatars.githubusercontent.com/$username")
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.size(6.dp))
+                    }
+                    Text(
+                        text = "By: $committer",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            preset.presetEntry.team?.takeIf { it.isNotBlank() }?.let { team ->
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Team: $team",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -45,11 +45,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -221,9 +225,39 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            preset.presetEntry.author?.let { a ->
-                Spacer(Modifier.height(4.dp))
-                Text(a, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            preset.presetEntry.committer?.takeIf { it.isNotBlank() }?.let { committer ->
+                Spacer(Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (committer.startsWith("@")) {
+                        val username = committer.removePrefix("@")
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data("https://avatars.githubusercontent.com/$username")
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.size(8.dp))
+                    }
+                    Text(
+                        text = "By: $committer",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            preset.presetEntry.team?.takeIf { it.isNotBlank() }?.let { team ->
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Team: $team",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

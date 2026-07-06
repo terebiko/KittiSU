@@ -46,6 +46,8 @@ class ModulePresetViewModelTest {
         id = id,
         destination = id,
         author = "tester",
+        committer = "@tester",
+        team = "Test Team",
         requiresRebootAtEnd = requiresRebootAtEnd,
         modules = modules
     )
@@ -175,6 +177,8 @@ class ModulePresetViewModelTest {
         val round = parsed.preset.first()
         assertEquals(original.id, round.id)
         assertEquals(original.destination, round.destination)
+        assertEquals(original.committer, round.committer)
+        assertEquals(original.team, round.team)
         assertEquals(original.modules.size, round.modules.size)
         val m = round.modules.first()
         assertEquals("m1", m.moduleId)
@@ -216,6 +220,8 @@ class ModulePresetViewModelTest {
             put("id", entry.id)
             put("destination", entry.destination)
             entry.author?.let { put("author", it) }
+            entry.committer?.let { put("committer", it) }
+            entry.team?.let { put("team", it) }
             put("requiresRebootAtEnd", entry.requiresRebootAtEnd)
             put("modules", modules)
         }

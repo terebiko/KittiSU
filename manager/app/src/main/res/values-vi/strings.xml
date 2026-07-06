@@ -596,6 +596,8 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="preset_id">ID Preset</string>
     <string name="preset_destination">Đích</string>
     <string name="preset_author">Tác giả</string>
+    <string name="preset_committer">Người duy trì (thêm @ để lấy avatar GitHub)</string>
+    <string name="preset_team">Nhóm</string>
     <string name="preset_requires_reboot">Khởi động lại sau khi cài</string>
     <string name="preset_modules_section">Module</string>
     <string name="preset_remove_module">Xoá</string>

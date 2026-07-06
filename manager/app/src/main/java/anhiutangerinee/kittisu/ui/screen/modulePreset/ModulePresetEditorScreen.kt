@@ -97,6 +97,8 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
     var presetId by remember { mutableStateOf(preset?.presetEntry?.id.orEmpty()) }
     var destination by remember { mutableStateOf(preset?.presetEntry?.destination.orEmpty()) }
     var author by remember { mutableStateOf(preset?.presetEntry?.author.orEmpty()) }
+    var committer by remember { mutableStateOf(preset?.presetEntry?.committer.orEmpty()) }
+    var team by remember { mutableStateOf(preset?.presetEntry?.team.orEmpty()) }
     var requiresRebootAtEnd by remember { mutableStateOf(preset?.presetEntry?.requiresRebootAtEnd == true) }
     val modules = remember { mutableStateListOf<PresetModule>().apply { addAll(preset?.presetEntry?.modules.orEmpty()) } }
 
@@ -138,6 +140,8 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
             id = trimmedId,
             destination = destination.trim(),
             author = author.trim().ifBlank { null },
+            committer = committer.trim().ifBlank { null },
+            team = team.trim().ifBlank { null },
             requiresRebootAtEnd = requiresRebootAtEnd,
             modules = modules.toList()
         )
@@ -212,6 +216,10 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
                     onDestinationChange = { destination = it },
                     author = author,
                     onAuthorChange = { author = it },
+                    committer = committer,
+                    onCommitterChange = { committer = it },
+                    team = team,
+                    onTeamChange = { team = it },
                     requiresRebootAtEnd = requiresRebootAtEnd,
                     onRequiresRebootChange = { requiresRebootAtEnd = it },
                     enabled = !isReadOnly
@@ -315,6 +323,10 @@ private fun PresetInfoCard(
     onDestinationChange: (String) -> Unit,
     author: String,
     onAuthorChange: (String) -> Unit,
+    committer: String,
+    onCommitterChange: (String) -> Unit,
+    team: String,
+    onTeamChange: (String) -> Unit,
     requiresRebootAtEnd: Boolean,
     onRequiresRebootChange: (Boolean) -> Unit,
     enabled: Boolean
@@ -343,6 +355,24 @@ private fun PresetInfoCard(
                 value = author,
                 onValueChange = onAuthorChange,
                 label = { Text(stringResource(R.string.preset_author)) },
+                singleLine = true,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = committer,
+                onValueChange = onCommitterChange,
+                label = { Text(stringResource(R.string.preset_committer)) },
+                singleLine = true,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = team,
+                onValueChange = onTeamChange,
+                label = { Text(stringResource(R.string.preset_team)) },
                 singleLine = true,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
