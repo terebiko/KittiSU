@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -1278,7 +1279,52 @@ fun ModuleItem(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (useBanner && !module.banner.isNullOrBlank()) {
-                ModuleBanner(banner = module.banner)
+                val banner = module.banner
+                val alpha = 0.18f
+                Box(
+                    modifier = Modifier.matchParentSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (banner.startsWith("http", ignoreCase = true)) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(banner)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(),
+                            contentScale = ContentScale.Crop,
+                            alpha = alpha
+                        )
+                    } else {
+                        val bannerData by produceState<ByteArray?>(key1 = banner, initialValue = null) {
+                            value = withContext(Dispatchers.IO) {
+                                runCatching {
+                                    SuFile(banner).newInputStream().use { it.readBytes() }
+                                }.getOrNull()
+                            }
+                        }
+
+                        bannerData?.let { bytes ->
+                            val bitmap = remember(bytes) {
+                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                            }
+                            bitmap?.let {
+                                Image(
+                                    bitmap = it,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight(),
+                                    contentScale = ContentScale.Crop,
+                                    alpha = alpha
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
@@ -1542,57 +1588,6 @@ fun ModuleItem(
                             contentDescription = null
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModuleBanner(banner: String) {
-    val context = LocalContext.current
-    val alpha = 0.18f
-
-    Box(
-        modifier = Modifier.matchParentSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        if (banner.startsWith("http", ignoreCase = true)) {
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(banner)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(),
-                contentScale = ContentScale.Crop,
-                alpha = alpha
-            )
-        } else {
-            val bannerData by produceState<ByteArray?>(key1 = banner, initialValue = null) {
-                value = withContext(Dispatchers.IO) {
-                    runCatching {
-                        SuFile(banner).newInputStream().use { it.readBytes() }
-                    }.getOrNull()
-                }
-            }
-
-            bannerData?.let { bytes ->
-                val bitmap = remember(bytes) {
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-                }
-                bitmap?.let {
-                    Image(
-                        bitmap = it,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(),
-                        contentScale = ContentScale.Crop,
-                        alpha = alpha
-                    )
                 }
             }
         }
