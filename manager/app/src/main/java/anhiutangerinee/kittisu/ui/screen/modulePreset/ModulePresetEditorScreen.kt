@@ -264,6 +264,7 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
         ModuleEditDialog(
             initial = null,
             excludeIndex = null,
+            existingModules = modules,
             onDuplicateId = { scope.launch { snackBarHost.showSnackbar(moduleIdDuplicateMsg) } },
             onDismiss = { showAddModule = false },
             onSave = { m ->
@@ -276,6 +277,7 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
         ModuleEditDialog(
             initial = modules[idx],
             excludeIndex = idx,
+            existingModules = modules,
             onDuplicateId = { scope.launch { snackBarHost.showSnackbar(moduleIdDuplicateMsg) } },
             onDismiss = { editingIndex = null },
             onSave = { m ->
@@ -445,6 +447,7 @@ private fun ModuleRow(
 private fun ModuleEditDialog(
     initial: PresetModule?,
     excludeIndex: Int?,
+    existingModules: List<PresetModule>,
     onDuplicateId: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (PresetModule) -> Unit
@@ -561,8 +564,8 @@ private fun ModuleEditDialog(
         confirmButton = {
             TextButton(onClick = {
                 val trimmedId = moduleId.trim()
-                val dup = (0 until modules.size).any { i ->
-                    i != editingIdx && modules[i].moduleId == trimmedId
+                val dup = (0 until existingModules.size).any { i ->
+                    i != editingIdx && existingModules[i].moduleId == trimmedId
                 }
                 if (dup) {
                     onDuplicateId()

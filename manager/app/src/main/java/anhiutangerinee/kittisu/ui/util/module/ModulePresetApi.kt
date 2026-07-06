@@ -17,7 +17,7 @@ import java.security.MessageDigest
 const val OFFICIAL_PRESETS_BASE_URL =
     "https://raw.githubusercontent.com/terebiko/KittiSU/main/presets/"
 
-private const val TAG = "ModulePresetApi"
+private const val PRESET_API_TAG = "ModulePresetApi"
 
 sealed class RequirementCheckResult {
     object Passed : RequirementCheckResult()
@@ -65,7 +65,7 @@ suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispat
             PresetIndex(version = version, updatedAt = updatedAt, files = files)
         }
     }.getOrElse {
-        Log.e(TAG, "fetchPresetIndex failed: $url", it)
+        Log.e(PRESET_API_TAG, "fetchPresetIndex failed: $url", it)
         null
     }
 }
@@ -83,7 +83,7 @@ suspend fun fetchPresetFileWithSignature(
             resp.body?.string()
         }
     }.getOrElse {
-        Log.e(TAG, "fetchPresetFile failed: $jsonUrl", it)
+        Log.e(PRESET_API_TAG, "fetchPresetFile failed: $jsonUrl", it)
         null
     } ?: return@withContext null to PresetVerificationStatus.UNVERIFIED
 
@@ -93,13 +93,13 @@ suspend fun fetchPresetFileWithSignature(
             resp.body?.string()?.trim()
         }
     }.getOrElse {
-        Log.e(TAG, "fetch signature failed: $signUrl", it)
+        Log.e(PRESET_API_TAG, "fetch signature failed: $signUrl", it)
         null
     }
 
     val status = verifyPresetSignature(jsonContent, signatureContent)
     val parsed = runCatching { parsePresetFile(jsonContent, fileName) }.getOrElse {
-        Log.e(TAG, "parse preset file failed: $fileName", it)
+        Log.e(PRESET_API_TAG, "parse preset file failed: $fileName", it)
         null
     }
     parsed to status

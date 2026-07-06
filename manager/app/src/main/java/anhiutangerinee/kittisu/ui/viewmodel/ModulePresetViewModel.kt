@@ -133,7 +133,7 @@ class ModulePresetViewModel : ViewModel() {
         preset: LoadedPreset,
         skipInstalled: Boolean = true,
         isInstalledCheck: (String) -> Boolean = ::isModuleInstalled
-    ): ModuleInstallPlan {
+    ): Result<ModuleInstallPlan> {
         val modules = mutableListOf<PlanModule>()
         for (pm in preset.presetEntry.modules) {
             val installed = isInstalledCheck(pm.moduleId)
@@ -153,7 +153,9 @@ class ModulePresetViewModel : ViewModel() {
             )
         }
         val lastReboot = modules.lastOrNull()?.presetModule?.rebootAfter == true
-        return ModuleInstallPlan(modules = modules, requiresReboot = lastReboot || preset.presetEntry.requiresRebootAtEnd)
+        return Result.success(
+            ModuleInstallPlan(modules = modules, requiresReboot = lastReboot || preset.presetEntry.requiresRebootAtEnd)
+        )
     }
 
     suspend fun downloadAllModules(
