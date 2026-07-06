@@ -76,11 +76,10 @@ fun ModulePresetsScreen() {
     val viewModel = viewModel<ModulePresetViewModel>()
     val snackBarHost = LocalSnackbarHost.current
     val topAppBarState = rememberTopAppBarState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topAppBarState)
     val pullRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(Unit) {
-        scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit
         if (viewModel.sources.isEmpty()) viewModel.loadSources(context)
         if (viewModel.presets.isEmpty() && !viewModel.isRefreshing) viewModel.refreshPresets(context)
     }
