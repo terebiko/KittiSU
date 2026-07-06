@@ -10,8 +10,8 @@
         {
           "moduleName": "Zygisk Next",
           "moduleId": "zygisksu",
-          "moduleVersion": "1.4.2",
-          "directUrl": "https://github.com/Dr-TSNG/ZygiskNext/releases/download/v1.4.2/Zygisk-Next-1.4.2-789-119aaa0-release.zip",
+          "moduleVersion": "latest",
+          "directUrl": "github-latest://Dr-TSNG/ZygiskNext",
           "stopIfFail": true,
           "rebootAfter": false,
           "dependsOn": [],
@@ -20,8 +20,8 @@
         {
           "moduleName": "Vector",
           "moduleId": "zygisk_vector",
-          "moduleVersion": "2.0",
-          "directUrl": "https://github.com/JingMatrix/Vector/releases/download/v2.0/Vector-v2.0-3021-Release.zip",
+          "moduleVersion": "latest",
+          "directUrl": "github-latest://JingMatrix/Vector",
           "stopIfFail": true,
           "rebootAfter": false,
           "dependsOn": ["zygisksu"],
@@ -30,8 +30,8 @@
         {
           "moduleName": "BRENE",
           "moduleId": "brene",
-          "moduleVersion": "0.0.53",
-          "directUrl": "https://github.com/rrr333nnn333/BRENE/releases/download/v0.0.53/BRENE-v0.0.53.zip",
+          "moduleVersion": "latest",
+          "directUrl": "github-latest://rrr333nnn333/BRENE",
           "stopIfFail": true,
           "rebootAfter": true,
           "dependsOn": [],
