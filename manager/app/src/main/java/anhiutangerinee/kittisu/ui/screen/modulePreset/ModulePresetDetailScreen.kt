@@ -31,9 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -44,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -82,9 +79,6 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     val viewModel = viewModel<ModulePresetViewModel>()
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
-    val topAppBarState = rememberTopAppBarState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
-
     var downloadInProgress by remember { mutableStateOf(false) }
     var progressCurrent by remember { mutableIntStateOf(0) }
     var progressTotal by remember { mutableIntStateOf(0) }
@@ -98,15 +92,12 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     val depsFmt = stringResource(R.string.preset_dependencies_missing)
     val commandExecutionFailed = stringResource(R.string.command_execution_failed)
 
-    LaunchedEffect(Unit) { scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 modifier = Modifier.blurEffect(),
                 title = { Text(preset.presetEntry.destination, maxLines = 1) },
                 navigationIcon = { AppBackButton(onClick = { navigator.pop() }) },
-                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (ThemeConfig.isEnableBlur) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
@@ -186,7 +177,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection).blurSource(),
+            modifier = Modifier.fillMaxSize().blurSource(),
             contentPadding = PaddingValues(start = 16.dp, top = innerPadding.calculateTopPadding(), end = 16.dp, bottom = innerPadding.calculateBottomPadding() + 8.dp)
         ) {
             item { PresetHeaderCard(preset); Spacer(Modifier.height(16.dp)) }

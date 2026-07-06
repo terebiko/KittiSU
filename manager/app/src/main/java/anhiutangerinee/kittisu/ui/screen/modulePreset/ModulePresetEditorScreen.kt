@@ -40,9 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -84,9 +81,6 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
     val viewModel = viewModel<ModulePresetViewModel>()
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
-    val topAppBarState = rememberTopAppBarState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
-
     val isEdit = preset != null
     val isLocal = preset?.isLocal == true
     val isReadOnly = isEdit && !isLocal
@@ -104,8 +98,6 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
 
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     var showAddModule by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) { scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit }
 
     val idRequiredMsg = stringResource(R.string.preset_id_required)
     val destinationRequiredMsg = stringResource(R.string.preset_destination_required)
@@ -176,7 +168,6 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
                         Text(stringResource(R.string.preset_save))
                     }
                 },
-                scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (ThemeConfig.isEnableBlur) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
@@ -193,7 +184,6 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .blurSource(),
             contentPadding = PaddingValues(
                 start = 16.dp,
