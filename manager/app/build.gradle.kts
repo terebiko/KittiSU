@@ -238,4 +238,5 @@ dependencies {
 
     implementation(libs.accompanist.drawablepainter)
 
+    testImplementation("junit:junit:4.13.2")
 }
