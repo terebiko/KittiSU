@@ -201,6 +201,7 @@ fun FlashScreen(flashIt: FlashIt) {
     // 更新模块状态管理
     var hasUpdateExecuted by rememberSaveable { mutableStateOf(false) }
     var hasUpdateCompleted by rememberSaveable { mutableStateOf(false) }
+    var showRebootDialog by remember { mutableStateOf(false) }
 
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
@@ -400,7 +401,7 @@ fun FlashScreen(flashIt: FlashIt) {
 
                     viewModel.markNeedRefresh()
                 }
-                if (showReboot) {
+                if (showReboot && !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)) {
                     text += "\n\n\n"
                     showFloatAction = true
                 }
@@ -447,6 +448,8 @@ fun FlashScreen(flashIt: FlashIt) {
                         delay(500)
                         navigator.replace(Route.Flash(nextFlashIt))
                     }
+                } else if (flashIt is FlashIt.FlashModules && flashIt.fromPreset && code == 0) {
+                    showRebootDialog = true
                 }
             }, onStdout = {
                 tempText = "$it\n"
@@ -580,6 +583,25 @@ fun FlashScreen(flashIt: FlashIt) {
                 )
             }
         }
+    }
+
+    if (showRebootDialog) {
+        AlertDialog(
+            onDismissRequest = { showRebootDialog = false },
+            title = { Text(stringResource(R.string.preset_reboot_title)) },
+            text = { Text(stringResource(R.string.preset_reboot_content)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRebootDialog = false
+                    scope.launch { withContext(Dispatchers.IO) { reboot() } }
+                }) { Text(stringResource(R.string.preset_reboot_now)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRebootDialog = false }) {
+                    Text(stringResource(R.string.preset_reboot_later))
+                }
+            }
+        )
     }
 }
 
@@ -856,7 +878,7 @@ suspend fun getModuleIdFromUri(context: Context, uri: Uri): String? {
 sealed class FlashIt : Parcelable {
     data class FlashBoot(val boot: Uri? = null, val lkm: LkmSelection, val ota: Boolean, val partition: String? = null) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
-    data class FlashModules(val uris: List<Uri>, val currentIndex: Int = 0) : FlashIt()
+    data class FlashModules(val uris: List<Uri>, val currentIndex: Int = 0, val fromPreset: Boolean = false) : FlashIt()
     data class FlashModuleUpdate(val uri: Uri) : FlashIt() // 模块更新
     data object FlashRestore : FlashIt()
     data object FlashUninstall : FlashIt()
