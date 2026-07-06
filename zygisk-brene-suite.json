@@ -28,6 +28,16 @@
           "requirement": null
         },
         {
+          "moduleName": "Tricky Store",
+          "moduleId": "tricky_store",
+          "moduleVersion": "latest",
+          "directUrl": "github-latest://5ec1cff/TrickyStore",
+          "stopIfFail": true,
+          "rebootAfter": false,
+          "dependsOn": [],
+          "requirement": null
+        },
+        {
           "moduleName": "Yurikey Manager",
           "moduleId": "Yurikey",
           "moduleVersion": "latest",
