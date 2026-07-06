@@ -9,7 +9,6 @@ import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.CacheControl
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -119,16 +118,15 @@ private fun fetchLatestTagArchive(owner: String, repo: String): String? {
     }
 }
 
-private fun cacheBusted(url: String): String = "$url?t=${System.currentTimeMillis()}"
-
-private fun forceNetworkRequest(url: String): Request =
-    Request.Builder().url(url).cacheControl(CacheControl.FORCE_NETWORK).build()
+private val noCacheHttpClient by lazy {
+    ksuApp.okhttpClient.newBuilder().cache(null).build()
+}
 
 suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispatchers.IO) {
     if (!isNetworkAvailable(ksuApp)) return@withContext null
-    val url = cacheBusted(joinUrl(baseUrl, "index.json"))
+    val url = joinUrl(baseUrl, "index.json")
     runCatching {
-        ksuApp.okhttpClient.newCall(forceNetworkRequest(url)).execute().use { resp ->
+        noCacheHttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             val body = resp.body?.string() ?: return@use null
             val obj = JSONObject(body)
@@ -146,9 +144,9 @@ suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispat
 
 suspend fun fetchPresetFile(baseUrl: String, fileName: String): PresetFile? = withContext(Dispatchers.IO) {
     if (!isNetworkAvailable(ksuApp)) return@withContext null
-    val jsonUrl = cacheBusted(joinUrl(baseUrl, fileName))
+    val jsonUrl = joinUrl(baseUrl, fileName)
     runCatching {
-        ksuApp.okhttpClient.newCall(forceNetworkRequest(jsonUrl)).execute().use { resp ->
+        noCacheHttpClient.newCall(Request.Builder().url(jsonUrl).build()).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             val body = resp.body?.string() ?: return@use null
             parsePresetFile(body, fileName)
