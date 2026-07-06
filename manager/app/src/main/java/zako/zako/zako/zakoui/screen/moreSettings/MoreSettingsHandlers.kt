@@ -401,4 +401,12 @@ class MoreSettingsHandlers(
         prefs.edit { putBoolean("show_more_module_info", newValue) }
         state.showMoreModuleInfo = newValue
     }
+
+    /**
+     * 处理模块横幅背景变更
+     */
+    fun handleUseBannerChange(newValue: Boolean) {
+        prefs.edit { putBoolean("use_banner", newValue) }
+        state.useBanner = newValue
+    }
 }

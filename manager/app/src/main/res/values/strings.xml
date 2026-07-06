@@ -469,6 +469,8 @@
     <string name="module_update_json_copied">Update JSON URL copied to clipboard</string>
     <string name="show_more_module_info">Show More Module Info</string>
     <string name="show_more_module_info_summary">Display additional module information like update JSON URLs</string>
+    <string name="use_module_banner">Show Module Banner</string>
+    <string name="use_module_banner_summary">Display module-provided banner as card background</string>
     <string name="susfs_execution_location_label">Execution Location</string>
     <string name="susfs_current_execution_location">Current execution location: %s</string>
     <string name="susfs_execution_location_service">Service</string>

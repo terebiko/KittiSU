@@ -717,6 +717,80 @@ fn resolve_module_icon_path(
     }
 }
 
+/// Resolve a module banner path to an absolute on-disk path or keep URLs as-is.
+/// Unlike icons, banners may be remote URLs (http/https) or local files.
+fn resolve_module_banner_path(
+    module_prop_map: &mut HashMap<String, String>,
+    module_path: &Path,
+) {
+    let key = "banner";
+    let Some(banner_value) = module_prop_map.get(key).cloned() else {
+        return;
+    };
+    let banner_value = banner_value.trim();
+    if banner_value.is_empty() {
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Keep remote URLs as-is so the manager can load them directly.
+    if banner_value.starts_with("http://") || banner_value.starts_with("https://") {
+        return;
+    }
+
+    let path = std::path::Path::new(banner_value);
+
+    // If an absolute path is provided, keep it only if the file exists.
+    if path.is_absolute() {
+        if path.exists() && path.is_file() {
+            return;
+        }
+        log::debug!(
+            "Banner absolute path not found for module {}: {}",
+            module_prop_map.get("id").map_or("", String::as_str),
+            banner_value
+        );
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Reject parent traversal for security.
+    let has_parent = path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir));
+    if has_parent {
+        log::warn!(
+            "Rejected banner with parent traversal for module {}: {}",
+            module_prop_map.get("id").map_or("", String::as_str),
+            banner_value
+        );
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Try the installed module directory first, then the update directory as fallback.
+    let candidates = [
+        module_path.join(path),
+        Path::new(MODULE_UPDATE_DIR).join(module_path.file_name().unwrap_or_default()).join(path),
+    ];
+
+    for candidate in candidates {
+        if candidate.exists() && candidate.is_file() {
+            if let Some(s) = candidate.to_str() {
+                module_prop_map.insert(key.to_owned(), s.to_string());
+                return;
+            }
+        }
+    }
+
+    log::debug!(
+        "Banner not found for module {}: {}",
+        module_prop_map.get("id").map_or("", String::as_str),
+        banner_value
+    );
+    module_prop_map.remove(key);
+}
+
 fn list_module(path: &str) -> Vec<HashMap<String, String>> {
     // Load all module configs once to minimize I/O overhead
     let all_configs = match module_config::get_all_module_configs() {
@@ -779,6 +853,7 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
 
         resolve_module_icon_path(&mut module_prop_map, "actionIcon", &path);
         resolve_module_icon_path(&mut module_prop_map, "webuiIcon", &path);
+        resolve_module_banner_path(&mut module_prop_map, &path);
 
         // Apply module config overrides and extract managed features
         if let Some(module_id) = module_prop_map.get("id")

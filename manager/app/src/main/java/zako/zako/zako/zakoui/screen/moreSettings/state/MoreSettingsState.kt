@@ -53,6 +53,7 @@ class MoreSettingsState(
     var isHideLinkCard by mutableStateOf(prefs.getBoolean("is_hide_link_card", false))
     var isHideTagRow by mutableStateOf(prefs.getBoolean("is_hide_tag_row", false))
     var showMoreModuleInfo by mutableStateOf(prefs.getBoolean("show_more_module_info", false))
+    var useBanner by mutableStateOf(prefs.getBoolean("use_banner", true))
     var useAltIcon by mutableStateOf(prefs.getBoolean("use_alt_icon", false))
 
     // 卡片配置状态

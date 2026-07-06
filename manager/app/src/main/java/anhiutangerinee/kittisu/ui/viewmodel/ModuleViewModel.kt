@@ -86,6 +86,7 @@ class ModuleViewModel : ViewModel() {
         val metamodule: Boolean,
         val actionIconPath: String?,
         val webUiIconPath: String?,
+        val banner: String?,
         val dirId: String, // real module id (dir name)
         val moduleUpdate: ModuleUpdateInfo?
     )
@@ -186,6 +187,7 @@ class ModuleViewModel : ViewModel() {
                             metamodule = obj.getBooleanCompat("metamodule"),
                             actionIconPath = obj.optString("actionIcon").takeIf { it.isNotBlank() },
                             webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() },
+                            banner = obj.optString("banner").takeIf { it.isNotBlank() },
                             dirId = obj.optString("dir_id", obj.getString("id")),
                             moduleUpdate = null // we null moduleUpdate there, because checkUpdate may request network
                         )

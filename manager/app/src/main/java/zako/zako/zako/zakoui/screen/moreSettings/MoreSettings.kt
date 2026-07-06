@@ -628,6 +628,17 @@ private fun CustomizationSettings(
         }
 
         item {
+            // 模块横幅背景开关
+            SettingsSwitchWidget(
+                icon = Icons.Filled.Wallpaper,
+                title = stringResource(R.string.use_module_banner),
+                description = stringResource(R.string.use_module_banner_summary),
+                checked = state.useBanner,
+                onCheckedChange = handlers::handleUseBannerChange
+            )
+        }
+
+        item {
             // 简洁模式开关
             SettingsSwitchWidget(
                 icon = Icons.Filled.Brush,

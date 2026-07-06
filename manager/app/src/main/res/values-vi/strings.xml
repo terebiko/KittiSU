@@ -373,6 +373,8 @@
     <string name="module_update_json_copied">JSON URL cập nhật đã được sao chép vào clipboard</string>
     <string name="show_more_module_info">Hiển thị \"JSON URLs\"</string>
     <string name="show_more_module_info_summary">Hiển thị thông tin đường dẫn cập nhật \"JSON URLs\" của module</string>
+    <string name="use_module_banner">Hiển thị ảnh nền module</string>
+    <string name="use_module_banner_summary">Hiển thị ảnh nền do module cung cấp làm nền thẻ</string>
     <string name="susfs_execution_location_label">Vị trí thực thi</string>
     <string name="susfs_current_execution_location">Vị trí thực thi hiện tại: %s</string>
     <string name="susfs_execution_location_service_description">Thực thi sau khi dịch vụ hệ thống khởi động</string>

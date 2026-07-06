@@ -8,6 +8,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -108,6 +109,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -123,6 +125,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kyant.capsule.ContinuousRoundedRectangle
@@ -1261,6 +1265,8 @@ fun ModuleItem(
     val isHideTagRow = prefs.getBoolean("is_hide_tag_row", false)
     // 获取显示更多模块信息的设置
     val showMoreModuleInfo = prefs.getBoolean("show_more_module_info", false)
+    // 获取是否显示模块横幅背景的设置
+    val useBanner = prefs.getBoolean("use_banner", true)
 
     // 剪贴板管理器和触觉反馈
     val clipboardManager = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
@@ -1270,18 +1276,23 @@ fun ModuleItem(
         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(CardConfig.cardAlpha),
         shape = RoundedCornerShape(16.dp)
     ) {
-        val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
-        val interactionSource = remember { MutableInteractionSource() }
+        Box(modifier = Modifier.fillMaxWidth()) {
+            if (useBanner && !module.banner.isNullOrBlank()) {
+                ModuleBanner(banner = module.banner)
+            }
 
-        LaunchedEffect(module.dirId) {
-            viewModel.loadSize(module.dirId)
-        }
+            val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
+            val interactionSource = remember { MutableInteractionSource() }
 
-        val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
+            LaunchedEffect(module.dirId) {
+                viewModel.loadSize(module.dirId)
+            }
 
-        val sizeStr = sizes[module.dirId]
+            val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
 
-        Column(
+            val sizeStr = sizes[module.dirId]
+
+            Column(
             modifier = Modifier
                 .run {
                     if (module.hasActionScript || module.hasWebUi) {
@@ -1537,6 +1548,57 @@ fun ModuleItem(
     }
 }
 
+@Composable
+private fun ModuleBanner(banner: String) {
+    val context = LocalContext.current
+    val alpha = 0.18f
+
+    Box(
+        modifier = Modifier.matchParentSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        if (banner.startsWith("http", ignoreCase = true)) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(banner)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                contentScale = ContentScale.Crop,
+                alpha = alpha
+            )
+        } else {
+            val bannerData by produceState<ByteArray?>(key1 = banner, initialValue = null) {
+                value = withContext(Dispatchers.IO) {
+                    runCatching {
+                        SuFile(banner).newInputStream().use { it.readBytes() }
+                    }.getOrNull()
+                }
+            }
+
+            bannerData?.let { bytes ->
+                val bitmap = remember(bytes) {
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+                }
+                bitmap?.let {
+                    Image(
+                        bitmap = it,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        contentScale = ContentScale.Crop,
+                        alpha = alpha
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 fun ModuleItemPreview() {
@@ -1556,6 +1618,7 @@ fun ModuleItemPreview() {
         metamodule = true,
         actionIconPath = null,
         webUiIconPath = null,
+        banner = null,
         dirId = "dirId",
         moduleUpdate = null
     )
