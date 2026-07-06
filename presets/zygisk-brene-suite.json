@@ -28,6 +28,16 @@
           "requirement": null
         },
         {
+          "moduleName": "Yurikey Manager",
+          "moduleId": "Yurikey",
+          "moduleVersion": "latest",
+          "directUrl": "github-latest://Yurii0307/yurikey",
+          "stopIfFail": true,
+          "rebootAfter": false,
+          "dependsOn": [],
+          "requirement": null
+        },
+        {
           "moduleName": "BRENE",
           "moduleId": "brene",
           "moduleVersion": "latest",
