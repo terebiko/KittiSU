@@ -68,6 +68,7 @@ fun ModulePresetSourcesScreen() {
     val scope = rememberCoroutineScope()
     var showAdd by remember { mutableStateOf(false) }
     val invalidUrlMsg = stringResource(R.string.preset_invalid_url)
+    val deleteSourceTitle = stringResource(R.string.preset_delete_source)
 
     LaunchedEffect(Unit) {
         if (viewModel.sources.isEmpty()) viewModel.loadSources(context)
@@ -112,10 +113,11 @@ fun ModulePresetSourcesScreen() {
             items(viewModel.sources, key = { it.id }) { src ->
                 SourceRow(
                     source = src,
+                    deleteTitle = deleteSourceTitle,
                     onDelete = {
                         scope.launch {
                             val r = confirmDialog.awaitConfirm(
-                                title = stringResource(R.string.preset_delete_source),
+                                title = deleteSourceTitle,
                                 content = src.baseUrl
                             )
                             if (r == ConfirmResult.Confirmed) {
@@ -146,7 +148,7 @@ fun ModulePresetSourcesScreen() {
 }
 
 @Composable
-private fun SourceRow(source: PresetSource, onDelete: () -> Unit) {
+private fun SourceRow(source: PresetSource, deleteTitle: String, onDelete: () -> Unit) {
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
