@@ -66,7 +66,6 @@ import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
-import anhiutangerinee.kittisu.ui.util.module.PresetVerificationStatus
 import anhiutangerinee.kittisu.ui.viewmodel.ModulePresetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -200,11 +199,7 @@ private fun EmptyState() {
 fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { onClick() }) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                Spacer(Modifier.size(8.dp))
-                VerificationBadge(preset)
-            }
+            Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             preset.presetEntry.committer?.takeIf { it.isNotBlank() }?.let { committer ->
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -249,17 +244,6 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-fun VerificationBadge(preset: LoadedPreset) {
-    val (text, color) = when (preset.verificationStatus) {
-        PresetVerificationStatus.VERIFIED -> stringResource(R.string.preset_verified) to MaterialTheme.colorScheme.secondaryContainer
-        PresetVerificationStatus.UNVERIFIED -> stringResource(R.string.preset_unverified) to MaterialTheme.colorScheme.errorContainer
-        PresetVerificationStatus.MISSING_SIGNATURE -> stringResource(R.string.preset_missing_signature) to MaterialTheme.colorScheme.errorContainer
-        PresetVerificationStatus.INVALID_SIGNATURE -> stringResource(R.string.preset_invalid_signature) to MaterialTheme.colorScheme.errorContainer
-    }
-    PresetBadge(text, color)
 }
 
 @Composable

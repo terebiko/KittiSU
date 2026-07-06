@@ -62,16 +62,8 @@ data class LoadedPreset(
     val sourceId: String,
     val fileName: String,
     val presetEntry: PresetEntry,
-    val verificationStatus: PresetVerificationStatus,
     val isLocal: Boolean = false
 ) : Parcelable
-
-enum class PresetVerificationStatus {
-    VERIFIED,
-    UNVERIFIED,
-    MISSING_SIGNATURE,
-    INVALID_SIGNATURE
-}
 
 data class ModuleInstallPlan(
     val modules: List<PlanModule>,

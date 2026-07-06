@@ -13,8 +13,6 @@ import okhttp3.CacheControl
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import java.security.MessageDigest
-
 const val OFFICIAL_PRESETS_BASE_URL =
     "https://raw.githubusercontent.com/terebiko/KittiSU/main/presets/"
 
@@ -146,39 +144,19 @@ suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispat
     }
 }
 
-suspend fun fetchPresetFileWithSignature(
-    baseUrl: String,
-    fileName: String
-): Pair<PresetFile?, PresetVerificationStatus> = withContext(Dispatchers.IO) {
-    if (!isNetworkAvailable(ksuApp)) return@withContext null to PresetVerificationStatus.UNVERIFIED
+suspend fun fetchPresetFile(baseUrl: String, fileName: String): PresetFile? = withContext(Dispatchers.IO) {
+    if (!isNetworkAvailable(ksuApp)) return@withContext null
     val jsonUrl = cacheBusted(joinUrl(baseUrl, fileName))
-    val signUrl = cacheBusted(joinUrl(baseUrl, "$fileName.sign"))
-    val jsonContent = runCatching {
+    runCatching {
         ksuApp.okhttpClient.newCall(forceNetworkRequest(jsonUrl)).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
-            resp.body?.string()
+            val body = resp.body?.string() ?: return@use null
+            parsePresetFile(body, fileName)
         }
     }.getOrElse {
         Log.e(PRESET_API_TAG, "fetchPresetFile failed: $jsonUrl", it)
         null
-    } ?: return@withContext null to PresetVerificationStatus.UNVERIFIED
-
-    val signatureContent = runCatching {
-        ksuApp.okhttpClient.newCall(forceNetworkRequest(signUrl)).execute().use { resp ->
-            if (!resp.isSuccessful) return@use null
-            resp.body?.string()?.trim()
-        }
-    }.getOrElse {
-        Log.e(PRESET_API_TAG, "fetch signature failed: $signUrl", it)
-        null
     }
-
-    val status = verifyPresetSignature(jsonContent, signatureContent)
-    val parsed = runCatching { parsePresetFile(jsonContent, fileName) }.getOrElse {
-        Log.e(PRESET_API_TAG, "parse preset file failed: $fileName", it)
-        null
-    }
-    parsed to status
 }
 
 internal fun parsePresetFile(json: String, fileName: String): PresetFile? {
@@ -245,23 +223,6 @@ private fun parseRequirement(obj: JSONObject?): PresetRequirement? {
     val metadata = obj.optString("metadata", "").ifBlank { null }
     if (susfs == null && kernelsu == null && android == null && metadata == null) return null
     return PresetRequirement(susfs = susfs, kernelsu = kernelsu, android = android, metadata = metadata)
-}
-
-fun verifyPresetSignature(jsonContent: String, signatureContent: String?): PresetVerificationStatus {
-    if (signatureContent.isNullOrBlank()) return PresetVerificationStatus.MISSING_SIGNATURE
-    val expected = computePresetSha256(jsonContent)
-    val provided = signatureContent.trim().lowercase()
-    return if (provided.equals(expected, ignoreCase = true)) {
-        PresetVerificationStatus.VERIFIED
-    } else {
-        PresetVerificationStatus.INVALID_SIGNATURE
-    }
-}
-
-fun computePresetSha256(jsonContent: String): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    val bytes = digest.digest(jsonContent.toByteArray(Charsets.UTF_8))
-    return bytes.joinToString("") { "%02x".format(it) }
 }
 
 suspend fun resolveModuleDownloadUrl(module: PresetModule): String? = withContext(Dispatchers.IO) {

@@ -55,9 +55,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import anhiutangerinee.kittisu.R
-import anhiutangerinee.kittisu.ui.component.ConfirmResult
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
-import anhiutangerinee.kittisu.ui.component.rememberConfirmDialog
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.Route
@@ -69,7 +67,6 @@ import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
-import anhiutangerinee.kittisu.ui.util.module.PresetVerificationStatus
 import anhiutangerinee.kittisu.ui.util.module.RequirementCheckResult
 import anhiutangerinee.kittisu.ui.util.module.RequirementType
 import anhiutangerinee.kittisu.ui.util.module.areDependenciesSatisfied
@@ -85,7 +82,6 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     val viewModel = viewModel<ModulePresetViewModel>()
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
-    val confirmDialog = rememberConfirmDialog()
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
@@ -98,8 +94,6 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     var errorAlert by remember { mutableStateOf<String?>(null) }
 
     val allInstalledString = stringResource(R.string.preset_all_installed)
-    val unverifiedTitle = stringResource(R.string.preset_unverified_confirm_title)
-    val unverifiedContent = stringResource(R.string.preset_unverified_confirm_content)
     val requirementFmt = stringResource(R.string.preset_requirement_failed)
     val depsFmt = stringResource(R.string.preset_dependencies_missing)
     val commandExecutionFailed = stringResource(R.string.command_execution_failed)
@@ -126,10 +120,6 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
                     Button(onClick = {
                         scope.launch {
-                            if (preset.verificationStatus == PresetVerificationStatus.UNVERIFIED) {
-                                val r = confirmDialog.awaitConfirm(title = unverifiedTitle, content = unverifiedContent)
-                                if (r != ConfirmResult.Confirmed) return@launch
-                            }
                             val planResult = viewModel.buildInstallPlan(preset, skipInstalled = true)
                             val plan = planResult.getOrNull()
                             if (plan == null) {
@@ -260,11 +250,10 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                VerificationBadge(preset)
-                if (preset.isLocal) { Spacer(Modifier.size(8.dp)); LocalBadge() }
+            if (preset.isLocal) {
+                LocalBadge()
+                Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(8.dp))
             Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

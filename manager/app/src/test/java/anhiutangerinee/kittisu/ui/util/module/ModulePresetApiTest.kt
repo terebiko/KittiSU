@@ -4,68 +4,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// ponytail: tests cover only pure logic (SHA, signature, version compare via
-// requirement checks). Android-bound funcs (isModuleInstalled, fetch*,
-// resolveModuleDownloadUrl) are exercised in integration tests / by hand.
+// ponytail: tests cover only pure logic (requirement checks, GitHub URL parsing).
+// Android-bound funcs (isModuleInstalled, fetch*, resolveModuleDownloadUrl) are
+// exercised in integration tests / by hand.
 // Requires testImplementation(junit:junit) in app/build.gradle.kts to run.
 class ModulePresetApiTest {
-
-    @Test
-    fun computePresetSha256_knownString_matchesExpectedHex() {
-        // Known vector: SHA-256("hello") = 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824
-        val actual = computePresetSha256("hello")
-        assertEquals(
-            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
-            actual
-        )
-    }
-
-    @Test
-    fun computePresetSha256_emptyString_returnsKnownDigest() {
-        // SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-        val actual = computePresetSha256("")
-        assertEquals(
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-            actual
-        )
-    }
-
-    @Test
-    fun verifyPresetSignature_correctSignature_returnsVerified() {
-        val json = "{\"name\":\"Zygisk\",\"preset\":[]}"
-        val sig = computePresetSha256(json)
-        assertEquals(PresetVerificationStatus.VERIFIED, verifyPresetSignature(json, sig))
-    }
-
-    @Test
-    fun verifyPresetSignature_mismatchedSignature_returnsInvalid() {
-        val json = "{\"name\":\"Zygisk\"}"
-        val wrong = "0".repeat(64)
-        assertEquals(PresetVerificationStatus.INVALID_SIGNATURE, verifyPresetSignature(json, wrong))
-    }
-
-    @Test
-    fun verifyPresetSignature_missingSignature_returnsMissing() {
-        assertEquals(
-            PresetVerificationStatus.MISSING_SIGNATURE,
-            verifyPresetSignature("{}", null)
-        )
-        assertEquals(
-            PresetVerificationStatus.MISSING_SIGNATURE,
-            verifyPresetSignature("{}", "")
-        )
-        assertEquals(
-            PresetVerificationStatus.MISSING_SIGNATURE,
-            verifyPresetSignature("{}", "   ")
-        )
-    }
-
-    @Test
-    fun verifyPresetSignature_caseInsensitiveSignature_returnsVerified() {
-        val json = "abc"
-        val sig = computePresetSha256(json).uppercase()
-        assertEquals(PresetVerificationStatus.VERIFIED, verifyPresetSignature(json, sig))
-    }
 
     @Test
     fun areDependenciesSatisfied_emptyList_returnsTrue() {

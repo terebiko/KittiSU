@@ -737,15 +737,9 @@ Important Note:\n
     <string name="module_presets">Module Presets</string>
     <string name="preset_sources">Preset Sources</string>
     <string name="preset_no_presets">No presets available</string>
-    <string name="preset_unverified">Unverified</string>
     <string name="preset_local">Local</string>
-    <string name="preset_verified">Verified</string>
-    <string name="preset_missing_signature">Missing signature</string>
-    <string name="preset_invalid_signature">Invalid signature</string>
     <string name="preset_modules_count">%d modules</string>
     <string name="preset_install">Install</string>
-    <string name="preset_unverified_confirm_title">Unverified preset</string>
-    <string name="preset_unverified_confirm_content">This preset is unverified. Continue?</string>
     <string name="preset_requirement_failed">Requirements not met: %s</string>
     <string name="preset_dependencies_missing">Missing dependencies: %s</string>
     <string name="preset_all_installed">All modules already installed</string>

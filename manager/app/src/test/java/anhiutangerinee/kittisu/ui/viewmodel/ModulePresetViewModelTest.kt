@@ -4,7 +4,6 @@ import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.util.module.PresetEntry
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.PresetRequirement
-import anhiutangerinee.kittisu.ui.util.module.PresetVerificationStatus
 import anhiutangerinee.kittisu.ui.util.module.parsePresetFile
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -56,7 +55,6 @@ class ModulePresetViewModelTest {
         sourceId = "test",
         fileName = "${entry.id}.json",
         presetEntry = entry,
-        verificationStatus = PresetVerificationStatus.VERIFIED,
         isLocal = true
     )
 

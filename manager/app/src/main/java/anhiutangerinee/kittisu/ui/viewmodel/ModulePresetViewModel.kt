@@ -20,8 +20,7 @@ import anhiutangerinee.kittisu.ui.util.module.PresetEntry
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.PresetRequirement
 import anhiutangerinee.kittisu.ui.util.module.PresetSource
-import anhiutangerinee.kittisu.ui.util.module.PresetVerificationStatus
-import anhiutangerinee.kittisu.ui.util.module.fetchPresetFileWithSignature
+import anhiutangerinee.kittisu.ui.util.module.fetchPresetFile
 import anhiutangerinee.kittisu.ui.util.module.fetchPresetIndex
 import anhiutangerinee.kittisu.ui.util.module.isModuleInstalled
 import anhiutangerinee.kittisu.ui.util.module.parsePresetFile
@@ -281,15 +280,13 @@ class ModulePresetViewModel : ViewModel() {
         val index = fetchPresetIndex(source.baseUrl) ?: return emptyList()
         val out = mutableListOf<LoadedPreset>()
         for (file in index.files) {
-            val (parsed, status) = fetchPresetFileWithSignature(source.baseUrl, file)
-            if (parsed == null) continue
+            val parsed = fetchPresetFile(source.baseUrl, file) ?: continue
             for (entry in parsed.preset) {
                 out.add(
                     LoadedPreset(
                         sourceId = source.id,
                         fileName = file,
                         presetEntry = entry,
-                        verificationStatus = status,
                         isLocal = false
                     )
                 )
@@ -313,7 +310,6 @@ class ModulePresetViewModel : ViewModel() {
                             sourceId = "local",
                             fileName = f.name,
                             presetEntry = entry,
-                            verificationStatus = PresetVerificationStatus.VERIFIED,
                             isLocal = true
                         )
                     )
