@@ -66,29 +66,56 @@ internal data class GitHubOwnerRepo(val owner: String, val repo: String) {
 
 suspend fun fetchGitHubLatestReleaseAsset(owner: String, repo: String): String? = withContext(Dispatchers.IO) {
     if (!isNetworkAvailable(ksuApp)) return@withContext null
-    val url = "https://api.github.com/repos/$owner/$repo/releases/latest"
+    val releaseUrl = "https://api.github.com/repos/$owner/$repo/releases/latest"
     runCatching {
-        ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
-            if (!resp.isSuccessful) {
-                Log.e(PRESET_API_TAG, "GitHub latest release HTTP ${resp.code}: $url")
-                return@use null
-            }
-            val body = resp.body?.string() ?: return@use null
-            val obj = JSONObject(body)
-            val assets = obj.optJSONArray("assets") ?: return@use null
-            for (i in 0 until assets.length()) {
-                val asset = assets.optJSONObject(i) ?: continue
-                val contentType = asset.optString("content_type", "")
-                val name = asset.optString("name", "")
-                val isZip = contentType in ZIP_CONTENT_TYPES || name.endsWith(".zip", ignoreCase = true)
-                if (!isZip) continue
-                asset.optString("browser_download_url", "").ifBlank { null }?.let { return@use it }
-            }
-            null
-        }
+        fetchReleaseZipAsset(releaseUrl)?.let { return@runCatching it }
+        fetchLatestTagArchive(owner, repo)
     }.getOrElse {
-        Log.e(PRESET_API_TAG, "fetchGitHubLatestReleaseAsset failed: $url", it)
+        Log.e(PRESET_API_TAG, "fetchGitHubLatestReleaseAsset failed for $owner/$repo", it)
         null
+    }
+}
+
+// ponytail: split out so the fallback flow in fetchGitHubLatestReleaseAsset stays readable.
+// Returns the first .zip asset's browser_download_url from /releases/latest, or null if
+// the endpoint 404s, errors out, or the release has no zip asset.
+private fun fetchReleaseZipAsset(url: String): String? {
+    ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+        if (resp.code == 404) return null
+        if (!resp.isSuccessful) {
+            Log.e(PRESET_API_TAG, "GitHub latest release HTTP ${resp.code}: $url")
+            return null
+        }
+        val body = resp.body?.string() ?: return null
+        val obj = JSONObject(body)
+        val assets = obj.optJSONArray("assets") ?: return null
+        for (i in 0 until assets.length()) {
+            val asset = assets.optJSONObject(i) ?: continue
+            val contentType = asset.optString("content_type", "")
+            val name = asset.optString("name", "")
+            val isZip = contentType in ZIP_CONTENT_TYPES || name.endsWith(".zip", ignoreCase = true)
+            if (!isZip) continue
+            asset.optString("browser_download_url", "").ifBlank { null }?.let { return it }
+        }
+        null
+    }
+}
+
+// ponytail: tags fallback for repos without a GitHub Release (or with a release that ships
+// no zip asset). Returns the source-archive URL for the most recent tag, or null on failure.
+private fun fetchLatestTagArchive(owner: String, repo: String): String? {
+    val tagsUrl = "https://api.github.com/repos/$owner/$repo/tags"
+    ksuApp.okhttpClient.newCall(Request.Builder().url(tagsUrl).build()).execute().use { resp ->
+        if (!resp.isSuccessful) {
+            Log.e(PRESET_API_TAG, "GitHub tags HTTP ${resp.code}: $tagsUrl")
+            return null
+        }
+        val body = resp.body?.string() ?: return null
+        val arr = JSONArray(body)
+        if (arr.length() == 0) return null
+        val first = arr.optJSONObject(0) ?: return null
+        val tag = first.optString("name", "").ifBlank { null } ?: return null
+        "https://github.com/$owner/$repo/archive/refs/tags/$tag.zip"
     }
 }
 
