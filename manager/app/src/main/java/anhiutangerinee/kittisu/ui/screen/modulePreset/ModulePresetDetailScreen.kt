@@ -236,12 +236,12 @@ private fun ModuleRowCard(pm: PresetModule) {
             Text(shortenUrl(pm.directUrl), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Badge(
+                PresetBadge(
                     if (installed) stringResource(R.string.preset_status_installed) else stringResource(R.string.preset_status_not_installed),
                     if (installed) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.errorContainer
                 )
                 Spacer(Modifier.size(8.dp))
-                Badge(
+                PresetBadge(
                     if (depsOk) stringResource(R.string.preset_dependencies_ok) else stringResource(R.string.preset_dependencies_missing_short, pm.dependsOn.joinToString(", ")),
                     if (depsOk) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.errorContainer
                 )

@@ -165,7 +165,7 @@ private fun SourceRow(source: PresetSource, onDelete: () -> Unit) {
                 )
             }
             if (source.isOfficial) {
-                Badge(
+                PresetBadge(
                     text = stringResource(R.string.preset_official),
                     color = MaterialTheme.colorScheme.secondaryContainer
                 )

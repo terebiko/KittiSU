@@ -227,21 +227,21 @@ fun VerificationBadge(preset: LoadedPreset) {
         PresetVerificationStatus.MISSING_SIGNATURE -> stringResource(R.string.preset_missing_signature) to MaterialTheme.colorScheme.errorContainer
         PresetVerificationStatus.INVALID_SIGNATURE -> stringResource(R.string.preset_invalid_signature) to MaterialTheme.colorScheme.errorContainer
     }
-    Badge(text, color)
+    PresetBadge(text, color)
 }
 
 @Composable
 fun LocalBadge() {
-    Badge(stringResource(R.string.preset_local), MaterialTheme.colorScheme.tertiaryContainer)
+    PresetBadge(stringResource(R.string.preset_local), MaterialTheme.colorScheme.tertiaryContainer)
 }
 
 @Composable
 fun RebootBadge() {
-    Badge(stringResource(R.string.preset_reboot), MaterialTheme.colorScheme.primaryContainer)
+    PresetBadge(stringResource(R.string.preset_reboot), MaterialTheme.colorScheme.primaryContainer)
 }
 
 @Composable
-fun Badge(text: String, color: Color) {
+fun PresetBadge(text: String, color: Color) {
     Surface(color = color, shape = RoundedCornerShape(50)) {
         Text(text, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
     }
