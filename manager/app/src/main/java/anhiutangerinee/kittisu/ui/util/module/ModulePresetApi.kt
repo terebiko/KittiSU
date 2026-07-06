@@ -80,22 +80,23 @@ suspend fun fetchGitHubLatestReleaseAsset(owner: String, repo: String): String? 
 // Returns the first .zip asset's browser_download_url from /releases/latest, or null if
 // the endpoint 404s, errors out, or the release has no zip asset.
 private fun fetchReleaseZipAsset(url: String): String? {
-    ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
-        if (resp.code == 404) return null
+    return ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+        if (resp.code == 404) return@use null
         if (!resp.isSuccessful) {
             Log.e(PRESET_API_TAG, "GitHub latest release HTTP ${resp.code}: $url")
-            return null
+            return@use null
         }
-        val body = resp.body?.string() ?: return null
+        val body = resp.body?.string() ?: return@use null
         val obj = JSONObject(body)
-        val assets = obj.optJSONArray("assets") ?: return null
+        val assets = obj.optJSONArray("assets") ?: return@use null
         for (i in 0 until assets.length()) {
             val asset = assets.optJSONObject(i) ?: continue
             val contentType = asset.optString("content_type", "")
             val name = asset.optString("name", "")
             val isZip = contentType in ZIP_CONTENT_TYPES || name.endsWith(".zip", ignoreCase = true)
             if (!isZip) continue
-            asset.optString("browser_download_url", "").ifBlank { null }?.let { return it }
+            val downloadUrl = asset.optString("browser_download_url", "").ifBlank { null }
+            if (downloadUrl != null) return@use downloadUrl
         }
         null
     }
@@ -105,16 +106,16 @@ private fun fetchReleaseZipAsset(url: String): String? {
 // no zip asset). Returns the source-archive URL for the most recent tag, or null on failure.
 private fun fetchLatestTagArchive(owner: String, repo: String): String? {
     val tagsUrl = "https://api.github.com/repos/$owner/$repo/tags"
-    ksuApp.okhttpClient.newCall(Request.Builder().url(tagsUrl).build()).execute().use { resp ->
+    return ksuApp.okhttpClient.newCall(Request.Builder().url(tagsUrl).build()).execute().use { resp ->
         if (!resp.isSuccessful) {
             Log.e(PRESET_API_TAG, "GitHub tags HTTP ${resp.code}: $tagsUrl")
-            return null
+            return@use null
         }
-        val body = resp.body?.string() ?: return null
+        val body = resp.body?.string() ?: return@use null
         val arr = JSONArray(body)
-        if (arr.length() == 0) return null
-        val first = arr.optJSONObject(0) ?: return null
-        val tag = first.optString("name", "").ifBlank { null } ?: return null
+        if (arr.length() == 0) return@use null
+        val first = arr.optJSONObject(0) ?: return@use null
+        val tag = first.optString("name", "").ifBlank { null } ?: return@use null
         "https://github.com/$owner/$repo/archive/refs/tags/$tag.zip"
     }
 }
