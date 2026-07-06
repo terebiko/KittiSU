@@ -61,6 +61,7 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
+import anhiutangerinee.kittisu.ui.util.flashModule
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.PresetVerificationStatus
@@ -69,8 +70,11 @@ import anhiutangerinee.kittisu.ui.util.module.RequirementType
 import anhiutangerinee.kittisu.ui.util.module.areDependenciesSatisfied
 import anhiutangerinee.kittisu.ui.util.module.checkPresetRequirements
 import anhiutangerinee.kittisu.ui.util.module.isModuleInstalled
+import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.viewmodel.ModulePresetViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +91,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     var progressCurrent by remember { mutableStateOf(0) }
     var progressTotal by remember { mutableStateOf(0) }
     var errorAlert by remember { mutableStateOf<String?>(null) }
+    var showRebootDialog by remember { mutableStateOf(false) }
 
     val allInstalledString = stringResource(R.string.preset_all_installed)
     val unverifiedTitle = stringResource(R.string.preset_unverified_confirm_title)
@@ -94,6 +99,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     val requirementFmt = stringResource(R.string.preset_requirement_failed)
     val depsFmt = stringResource(R.string.preset_dependencies_missing)
     val commandExecutionFailed = stringResource(R.string.command_execution_failed)
+    val moduleFailedFmt = stringResource(R.string.preset_module_failed)
 
     LaunchedEffect(Unit) { scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit }
 
@@ -156,8 +162,35 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                                 return@launch
                             }
                             val uris = downloaded.modules.mapNotNull { it.cacheUri }
-                            if (uris.isNotEmpty()) navigator.push(Route.Flash(FlashIt.FlashModules(uris)))
-                            else snackBarHost.showSnackbar(allInstalledString)
+                            if (uris.isEmpty()) {
+                                snackBarHost.showSnackbar(allInstalledString)
+                                return@launch
+                            }
+
+                            var anySuccess = false
+                            var anyFailure = false
+                            for (pm in downloaded.modules) {
+                                val uri = pm.cacheUri ?: continue
+                                val name = pm.presetModule.moduleName
+                                var success = false
+                                flashModule(
+                                    uri = uri,
+                                    onFinish = { ok, _ -> success = ok },
+                                    onStdout = {},
+                                    onStderr = {}
+                                )
+                                if (success) {
+                                    anySuccess = true
+                                } else {
+                                    anyFailure = true
+                                    errorAlert = moduleFailedFmt.format(name)
+                                    if (pm.presetModule.stopIfFail) return@launch
+                                }
+                            }
+
+                            if (anySuccess && !anyFailure) {
+                                showRebootDialog = true
+                            }
                         }
                     }) {
                         Icon(Icons.Filled.CloudDownload, contentDescription = null)
@@ -195,6 +228,27 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
             confirmButton = { TextButton(onClick = { errorAlert = null }) { Text(stringResource(android.R.string.ok)) } }
         )
     }
+
+    if (showRebootDialog) {
+        RebootConfirmDialog(
+            onReboot = {
+                showRebootDialog = false
+                scope.launch { withContext(Dispatchers.IO) { reboot() } }
+            },
+            onDismiss = { showRebootDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun RebootConfirmDialog(onReboot: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.preset_reboot_title)) },
+        text = { Text(stringResource(R.string.preset_reboot_content)) },
+        confirmButton = { TextButton(onClick = onReboot) { Text(stringResource(R.string.preset_reboot_now)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.preset_reboot_later)) } }
+    )
 }
 
 @Composable

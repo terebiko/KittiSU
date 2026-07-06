@@ -50,6 +50,48 @@ private fun joinUrl(base: String, file: String): String {
     return b + file.trimStart('/')
 }
 
+private const val GITHUB_LATEST_SCHEME = "github-latest://"
+private val ZIP_CONTENT_TYPES = setOf("application/zip", "application/x-zip-compressed")
+
+internal data class GitHubOwnerRepo(val owner: String, val repo: String) {
+    companion object {
+        fun parse(raw: String): GitHubOwnerRepo? {
+            val path = raw.removePrefix(GITHUB_LATEST_SCHEME).trim('/')
+            val parts = path.split('/').filter { it.isNotBlank() }
+            if (parts.size < 2) return null
+            return GitHubOwnerRepo(parts[0], parts[1])
+        }
+    }
+}
+
+suspend fun fetchGitHubLatestReleaseAsset(owner: String, repo: String): String? = withContext(Dispatchers.IO) {
+    if (!isNetworkAvailable(ksuApp)) return@withContext null
+    val url = "https://api.github.com/repos/$owner/$repo/releases/latest"
+    runCatching {
+        ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                Log.e(PRESET_API_TAG, "GitHub latest release HTTP ${resp.code}: $url")
+                return@use null
+            }
+            val body = resp.body?.string() ?: return@use null
+            val obj = JSONObject(body)
+            val assets = obj.optJSONArray("assets") ?: return@use null
+            for (i in 0 until assets.length()) {
+                val asset = assets.optJSONObject(i) ?: continue
+                val contentType = asset.optString("content_type", "")
+                val name = asset.optString("name", "")
+                val isZip = contentType in ZIP_CONTENT_TYPES || name.endsWith(".zip", ignoreCase = true)
+                if (!isZip) continue
+                asset.optString("browser_download_url", "").ifBlank { null }?.let { return@use it }
+            }
+            null
+        }
+    }.getOrElse {
+        Log.e(PRESET_API_TAG, "fetchGitHubLatestReleaseAsset failed: $url", it)
+        null
+    }
+}
+
 suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispatchers.IO) {
     if (!isNetworkAvailable(ksuApp)) return@withContext null
     val url = joinUrl(baseUrl, "index.json")
@@ -190,6 +232,14 @@ suspend fun resolveModuleDownloadUrl(module: PresetModule): String? = withContex
         raw.equals("repo", ignoreCase = true) -> {
             val detail = fetchModuleDetail(module.moduleId)
             detail?.latestAssetUrl?.let { stripTicks(it).ifBlank { null } }
+        }
+        raw.startsWith(GITHUB_LATEST_SCHEME, ignoreCase = true) -> {
+            val parsed = GitHubOwnerRepo.parse(raw)
+                ?: run {
+                    Log.e(PRESET_API_TAG, "Invalid $GITHUB_LATEST_SCHEME URL: $raw")
+                    return@withContext null
+                }
+            fetchGitHubLatestReleaseAsset(parsed.owner, parsed.repo)
         }
         raw.isNotBlank() -> stripTicks(raw).ifBlank { null }
         else -> null

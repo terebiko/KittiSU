@@ -798,4 +798,11 @@ Important Note:\n
     <string name="settings_module_presets">Module Presets</string>
     <string name="settings_module_presets_summary">Install curated sets of modules from cloud or local presets</string>
 
+    <string name="preset_reboot_title">Reboot required</string>
+    <string name="preset_reboot_content">All modules have been installed. A reboot is required to activate them.</string>
+    <string name="preset_reboot_now">Reboot now</string>
+    <string name="preset_reboot_later">Later</string>
+    <string name="preset_install_failed">Installation failed: %1$s</string>
+    <string name="preset_module_failed">Failed to install %1$s</string>
+
 </resources>
