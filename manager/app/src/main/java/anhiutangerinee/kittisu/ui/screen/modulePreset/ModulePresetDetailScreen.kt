@@ -35,6 +35,8 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,8 +86,11 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
     var downloadInProgress by remember { mutableStateOf(false) }
-    var progressCurrent by remember { mutableStateOf(0) }
-    var progressTotal by remember { mutableStateOf(0) }
+    var progressCurrent by remember { mutableIntStateOf(0) }
+    var progressTotal by remember { mutableIntStateOf(0) }
+    var progressModuleName by remember { mutableStateOf<String?>(null) }
+    var progressBytes by remember { mutableLongStateOf(0L) }
+    var progressTotalBytes by remember { mutableLongStateOf(0L) }
     var errorAlert by remember { mutableStateOf<String?>(null) }
 
     val allInstalledString = stringResource(R.string.preset_all_installed)
@@ -146,8 +151,17 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                             }
                             progressCurrent = 0
                             progressTotal = plan.modules.count { !it.skip }
+                            progressModuleName = null
+                            progressBytes = 0L
+                            progressTotalBytes = 0L
                             downloadInProgress = true
-                            val downloadResult = viewModel.downloadAllModules(plan) { c, t -> progressCurrent = c; progressTotal = t }
+                            val downloadResult = viewModel.downloadAllModules(plan) { c, t, name, bytes, totalBytes ->
+                                progressCurrent = c
+                                progressTotal = t
+                                progressModuleName = name
+                                progressBytes = bytes
+                                progressTotalBytes = totalBytes
+                            }
                             downloadInProgress = false
                             val downloaded = downloadResult.getOrNull()
                             if (downloaded == null) {
@@ -190,7 +204,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
         }
     }
 
-    if (downloadInProgress) DownloadProgressDialog(progressCurrent, progressTotal)
+    if (downloadInProgress) DownloadProgressDialog(progressCurrent, progressTotal, progressModuleName, progressBytes, progressTotalBytes)
 
     errorAlert?.let { msg ->
         AlertDialog(
@@ -260,20 +274,45 @@ private fun ModuleRowCard(pm: PresetModule) {
 }
 
 @Composable
-private fun DownloadProgressDialog(current: Int, total: Int) {
+private fun DownloadProgressDialog(
+    current: Int,
+    total: Int,
+    moduleName: String?,
+    bytesDownloaded: Long,
+    totalBytes: Long
+) {
+    val percent = if (totalBytes <= 0L) 0 else ((bytesDownloaded.toDouble() / totalBytes.toDouble()) * 100.0).toInt().coerceIn(0, 100)
     AlertDialog(
         onDismissRequest = {},
         properties = DialogProperties(dismissOnClickOutside = false, dismissOnBackPress = false),
         title = { Text(stringResource(R.string.preset_downloading)) },
         text = {
             Column {
+                moduleName?.let {
+                    Text(stringResource(R.string.preset_downloading_module, it))
+                    Spacer(Modifier.height(4.dp))
+                }
                 Text(stringResource(R.string.preset_download_progress, current, total))
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.preset_download_bytes_progress, formatBytes(bytesDownloaded), formatBytes(totalBytes), percent))
                 Spacer(Modifier.height(12.dp))
                 LinearProgressIndicator(progress = { if (total == 0) 0f else (current.toFloat() / total.toFloat()).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {}
     )
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes < 0L) return "0 B"
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    var size = bytes.toDouble()
+    var unitIndex = 0
+    while (size >= 1024 && unitIndex < units.size - 1) {
+        size /= 1024
+        unitIndex++
+    }
+    return "%.1f %s".format(size, units[unitIndex])
 }
 
 private fun shortenUrl(url: String): String = if (url.length <= 48) url else url.take(45) + "..."

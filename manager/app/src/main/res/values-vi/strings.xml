@@ -583,6 +583,8 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="preset_modules_count">%d module</string>
     <string name="preset_dependencies_missing">Thiếu phụ thuộc: %s</string>
     <string name="preset_download_progress">Đang tải %1$d/%2$d</string>
+    <string name="preset_downloading_module">Đang tải: %1$s</string>
+    <string name="preset_download_bytes_progress">%1$s / %2$s (%3$d%%)</string>
     <string name="preset_source_name">Tên</string>
     <string name="preset_source_url">URL cơ sở (phải kết thúc bằng /)</string>
     <string name="preset_official">Chính thức</string>

@@ -160,18 +160,20 @@ class ModulePresetViewModel : ViewModel() {
 
     suspend fun downloadAllModules(
         plan: ModuleInstallPlan,
-        onProgress: (current: Int, total: Int) -> Unit
+        onProgress: (current: Int, total: Int, moduleName: String?, bytesDownloaded: Long, totalBytes: Long) -> Unit
     ): Result<ModuleInstallPlan> {
         val updated = plan.modules.toMutableList()
         val total = updated.count { !it.skip && it.cacheUri == null }
         if (total == 0) {
-            onProgress(0, 0)
+            onProgress(0, 0, null, 0L, 0L)
             return Result.success(plan.copy(modules = updated))
         }
         var current = 0
         for (i in updated.indices) {
             val m = updated[i]
             if (m.skip || m.cacheUri != null) continue
+            val moduleName = m.presetModule.moduleName
+            onProgress(current, total, moduleName, 0L, 0L)
             val url = m.downloadUrl
             if (url.isBlank()) {
                 val reason = "URL not resolved for ${m.presetModule.moduleId}"
@@ -183,7 +185,9 @@ class ModulePresetViewModel : ViewModel() {
             }
             val uri = runCatching {
                 withContext(Dispatchers.IO) {
-                    downloadToCache(ksuApp, url, m.presetModule.moduleId)
+                    downloadToCache(ksuApp, url, m.presetModule.moduleId) { downloaded, totalBytes ->
+                        onProgress(current, total, moduleName, downloaded, totalBytes)
+                    }
                 }
             }.getOrElse {
                 Log.e(TAG, "download failed: ${m.presetModule.moduleId} ($url)", it)
@@ -200,7 +204,7 @@ class ModulePresetViewModel : ViewModel() {
             if (uri == null) continue
             updated[i] = m.copy(cacheUri = uri)
             current++
-            onProgress(current, total)
+            onProgress(current, total, null, 0L, 0L)
         }
         return Result.success(plan.copy(modules = updated))
     }
@@ -319,16 +323,32 @@ class ModulePresetViewModel : ViewModel() {
         return out
     }
 
-    private fun downloadToCache(context: Context, url: String, moduleId: String): Uri? {
+    private fun downloadToCache(
+        context: Context,
+        url: String,
+        moduleId: String,
+        onBytes: (downloaded: Long, total: Long) -> Unit
+    ): Uri? {
         val request = Request.Builder().url(url).build()
         ksuApp.okhttpClient.newCall(request).execute().use { resp ->
             if (!resp.isSuccessful || resp.body == null) return null
+            val totalBytes = resp.header("Content-Length")?.toLongOrNull() ?: 0L
             val outFile = File(
                 context.cacheDir,
                 "preset_${moduleId}_${System.currentTimeMillis()}.zip"
             )
             resp.body!!.byteStream().use { input ->
-                outFile.outputStream().use { output -> input.copyTo(output) }
+                outFile.outputStream().use { output ->
+                    val buffer = ByteArray(8 * 1024)
+                    var downloaded = 0L
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read <= 0) break
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        onBytes(downloaded, totalBytes)
+                    }
+                }
             }
             return Uri.fromFile(outFile)
         }
