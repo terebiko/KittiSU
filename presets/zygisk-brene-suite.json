@@ -1,0 +1,45 @@
+{
+  "name": "zygisk-brene-suite",
+  "preset": [
+    {
+      "id": "zygisk-brene-suite",
+      "destination": "Zygisk + BRENE Suite",
+      "author": "KittiSU",
+      "requiresRebootAtEnd": true,
+      "modules": [
+        {
+          "moduleName": "Zygisk Next",
+          "moduleId": "zygisksu",
+          "moduleVersion": "1.4.2",
+          "directUrl": "https://github.com/Dr-TSNG/ZygiskNext/releases/download/v1.4.2/Zygisk-Next-1.4.2-789-119aaa0-release.zip",
+          "stopIfFail": true,
+          "rebootAfter": false,
+          "dependsOn": [],
+          "requirement": null
+        },
+        {
+          "moduleName": "Vector",
+          "moduleId": "zygisk_vector",
+          "moduleVersion": "2.0",
+          "directUrl": "https://github.com/JingMatrix/Vector/releases/download/v2.0/Vector-v2.0-3021-Release.zip",
+          "stopIfFail": true,
+          "rebootAfter": false,
+          "dependsOn": ["zygisksu"],
+          "requirement": null
+        },
+        {
+          "moduleName": "BRENE",
+          "moduleId": "brene",
+          "moduleVersion": "0.0.53",
+          "directUrl": "https://github.com/rrr333nnn333/BRENE/releases/download/v0.0.53/BRENE-v0.0.53.zip",
+          "stopIfFail": true,
+          "rebootAfter": true,
+          "dependsOn": [],
+          "requirement": {
+            "susfs": "2.0"
+          }
+        }
+      ]
+    }
+  ]
+}
