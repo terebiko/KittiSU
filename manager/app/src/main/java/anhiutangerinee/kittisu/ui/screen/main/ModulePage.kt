@@ -1326,268 +1326,268 @@ fun ModuleItem(
                     }
                 }
             }
-        }
 
-        val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
-        val interactionSource = remember { MutableInteractionSource() }
-
-        LaunchedEffect(module.dirId) {
-            viewModel.loadSize(module.dirId)
-        }
-
-        val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
-
-        val sizeStr = sizes[module.dirId]
-
-        Column(
-            modifier = Modifier
-                .run {
-                    if (module.hasActionScript || module.hasWebUi) {
-                        combinedClickable(
-                            onLongClick = {
-                                onModuleAddShortcut(module)
-                            },
-                            onClick = {
-                                if (module.hasWebUi) {
-                                    onClick(module)
+            val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
+            val interactionSource = remember { MutableInteractionSource() }
+    
+            LaunchedEffect(module.dirId) {
+                viewModel.loadSize(module.dirId)
+            }
+    
+            val sizes by viewModel.moduleSize.collectAsStateWithLifecycle()
+    
+            val sizeStr = sizes[module.dirId]
+    
+            Column(
+                modifier = Modifier
+                    .run {
+                        if (module.hasActionScript || module.hasWebUi) {
+                            combinedClickable(
+                                onLongClick = {
+                                    onModuleAddShortcut(module)
+                                },
+                                onClick = {
+                                    if (module.hasWebUi) {
+                                        onClick(module)
+                                    }
                                 }
-                            }
-                        )
-                    } else {
-                        this
+                            )
+                        } else {
+                            this
+                        }
                     }
-                }
-                .padding(22.dp, 18.dp, 22.dp, 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(22.dp, 18.dp, 22.dp, 12.dp)
             ) {
-                val moduleVersion = stringResource(id = R.string.module_version)
-                val moduleAuthor = stringResource(id = R.string.module_author)
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    val moduleVersion = stringResource(id = R.string.module_version)
+                    val moduleAuthor = stringResource(id = R.string.module_author)
+    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = module.name,
+                                fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                                fontWeight = FontWeight.SemiBold,
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                                fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
+                                textDecoration = textDecoration,
+                                modifier = Modifier.weight(1f, false)
+                            )
+                        }
+    
                         Text(
-                            text = module.name,
-                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                            fontWeight = FontWeight.SemiBold,
-                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                            fontFamily = MaterialTheme.typography.titleMedium.fontFamily,
-                            textDecoration = textDecoration,
-                            modifier = Modifier.weight(1f, false)
-                        )
-                    }
-
-                    Text(
-                        text = "$moduleVersion: ${module.version}",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                        fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                        textDecoration = textDecoration,
-                    )
-
-                    Text(
-                        text = "$moduleAuthor: ${module.author}",
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                        fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                        textDecoration = textDecoration,
-                    )
-
-                    // 显示更多模块信息时添加updateJson
-                    if (showMoreModuleInfo && module.updateJson.isNotEmpty()) {
-                        val updateJsonLabel = stringResource(R.string.module_update_json)
-                        Text(
-                            text = "$updateJsonLabel: ${module.updateJson}",
+                            text = "$moduleVersion: ${module.version}",
                             fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                             fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
                             textDecoration = textDecoration,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 5,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = { },
-                                    onLongClick = {
-                                        val clipData = ClipData.newPlainText(
-                                            "Update JSON URL",
-                                            module.updateJson
-                                        )
-                                        clipboardManager.setPrimaryClip(clipData)
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.module_update_json_copied),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
-                                ),
                         )
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    Switch(
-                        enabled = !module.update,
-                        checked = module.enabled,
-                        onCheckedChange = onCheckChanged,
-                        interactionSource = if (!module.hasWebUi) interactionSource else null,
-                        thumbContent = {
-                            if (module.enabled) {
-                                Icon(
-                                    imageVector = Icons.Filled.Check,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            } else
-                            {
-                                Icon(
-                                    imageVector = Icons.Filled.Close,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    modifier = Modifier.size(SwitchDefaults.IconSize),
-                                )
-                            }
+    
+                        Text(
+                            text = "$moduleAuthor: ${module.author}",
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                            fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                            textDecoration = textDecoration,
+                        )
+    
+                        // 显示更多模块信息时添加updateJson
+                        if (showMoreModuleInfo && module.updateJson.isNotEmpty()) {
+                            val updateJsonLabel = stringResource(R.string.module_update_json)
+                            Text(
+                                text = "$updateJsonLabel: ${module.updateJson}",
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                                fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                                textDecoration = textDecoration,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 5,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = { },
+                                        onLongClick = {
+                                            val clipData = ClipData.newPlainText(
+                                                "Update JSON URL",
+                                                module.updateJson
+                                            )
+                                            clipboardManager.setPrimaryClip(clipData)
+                                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+    
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.module_update_json_copied),
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    ),
+                            )
                         }
-                    )
+                    }
+    
+                    Spacer(modifier = Modifier.weight(1f))
+    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        Switch(
+                            enabled = !module.update,
+                            checked = module.enabled,
+                            onCheckedChange = onCheckChanged,
+                            interactionSource = if (!module.hasWebUi) interactionSource else null,
+                            thumbContent = {
+                                if (module.enabled) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    )
+                                } else
+                                {
+                                    Icon(
+                                        imageVector = Icons.Filled.Close,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = module.description,
-                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                fontWeight = MaterialTheme.typography.bodySmall.fontWeight,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 4,
-                textDecoration = textDecoration,
-            )
-
-            if (!isHideTagRow) {
+    
                 Spacer(modifier = Modifier.height(12.dp))
-                // 文件夹名称和大小标签
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    LabelText(
-                        label = module.dirId,
-                        containerColor = MaterialTheme.colorScheme.primary,
-                    )
-                    if (module.metamodule) {
+    
+                Text(
+                    text = module.description,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                    fontWeight = MaterialTheme.typography.bodySmall.fontWeight,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 4,
+                    textDecoration = textDecoration,
+                )
+    
+                if (!isHideTagRow) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    // 文件夹名称和大小标签
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         LabelText(
-                            label = "META",
-                            containerColor = MaterialTheme.colorScheme.tertiary,
+                            label = module.dirId,
+                            containerColor = MaterialTheme.colorScheme.primary,
                         )
-                    }
-                    LabelText(
-                        label = sizeStr ?: "0 KB",
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            HorizontalDivider(thickness = Dp.Hairline)
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (module.hasActionScript) {
-                    FilledTonalButton(
-                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                        enabled = !module.remove && module.enabled,
-                        onClick = {
-                            navigator.push(Route.ExecuteModuleAction(module.dirId))
-                            viewModel.markNeedRefresh()
-                        },
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = null
+                        if (module.metamodule) {
+                            LabelText(
+                                label = "META",
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        LabelText(
+                            label = sizeStr ?: "0 KB",
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         )
                     }
                 }
-
-                if (module.hasWebUi) {
-                    FilledTonalButton(
-                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                        enabled = !module.remove && module.enabled,
-                        onClick = { onClick(module) },
-                        interactionSource = interactionSource,
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.AutoMirrored.Outlined.Wysiwyg,
-                            contentDescription = null
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f, true))
-
-                if (updateUrl.isNotEmpty()) {
-                    Button(
-                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                        enabled = !module.remove,
-                        onClick = { onUpdate(module) },
-                        shape = ButtonDefaults.textShape,
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Download,
-                            contentDescription = null
-                        )
-                    }
-                }
-
-                FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
-                    onClick = { onUninstallClicked(module) },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+    
+                Spacer(modifier = Modifier.height(16.dp))
+    
+                HorizontalDivider(thickness = Dp.Hairline)
+    
+                Spacer(modifier = Modifier.height(8.dp))
+    
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (!module.remove) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null,
-                        )
-                    } else {
-                        Icon(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(180f),
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = null
-                        )
+                    if (module.hasActionScript) {
+                        FilledTonalButton(
+                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            enabled = !module.remove && module.enabled,
+                            onClick = {
+                                navigator.push(Route.ExecuteModuleAction(module.dirId))
+                                viewModel.markNeedRefresh()
+                            },
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Icons.Outlined.PlayArrow,
+                                contentDescription = null
+                            )
+                        }
+                    }
+    
+                    if (module.hasWebUi) {
+                        FilledTonalButton(
+                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            enabled = !module.remove && module.enabled,
+                            onClick = { onClick(module) },
+                            interactionSource = interactionSource,
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Icons.AutoMirrored.Outlined.Wysiwyg,
+                                contentDescription = null
+                            )
+                        }
+                    }
+    
+                    Spacer(modifier = Modifier.weight(1f, true))
+    
+                    if (updateUrl.isNotEmpty()) {
+                        Button(
+                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            enabled = !module.remove,
+                            onClick = { onUpdate(module) },
+                            shape = ButtonDefaults.textShape,
+                            contentPadding = ButtonDefaults.TextButtonContentPadding,
+                        ) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Icons.Outlined.Download,
+                                contentDescription = null
+                            )
+                        }
+                    }
+    
+                    FilledTonalButton(
+                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                        onClick = { onUninstallClicked(module) },
+                        contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    ) {
+                        if (!module.remove) {
+                            Icon(
+                                modifier = Modifier.size(20.dp),
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = null,
+                            )
+                        } else {
+                            Icon(
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .rotate(180f),
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
             }
