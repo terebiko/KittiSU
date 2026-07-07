@@ -16,9 +16,17 @@ if [ -z "$MODPATH" ]; then
 fi
 
 SCRIPT="$MODPATH/Yuri/yurirka.sh"
+JSONARRAY="$MODPATH/Yuri/rka/jsonarray.sh"
+
 if [ ! -f "$SCRIPT" ]; then
     echo "ERROR: $SCRIPT not found"
     exit 1
 fi
 
+if [ ! -f "$JSONARRAY" ]; then
+    echo "ERROR: $JSONARRAY not found"
+    exit 1
+fi
+
+# yurirka.sh sources rka/jsonarray.sh relative to its own directory
 sh "$SCRIPT"

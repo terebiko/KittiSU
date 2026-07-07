@@ -17,13 +17,24 @@ fi
 
 ERR=0
 
-# Primary: dedicated Widevine L1 helper
-WIDEVINE="$MODPATH/webroot/common/widevinel1.sh"
-if [ -f "$WIDEVINE" ]; then
-    echo "Running $WIDEVINE"
-    sh "$WIDEVINE" || ERR=1
+FIX_DIR="$MODPATH/webroot/common/FixWidevineL1"
+if [ -d "$FIX_DIR" ]; then
+    echo "Copying Widevine L1 assets from $FIX_DIR"
+    rm -rf /data/local/tmp/FixWidevineL1
+    mkdir -p /data/local/tmp/FixWidevineL1
+    cp -r "$FIX_DIR/"* /data/local/tmp/FixWidevineL1/
+    chmod -R 777 /data/local/tmp/FixWidevineL1
+    chown -R root:root /data/local/tmp/FixWidevineL1
+
+    if [ -f /data/local/tmp/FixWidevineL1/FixWidevineL1.sh ]; then
+        echo "Running FixWidevineL1.sh"
+        sh /data/local/tmp/FixWidevineL1/FixWidevineL1.sh || ERR=1
+    else
+        echo "ERROR: FixWidevineL1.sh missing in copied assets"
+        ERR=1
+    fi
 else
-    echo "Note: $WIDEVINE not found, falling back to boot_hash + security_patch"
+    echo "Note: $FIX_DIR not found, falling back to boot_hash + security_patch"
 fi
 
 # Fallback / supplement: re-apply boot hash and security patch
