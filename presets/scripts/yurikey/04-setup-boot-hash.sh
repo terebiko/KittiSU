@@ -1,8 +1,24 @@
 #!/system/bin/sh
 # Yurikey Preset: Setup verified boot hash
-MODPATH="/data/adb/modules/Yurikey"
-if [ ! -d "$MODPATH" ]; then
-    echo "ERROR: Yurikey module not found"
+
+find_mod() {
+    for base in /data/adb/modules /data/adb/modules_update; do
+        for name in Yurikey yurikey; do
+            [ -d "$base/$name" ] && { echo "$base/$name"; return; }
+        done
+    done
+}
+
+MODPATH=$(find_mod)
+if [ -z "$MODPATH" ]; then
+    echo "ERROR: Yurikey module not found in /data/adb/modules or /data/adb/modules_update"
     exit 1
 fi
-sh "$MODPATH/Yuri/boot_hash.sh"
+
+SCRIPT="$MODPATH/Yuri/boot_hash.sh"
+if [ ! -f "$SCRIPT" ]; then
+    echo "ERROR: $SCRIPT not found"
+    exit 1
+fi
+
+sh "$SCRIPT"
