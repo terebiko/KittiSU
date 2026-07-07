@@ -8,6 +8,8 @@
       "committer": "@thanhhuybynight",
       "team": "KittiSU Official",
       "requiresRebootAtEnd": true,
+      "postInstallName": "hello-test.sh",
+      "postInstall": "#!/system/bin/sh\necho \"hello\"",
       "modules": [
         {
           "moduleName": "Zygisk Next",
