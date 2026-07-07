@@ -148,13 +148,13 @@ object PresetPostInstallManager {
     ): Shell.Result {
         val dir = File(ksuApp.filesDir, SCRIPTS_DIR).apply { mkdirs() }
         val scriptFile = File(dir, "run_${System.currentTimeMillis()}.sh")
-        return try {
+        try {
             scriptFile.writeText(script)
             scriptFile.setExecutable(true, false)
         } catch (e: Exception) {
             Log.e(TAG, "failed to write script file", e)
             onStderr("Failed to write script file: ${e.message}\n")
-            return object : Shell.Result {
+            return object : Shell.Result() {
                 override fun getCode() = 1
                 override fun getOut() = emptyList<String>()
                 override fun getErr() = listOf(e.message ?: "write failed")
@@ -180,7 +180,7 @@ object PresetPostInstallManager {
         } catch (e: Exception) {
             Log.e(TAG, "failed to execute script", e)
             onStderr("Failed to execute script: ${e.message}\n")
-            object : Shell.Result {
+            object : Shell.Result() {
                 override fun getCode() = 1
                 override fun getOut() = emptyList<String>()
                 override fun getErr() = listOf(e.message ?: "exec failed")
