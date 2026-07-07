@@ -126,7 +126,13 @@ suspend fun fetchPresetIndex(baseUrl: String): PresetIndex? = withContext(Dispat
     if (!isNetworkAvailable(ksuApp)) return@withContext null
     val url = joinUrl(baseUrl, "index.json")
     runCatching {
-        noCacheHttpClient.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+        noCacheHttpClient.newCall(
+            Request.Builder()
+                .url(url)
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .build()
+        ).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             val body = resp.body?.string() ?: return@use null
             val obj = JSONObject(body)
@@ -146,7 +152,13 @@ suspend fun fetchPresetFile(baseUrl: String, fileName: String): PresetFile? = wi
     if (!isNetworkAvailable(ksuApp)) return@withContext null
     val jsonUrl = joinUrl(baseUrl, fileName)
     runCatching {
-        noCacheHttpClient.newCall(Request.Builder().url(jsonUrl).build()).execute().use { resp ->
+        noCacheHttpClient.newCall(
+            Request.Builder()
+                .url(jsonUrl)
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .build()
+        ).execute().use { resp ->
             if (!resp.isSuccessful) return@use null
             val body = resp.body?.string() ?: return@use null
             parsePresetFile(body, fileName)
