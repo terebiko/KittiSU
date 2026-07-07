@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Yurikey Preset: Fix Widevine L1 (re-apply boot hash and security patch)
+# Yurikey Preset: Fix Widevine L1
 
 find_mod() {
     for base in /data/adb/modules /data/adb/modules_update; do
@@ -16,13 +16,24 @@ if [ -z "$MODPATH" ]; then
 fi
 
 ERR=0
+
+# Primary: dedicated Widevine L1 helper
+WIDEVINE="$MODPATH/webroot/common/widevinel1.sh"
+if [ -f "$WIDEVINE" ]; then
+    echo "Running $WIDEVINE"
+    sh "$WIDEVINE" || ERR=1
+else
+    echo "Note: $WIDEVINE not found, falling back to boot_hash + security_patch"
+fi
+
+# Fallback / supplement: re-apply boot hash and security patch
 for script in boot_hash.sh security_patch.sh; do
     SCRIPT="$MODPATH/Yuri/$script"
     if [ -f "$SCRIPT" ]; then
+        echo "Running $SCRIPT"
         sh "$SCRIPT" || ERR=1
     else
-        echo "ERROR: $SCRIPT not found"
-        ERR=1
+        echo "Note: $SCRIPT not found"
     fi
 done
 

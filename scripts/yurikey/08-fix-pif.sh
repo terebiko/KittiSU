@@ -15,10 +15,24 @@ if [ -z "$MODPATH" ]; then
     exit 1
 fi
 
-SCRIPT="$MODPATH/Yuri/pif.sh"
-if [ ! -f "$SCRIPT" ]; then
-    echo "ERROR: $SCRIPT not found"
-    exit 1
+ERR=0
+
+# Primary: PIF helper in Yuri/
+PIF="$MODPATH/Yuri/pif.sh"
+if [ -f "$PIF" ]; then
+    echo "Running $PIF"
+    sh "$PIF" || ERR=1
+else
+    echo "Note: $PIF not found, skipping primary PIF fix"
 fi
 
-sh "$SCRIPT"
+# Secondary: remove pihook/pixelprops props
+PIF2="$MODPATH/webroot/common/pif2.sh"
+if [ -f "$PIF2" ]; then
+    echo "Running $PIF2"
+    sh "$PIF2" || ERR=1
+else
+    echo "Note: $PIF2 not found, skipping pihook prop cleanup"
+fi
+
+exit $ERR
