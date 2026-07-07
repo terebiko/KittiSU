@@ -174,8 +174,10 @@ object PresetPostInstallManager {
         }
 
         return try {
-            val shell = anhiutangerinee.kittisu.ui.util.getRootShell()
-            shell.newJob().add("/system/bin/sh", scriptFile.absolutePath)
+            val shell = anhiutangerinee.kittisu.ui.util.getRootShell(globalMnt = true)
+            shell.newJob()
+                .add("id")
+                .add("/system/bin/sh", scriptFile.absolutePath)
                 .to(stdoutCallback, stderrCallback).exec()
         } catch (e: Exception) {
             Log.e(TAG, "failed to execute script", e)
