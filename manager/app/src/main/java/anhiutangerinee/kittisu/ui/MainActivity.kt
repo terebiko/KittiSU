@@ -104,7 +104,6 @@ import anhiutangerinee.kittisu.ui.screen.AppProfileTemplateScreen
 import anhiutangerinee.kittisu.ui.screen.BottomBarDestination
 import anhiutangerinee.kittisu.ui.screen.ExecuteModuleActionScreen
 import anhiutangerinee.kittisu.ui.screen.FlashIt
-import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.screen.FlashScreen
 import anhiutangerinee.kittisu.ui.screen.InstallScreen
 import anhiutangerinee.kittisu.ui.screen.SulogScreen

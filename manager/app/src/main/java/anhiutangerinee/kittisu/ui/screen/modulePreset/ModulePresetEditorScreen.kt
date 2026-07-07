@@ -94,6 +94,8 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
     var committer by remember { mutableStateOf(preset?.presetEntry?.committer.orEmpty()) }
     var team by remember { mutableStateOf(preset?.presetEntry?.team.orEmpty()) }
     var requiresRebootAtEnd by remember { mutableStateOf(preset?.presetEntry?.requiresRebootAtEnd == true) }
+    var postInstallName by remember { mutableStateOf(preset?.presetEntry?.postInstallName.orEmpty()) }
+    var postInstallScript by remember { mutableStateOf(preset?.presetEntry?.postInstall.orEmpty()) }
     val modules = remember { mutableStateListOf<PresetModule>().apply { addAll(preset?.presetEntry?.modules.orEmpty()) } }
 
     var editingIndex by remember { mutableStateOf<Int?>(null) }
@@ -135,7 +137,9 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
             committer = committer.trim().ifBlank { null },
             team = team.trim().ifBlank { null },
             requiresRebootAtEnd = requiresRebootAtEnd,
-            modules = modules.toList()
+            modules = modules.toList(),
+            postInstallName = postInstallName.trim().ifBlank { null },
+            postInstall = postInstallScript.trim().ifBlank { null }
         )
         scope.launch {
             if (isEdit && trimmedId != originalId && originalId.isNotBlank()) {

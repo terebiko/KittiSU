@@ -213,6 +213,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
 
 @Composable
 private fun PresetHeaderCard(preset: LoadedPreset) {
+    val navigator = LocalNavigator.current
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
