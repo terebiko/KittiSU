@@ -8,8 +8,16 @@
       "committer": "@thanhhuybynight",
       "team": "KittiSU Official",
       "requiresRebootAtEnd": true,
-      "postInstallName": "hello-test.sh",
-      "postInstall": "#!/system/bin/sh\necho \"hello\"",
+      "postInstalls": [
+        {
+          "name": "hello-test.sh",
+          "script": "#!/system/bin/sh\necho \"hello\""
+        },
+        {
+          "name": "kittisu-team.sh",
+          "script": "#!/system/bin/sh\necho \"this is kittisu team\""
+        }
+      ],
       "modules": [
         {
           "moduleName": "Zygisk Next",
