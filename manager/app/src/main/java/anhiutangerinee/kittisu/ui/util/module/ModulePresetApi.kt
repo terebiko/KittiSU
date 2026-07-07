@@ -13,7 +13,7 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 const val OFFICIAL_PRESETS_BASE_URL =
-    "https://raw.githubusercontent.com/terebiko/KittiSU/main/presets/"
+    "https://raw.githubusercontent.com/terebiko/KittiSU/presets/"
 
 private const val PRESET_API_TAG = "ModulePresetApi"
 
