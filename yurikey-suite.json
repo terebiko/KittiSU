@@ -30,10 +30,10 @@
           "requirement": null
         },
         {
-          "moduleName": "BusyBox NDK",
-          "moduleId": "busybox-ndk",
+          "moduleName": "BuiltIn-BusyBox",
+          "moduleId": "BuiltIn-BusyBox",
           "moduleVersion": "latest",
-          "directUrl": "github-latest://Magisk-Modules-Repo/busybox-ndk",
+          "directUrl": "github-latest://Magisk-Modules-Alt-Repo/BuiltIn-BusyBox",
           "stopIfFail": true,
           "rebootAfter": false,
           "dependsOn": [],
