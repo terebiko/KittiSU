@@ -355,6 +355,8 @@ class ModulePresetViewModel : ViewModel() {
     private fun presetEntryToJson(entry: PresetEntry): JSONObject {
         val modules = JSONArray()
         for (m in entry.modules) modules.put(presetModuleToJson(m))
+        val postInstalls = JSONArray()
+        for (p in entry.postInstalls) postInstalls.put(postInstallScriptToJson(p))
         return JSONObject().apply {
             put("id", entry.id)
             put("destination", entry.destination)
@@ -362,10 +364,14 @@ class ModulePresetViewModel : ViewModel() {
             entry.committer?.let { put("committer", it) }
             entry.team?.let { put("team", it) }
             put("requiresRebootAtEnd", entry.requiresRebootAtEnd)
-            entry.postInstallName?.let { put("postInstallName", it) }
-            entry.postInstall?.let { put("postInstall", it) }
+            put("postInstalls", postInstalls)
             put("modules", modules)
         }
+    }
+
+    private fun postInstallScriptToJson(p: PostInstallScript): JSONObject = JSONObject().apply {
+        put("name", p.name)
+        put("script", p.script)
     }
 
     private fun presetModuleToJson(m: PresetModule): JSONObject = JSONObject().apply {

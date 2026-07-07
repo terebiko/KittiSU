@@ -61,12 +61,14 @@ import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
+import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
 import anhiutangerinee.kittisu.ui.util.module.PresetEntry
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.PresetRequirement
@@ -94,12 +96,13 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
     var committer by remember { mutableStateOf(preset?.presetEntry?.committer.orEmpty()) }
     var team by remember { mutableStateOf(preset?.presetEntry?.team.orEmpty()) }
     var requiresRebootAtEnd by remember { mutableStateOf(preset?.presetEntry?.requiresRebootAtEnd == true) }
-    var postInstallName by remember { mutableStateOf(preset?.presetEntry?.postInstallName.orEmpty()) }
-    var postInstallScript by remember { mutableStateOf(preset?.presetEntry?.postInstall.orEmpty()) }
+    val postInstalls = remember { mutableStateListOf<PostInstallScript>().apply { addAll(preset?.presetEntry?.postInstalls.orEmpty()) } }
     val modules = remember { mutableStateListOf<PresetModule>().apply { addAll(preset?.presetEntry?.modules.orEmpty()) } }
 
     var editingIndex by remember { mutableStateOf<Int?>(null) }
     var showAddModule by remember { mutableStateOf(false) }
+    var editingPostInstallIndex by remember { mutableStateOf<Int?>(null) }
+    var showAddPostInstall by remember { mutableStateOf(false) }
 
     val idRequiredMsg = stringResource(R.string.preset_id_required)
     val destinationRequiredMsg = stringResource(R.string.preset_destination_required)
@@ -138,8 +141,7 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
             team = team.trim().ifBlank { null },
             requiresRebootAtEnd = requiresRebootAtEnd,
             modules = modules.toList(),
-            postInstallName = postInstallName.trim().ifBlank { null },
-            postInstall = postInstallScript.trim().ifBlank { null }
+            postInstalls = postInstalls.toList()
         )
         scope.launch {
             if (isEdit && trimmedId != originalId && originalId.isNotBlank()) {
@@ -218,24 +220,12 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
                     onRequiresRebootChange = { requiresRebootAtEnd = it },
                     enabled = !isReadOnly
                 )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = postInstallName,
-                    onValueChange = { postInstallName = it },
-                    label = { Text(stringResource(R.string.preset_post_install_name)) },
-                    singleLine = true,
-                    enabled = !isReadOnly,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = postInstallScript,
-                    onValueChange = { postInstallScript = it },
-                    label = { Text(stringResource(R.string.preset_post_install_script_hint)) },
-                    enabled = !isReadOnly,
-                    minLines = 4,
-                    maxLines = 8,
-                    modifier = Modifier.fillMaxWidth()
+                Spacer(Modifier.height(16.dp))
+            }
+            item {
+                PostInstallEditor(
+                    postInstalls = postInstalls,
+                    enabled = !isReadOnly
                 )
                 Spacer(Modifier.height(16.dp))
             }
@@ -629,6 +619,163 @@ private fun ModuleEditDialog(
                         requirement = req
                     )
                 )
+            }, enabled = canSave) {
+                Text(stringResource(R.string.preset_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun PostInstallEditor(
+    postInstalls: MutableList<PostInstallScript>,
+    enabled: Boolean
+) {
+    val navigator = LocalNavigator.current
+    var editingIndex by remember { mutableStateOf<Int?>(null) }
+    var showAdd by remember { mutableStateOf(false) }
+
+    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.preset_post_install_scripts),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = stringResource(R.string.preset_modules_count, postInstalls.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            postInstalls.forEachIndexed { index, script ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = script.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = script.script,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    IconButton(onClick = { editingIndex = index }, enabled = enabled) {
+                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.preset_edit))
+                    }
+                    IconButton(onClick = { postInstalls.removeAt(index) }, enabled = enabled) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = stringResource(R.string.preset_remove_module),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    IconButton(onClick = {
+                        navigator.push(
+                            Route.Flash(
+                                FlashIt.FlashScripts(scripts = listOf(script))
+                            )
+                        )
+                    }) {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.preset_run_script))
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            Spacer(Modifier.height(4.dp))
+            OutlinedButton(
+                onClick = { showAdd = true },
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null)
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.preset_add_post_install))
+            }
+        }
+    }
+
+    if (showAdd) {
+        PostInstallEditDialog(
+            initial = null,
+            onDismiss = { showAdd = false },
+            onSave = {
+                postInstalls.add(it)
+                showAdd = false
+            }
+        )
+    }
+    editingIndex?.let { idx ->
+        PostInstallEditDialog(
+            initial = postInstalls[idx],
+            onDismiss = { editingIndex = null },
+            onSave = {
+                postInstalls[idx] = it
+                editingIndex = null
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PostInstallEditDialog(
+    initial: PostInstallScript?,
+    onDismiss: () -> Unit,
+    onSave: (PostInstallScript) -> Unit
+) {
+    var name by remember { mutableStateOf(initial?.name.orEmpty()) }
+    var script by remember { mutableStateOf(initial?.script.orEmpty()) }
+    val canSave = name.isNotBlank() && script.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        title = { Text(stringResource(if (initial == null) R.string.preset_add_post_install else R.string.preset_edit_post_install)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.preset_post_install_name)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = script,
+                    onValueChange = { script = it },
+                    label = { Text(stringResource(R.string.preset_post_install_script_hint)) },
+                    minLines = 4,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onSave(PostInstallScript(name = name.trim(), script = script.trim()))
             }, enabled = canSave) {
                 Text(stringResource(R.string.preset_save))
             }

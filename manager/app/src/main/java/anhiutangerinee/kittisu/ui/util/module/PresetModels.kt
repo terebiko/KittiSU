@@ -18,6 +18,12 @@ data class PresetFile(
 ) : Parcelable
 
 @Parcelize
+data class PostInstallScript(
+    val name: String,
+    val script: String
+) : Parcelable
+
+@Parcelize
 data class PresetEntry(
     val id: String,
     val destination: String,
@@ -26,8 +32,7 @@ data class PresetEntry(
     val team: String? = null,
     val requiresRebootAtEnd: Boolean = false,
     val modules: List<PresetModule>,
-    val postInstallName: String? = null,
-    val postInstall: String? = null
+    val postInstalls: List<PostInstallScript> = emptyList()
 ) : Parcelable
 
 @Parcelize

@@ -335,13 +335,12 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         if (PresetPostInstallManager.hasPendingScript()) {
-                            val pending = PresetPostInstallManager.loadPendingScript()
+                            val pending = PresetPostInstallManager.loadPendingScripts()
                             pending?.let {
                                 navigator.push(
                                     Route.Flash(
-                                        FlashIt.FlashScript(
-                                            script = it.script,
-                                            name = it.name,
+                                        FlashIt.FlashScripts(
+                                            scripts = it.scripts,
                                             fromPending = true
                                         )
                                     )

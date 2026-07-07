@@ -64,6 +64,7 @@ import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
+import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.RequirementCheckResult
 import anhiutangerinee.kittisu.ui.util.module.RequirementType
@@ -162,8 +163,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                                         FlashIt.FlashModules(
                                             uris = uris,
                                             fromPreset = true,
-                                            postInstallName = preset.presetEntry.postInstallName,
-                                            postInstallScript = preset.presetEntry.postInstall,
+                                            postInstalls = preset.presetEntry.postInstalls,
                                             presetId = preset.presetEntry.id,
                                             presetDestination = preset.presetEntry.destination
                                         )
@@ -196,6 +196,14 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                 ModuleRowCard(pm)
                 Spacer(Modifier.height(12.dp))
             }
+            if (preset.presetEntry.postInstalls.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    PostInstallSection(
+                        postInstalls = preset.presetEntry.postInstalls
+                    )
+                }
+            }
         }
     }
 
@@ -213,7 +221,6 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
 
 @Composable
 private fun PresetHeaderCard(preset: LoadedPreset) {
-    val navigator = LocalNavigator.current
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -257,10 +264,22 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                 Spacer(Modifier.height(8.dp))
             }
             Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            preset.presetEntry.postInstall?.takeIf { it.isNotBlank() }?.let { script ->
-                Spacer(Modifier.height(12.dp))
-                val scriptName = preset.presetEntry.postInstallName?.takeIf { it.isNotBlank() }
-                    ?: stringResource(R.string.preset_post_install_default_name)
+        }
+    }
+}
+
+@Composable
+private fun PostInstallSection(postInstalls: List<PostInstallScript>) {
+    val navigator = LocalNavigator.current
+    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = stringResource(R.string.preset_post_install_scripts),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(12.dp))
+            postInstalls.forEach { script ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -268,12 +287,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(R.string.preset_post_install_script),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = scriptName,
+                            text = script.name,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1,
@@ -283,10 +297,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                     Button(onClick = {
                         navigator.push(
                             Route.Flash(
-                                FlashIt.FlashScript(
-                                    script = script,
-                                    name = scriptName
-                                )
+                                FlashIt.FlashScripts(scripts = listOf(script))
                             )
                         )
                     }) {
@@ -294,6 +305,24 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.preset_run_script))
                     }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            if (postInstalls.size > 1) {
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = {
+                        navigator.push(
+                            Route.Flash(
+                                FlashIt.FlashScripts(scripts = postInstalls)
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.preset_run_all_scripts))
                 }
             }
         }

@@ -173,8 +173,14 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
     val committer = obj.optString("committer", "").ifBlank { null }
     val team = obj.optString("team", "").ifBlank { null }
     val requiresReboot = obj.optBoolean("requiresRebootAtEnd", false)
-    val postInstallName = obj.optString("postInstallName", "").ifBlank { null }
-    val postInstall = obj.optString("postInstall", "").ifBlank { null }
+    val postInstallsArr = obj.optJSONArray("postInstalls") ?: JSONArray()
+    val postInstalls = (0 until postInstallsArr.length()).mapNotNull { parsePostInstallScript(postInstallsArr.optJSONObject(it)) }
+    // legacy single postInstall support
+    val legacyName = obj.optString("postInstallName", "").ifBlank { null }
+    val legacyScript = obj.optString("postInstall", "").ifBlank { null }
+    val legacyPostInstalls = if (legacyName != null && legacyScript != null) {
+        listOf(PostInstallScript(name = legacyName, script = legacyScript))
+    } else emptyList()
     val modulesArr = obj.optJSONArray("modules") ?: JSONArray()
     val modules = (0 until modulesArr.length()).mapNotNull { parsePresetModule(modulesArr.optJSONObject(it)) }
     return PresetEntry(
@@ -185,9 +191,15 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
         team = team,
         requiresRebootAtEnd = requiresReboot,
         modules = modules,
-        postInstallName = postInstallName,
-        postInstall = postInstall
+        postInstalls = postInstalls + legacyPostInstalls
     )
+}
+
+private fun parsePostInstallScript(obj: JSONObject?): PostInstallScript? {
+    if (obj == null) return null
+    val name = obj.optString("name", "").ifBlank { null } ?: return null
+    val script = obj.optString("script", "").ifBlank { null } ?: return null
+    return PostInstallScript(name = name, script = script)
 }
 
 private fun parsePresetModule(obj: JSONObject?): PresetModule? {
