@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Yurikey Preset: Fix detected LSPosed (configure Zygisk Next)
+# Yurikey Preset: Fix detected LSPosed
 
 find_mod() {
     for base in /data/adb/modules /data/adb/modules_update; do
@@ -15,10 +15,24 @@ if [ -z "$MODPATH" ]; then
     exit 1
 fi
 
-SCRIPT="$MODPATH/Yuri/znctl.sh"
-if [ ! -f "$SCRIPT" ]; then
-    echo "ERROR: $SCRIPT not found"
-    exit 1
+ERR=0
+
+# Primary: Zygisk Next config helper
+ZNCTL="$MODPATH/Yuri/znctl.sh"
+if [ -f "$ZNCTL" ]; then
+    echo "Running $ZNCTL"
+    sh "$ZNCTL" || ERR=1
+else
+    echo "Note: $ZNCTL not found, skipping Zygisk Next config"
 fi
 
-sh "$SCRIPT"
+# Secondary: clear LSPosed odex traces
+LSPOSED2="$MODPATH/webroot/common/lsposed2.sh"
+if [ -f "$LSPOSED2" ]; then
+    echo "Running $LSPOSED2"
+    sh "$LSPOSED2" || ERR=1
+else
+    echo "Note: $LSPOSED2 not found, skipping odex cleanup"
+fi
+
+exit $ERR

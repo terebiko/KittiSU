@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Yurikey Preset: Fix detect recovery file (kill/clear integrity checker apps)
+# Yurikey Preset: Fix detect recovery file (TWRP folder / integrity checker cleanup)
 
 find_mod() {
     for base in /data/adb/modules /data/adb/modules_update; do
@@ -15,13 +15,25 @@ if [ -z "$MODPATH" ]; then
     exit 1
 fi
 
+ERR=0
+
+# Primary: delete TWRP folder from internal storage
+TWRP="$MODPATH/webroot/common/twrp.sh"
+if [ -f "$TWRP" ]; then
+    echo "Running $TWRP"
+    sh "$TWRP" || ERR=1
+else
+    echo "Note: $TWRP not found, skipping TWRP cleanup"
+fi
+
+# Fallback: kill integrity checker / Google processes
 for script in kill_all.sh kill_google_process.sh; do
-    SCRIPT="$MODPATH/Yuri/$script"
-    if [ -f "$SCRIPT" ]; then
-        sh "$SCRIPT"
-        exit $?
+    KILL="$MODPATH/Yuri/$script"
+    if [ -f "$KILL" ]; then
+        echo "Running $KILL"
+        sh "$KILL" || ERR=1
+        break
     fi
 done
 
-echo "ERROR: No kill script found in $MODPATH/Yuri"
-exit 1
+exit $ERR
