@@ -236,7 +236,7 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (preset.presetEntry.postInstall?.isNotBlank() == true) {
+                if (preset.presetEntry.postInstalls.isNotEmpty()) {
                     Spacer(Modifier.size(8.dp))
                     PostInstallBadge()
                 }

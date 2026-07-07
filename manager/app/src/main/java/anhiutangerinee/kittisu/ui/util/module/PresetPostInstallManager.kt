@@ -49,11 +49,22 @@ object PresetPostInstallManager {
         context: Context = ksuApp,
         presetId: String,
         presetDestination: String,
+        baseUrl: String,
         scripts: List<PostInstallScript>
     ) {
         if (scripts.isEmpty()) {
             clearPendingScripts(context)
             return
+        }
+        val resolved = scripts.map { s ->
+            val url = if (s.path.startsWith("http://", ignoreCase = true) || s.path.startsWith("https://", ignoreCase = true)) {
+                s.path
+            } else {
+                val base = baseUrl.removeSuffix("/")
+                val relative = s.path.removePrefix("/")
+                "$base/$relative"
+            }
+            s.copy(path = url)
         }
         val dir = File(context.filesDir, SCRIPTS_DIR).apply { mkdirs() }
         val file = File(dir, PENDING_SCRIPTS_FILE)
@@ -61,10 +72,10 @@ object PresetPostInstallManager {
             put("presetId", presetId)
             put("presetDestination", presetDestination)
             put("scripts", JSONArray().apply {
-                for (s in scripts) {
+                for (s in resolved) {
                     put(JSONObject().apply {
                         put("name", s.name)
-                        put("script", s.script)
+                        put("path", s.path)
                     })
                 }
             })
@@ -109,8 +120,8 @@ object PresetPostInstallManager {
             val scripts = (0 until scriptsArr.length()).mapNotNull { i ->
                 val so = scriptsArr.optJSONObject(i) ?: return@mapNotNull null
                 val name = so.optString("name", "").ifBlank { return@mapNotNull null }
-                val script = so.optString("script", "").ifBlank { return@mapNotNull null }
-                PostInstallScript(name = name, script = script)
+                val path = so.optString("path", "").ifBlank { return@mapNotNull null }
+                PostInstallScript(name = name, path = path)
             }
             if (scripts.isEmpty()) return@runCatching null
             PendingScripts(

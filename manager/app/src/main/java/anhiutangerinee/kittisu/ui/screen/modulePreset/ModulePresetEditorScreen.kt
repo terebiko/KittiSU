@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
@@ -61,6 +62,7 @@ import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
@@ -674,7 +676,7 @@ private fun PostInstallEditor(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = script.script,
+                            text = script.path,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
@@ -694,7 +696,7 @@ private fun PostInstallEditor(
                     IconButton(onClick = {
                         navigator.push(
                             Route.Flash(
-                                FlashIt.FlashScripts(scripts = listOf(script))
+                                FlashIt.FlashScripts(scripts = listOf(script), baseUrl = "")
                             )
                         )
                     }) {
@@ -746,8 +748,8 @@ private fun PostInstallEditDialog(
     onSave: (PostInstallScript) -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
-    var script by remember { mutableStateOf(initial?.script.orEmpty()) }
-    val canSave = name.isNotBlank() && script.isNotBlank()
+    var path by remember { mutableStateOf(initial?.path.orEmpty()) }
+    val canSave = name.isNotBlank() && path.isNotBlank()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -764,18 +766,18 @@ private fun PostInstallEditDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = script,
-                    onValueChange = { script = it },
-                    label = { Text(stringResource(R.string.preset_post_install_script_hint)) },
-                    minLines = 4,
-                    maxLines = 8,
+                    value = path,
+                    onValueChange = { path = it },
+                    label = { Text(stringResource(R.string.preset_post_install_path_hint)) },
+                    minLines = 2,
+                    maxLines = 4,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                onSave(PostInstallScript(name = name.trim(), script = script.trim()))
+                onSave(PostInstallScript(name = name.trim(), path = path.trim()))
             }, enabled = canSave) {
                 Text(stringResource(R.string.preset_save))
             }

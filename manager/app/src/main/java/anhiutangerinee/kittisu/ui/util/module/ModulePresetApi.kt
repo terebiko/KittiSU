@@ -179,7 +179,7 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
     val legacyName = obj.optString("postInstallName", "").ifBlank { null }
     val legacyScript = obj.optString("postInstall", "").ifBlank { null }
     val legacyPostInstalls = if (legacyName != null && legacyScript != null) {
-        listOf(PostInstallScript(name = legacyName, script = legacyScript))
+        listOf(PostInstallScript(name = legacyName, path = legacyScript))
     } else emptyList()
     val modulesArr = obj.optJSONArray("modules") ?: JSONArray()
     val modules = (0 until modulesArr.length()).mapNotNull { parsePresetModule(modulesArr.optJSONObject(it)) }
@@ -198,8 +198,8 @@ private fun parsePresetEntry(obj: JSONObject?): PresetEntry? {
 private fun parsePostInstallScript(obj: JSONObject?): PostInstallScript? {
     if (obj == null) return null
     val name = obj.optString("name", "").ifBlank { null } ?: return null
-    val script = obj.optString("script", "").ifBlank { null } ?: return null
-    return PostInstallScript(name = name, script = script)
+    val path = obj.optString("path", "").ifBlank { null } ?: return null
+    return PostInstallScript(name = name, path = path)
 }
 
 private fun parsePresetModule(obj: JSONObject?): PresetModule? {

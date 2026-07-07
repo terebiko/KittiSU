@@ -287,7 +287,8 @@ class ModulePresetViewModel : ViewModel() {
                         sourceId = source.id,
                         fileName = file,
                         presetEntry = entry,
-                        isLocal = false
+                        isLocal = false,
+                        baseUrl = source.baseUrl
                     )
                 )
             }
@@ -371,7 +372,7 @@ class ModulePresetViewModel : ViewModel() {
 
     private fun postInstallScriptToJson(p: PostInstallScript): JSONObject = JSONObject().apply {
         put("name", p.name)
-        put("script", p.script)
+        put("path", p.path)
     }
 
     private fun presetModuleToJson(m: PresetModule): JSONObject = JSONObject().apply {

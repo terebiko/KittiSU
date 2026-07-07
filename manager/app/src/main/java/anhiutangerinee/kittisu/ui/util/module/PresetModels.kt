@@ -20,7 +20,7 @@ data class PresetFile(
 @Parcelize
 data class PostInstallScript(
     val name: String,
-    val script: String
+    val path: String
 ) : Parcelable
 
 @Parcelize
@@ -69,7 +69,8 @@ data class LoadedPreset(
     val sourceId: String,
     val fileName: String,
     val presetEntry: PresetEntry,
-    val isLocal: Boolean = false
+    val isLocal: Boolean = false,
+    val baseUrl: String = ""
 ) : Parcelable
 
 data class ModuleInstallPlan(

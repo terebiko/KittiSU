@@ -165,7 +165,8 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                                             fromPreset = true,
                                             postInstalls = preset.presetEntry.postInstalls,
                                             presetId = preset.presetEntry.id,
-                                            presetDestination = preset.presetEntry.destination
+                                            presetDestination = preset.presetEntry.destination,
+                                            baseUrl = preset.baseUrl
                                         )
                                     )
                                 )
@@ -200,7 +201,8 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                 item {
                     Spacer(Modifier.height(8.dp))
                     PostInstallSection(
-                        postInstalls = preset.presetEntry.postInstalls
+                        postInstalls = preset.presetEntry.postInstalls,
+                        baseUrl = preset.baseUrl
                     )
                 }
             }
@@ -269,7 +271,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
 }
 
 @Composable
-private fun PostInstallSection(postInstalls: List<PostInstallScript>) {
+private fun PostInstallSection(postInstalls: List<PostInstallScript>, baseUrl: String) {
     val navigator = LocalNavigator.current
     ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
@@ -293,11 +295,21 @@ private fun PostInstallSection(postInstalls: List<PostInstallScript>) {
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
+                        Text(
+                            text = script.path,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                     Button(onClick = {
                         navigator.push(
                             Route.Flash(
-                                FlashIt.FlashScripts(scripts = listOf(script))
+                                FlashIt.FlashScripts(
+                                    scripts = listOf(script),
+                                    baseUrl = baseUrl
+                                )
                             )
                         )
                     }) {
@@ -314,7 +326,10 @@ private fun PostInstallSection(postInstalls: List<PostInstallScript>) {
                     onClick = {
                         navigator.push(
                             Route.Flash(
-                                FlashIt.FlashScripts(scripts = postInstalls)
+                                FlashIt.FlashScripts(
+                                    scripts = postInstalls,
+                                    baseUrl = baseUrl
+                                )
                             )
                         )
                     },

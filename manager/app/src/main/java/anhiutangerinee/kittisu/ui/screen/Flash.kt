@@ -94,6 +94,7 @@ import anhiutangerinee.kittisu.ui.util.flashModule
 import anhiutangerinee.kittisu.ui.util.hasMetaModule
 import anhiutangerinee.kittisu.ui.util.installBoot
 import anhiutangerinee.kittisu.ui.util.module.ModuleUtils
+import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
 import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.util.restoreBoot
@@ -598,17 +599,12 @@ fun FlashScreen(flashIt: FlashIt) {
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .blurSource(),
         ) {
-            if (flashIt is FlashIt.FlashModules || flashIt is FlashIt.FlashScripts) {
-                val currentIndex = when (flashIt) {
-                    is FlashIt.FlashModules -> flashIt.currentIndex + 1
-                    is FlashIt.FlashScripts -> flashIt.currentIndex + 1
-                    else -> 1
-                }
-                val totalCount = when (flashIt) {
-                    is FlashIt.FlashModules -> flashIt.uris.size
-                    is FlashIt.FlashScripts -> flashIt.scripts.size
-                    else -> 1
-                }
+            val progressInfo = when (flashIt) {
+                is FlashIt.FlashModules -> flashIt.currentIndex + 1 to flashIt.uris.size
+                is FlashIt.FlashScripts -> flashIt.currentIndex + 1 to flashIt.scripts.size
+                else -> null
+            }
+            progressInfo?.let { (currentIndex, totalCount) ->
                 ModuleInstallProgressBar(
                     currentIndex = currentIndex,
                     totalCount = totalCount,
@@ -677,6 +673,7 @@ fun FlashScreen(flashIt: FlashIt) {
                         context = context,
                         presetId = flashIt.presetId,
                         presetDestination = flashIt.presetDestination,
+                        baseUrl = flashIt.baseUrl,
                         scripts = flashIt.postInstalls
                     )
                     scope.launch {
@@ -979,13 +976,15 @@ sealed class FlashIt : Parcelable {
         val fromPreset: Boolean = false,
         val postInstalls: List<PostInstallScript> = emptyList(),
         val presetId: String = "",
-        val presetDestination: String = ""
+        val presetDestination: String = "",
+        val baseUrl: String = ""
     ) : FlashIt()
     data class FlashModuleUpdate(val uri: Uri) : FlashIt() // 模块更新
     data class FlashScripts(
         val scripts: List<PostInstallScript>,
         val currentIndex: Int = 0,
-        val fromPending: Boolean = false
+        val fromPending: Boolean = false,
+        val baseUrl: String = ""
     ) : FlashIt()
     data object FlashRestore : FlashIt()
     data object FlashUninstall : FlashIt()
@@ -999,6 +998,21 @@ fun flashModuleUpdate(
     onStderr: (String) -> Unit
 ) {
     flashModule(uri, onFinish, onStdout, onStderr)
+}
+
+private fun resolveScriptUrl(path: String, baseUrl: String): String {
+    return if (path.startsWith("http://", ignoreCase = true) || path.startsWith("https://", ignoreCase = true)) {
+        path
+    } else {
+        val base = baseUrl.removeSuffix("/")
+        val relative = path.removePrefix("/")
+        "$base/$relative"
+    }
+}
+
+private fun downloadScript(urlString: String): String {
+    val url = java.net.URL(urlString)
+    return url.openStream().bufferedReader().use { it.readText() }
 }
 
 fun flashIt(
@@ -1039,7 +1053,14 @@ fun flashIt(
             }
             val currentScript = flashIt.scripts[flashIt.currentIndex]
             onStdout("\n")
-            val result = PresetPostInstallManager.runScript(currentScript.script, onStdout, onStderr)
+            val scriptUrl = resolveScriptUrl(currentScript.path, flashIt.baseUrl)
+            val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrNull()
+            if (scriptContent == null) {
+                onStderr("Failed to download script: $scriptUrl\n")
+                onFinish(false, 1)
+                return
+            }
+            val result = PresetPostInstallManager.runScript(scriptContent, onStdout, onStderr)
             onFinish(false, result.code)
         }
         FlashIt.FlashRestore -> restoreBoot(onFinish, onStdout, onStderr)
