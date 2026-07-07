@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
@@ -157,7 +158,16 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                             val uris = downloaded.modules.mapNotNull { it.cacheUri }
                             if (uris.isNotEmpty()) {
                                 navigator.push(
-                                    Route.Flash(FlashIt.FlashModules(uris = uris, fromPreset = true))
+                                    Route.Flash(
+                                        FlashIt.FlashModules(
+                                            uris = uris,
+                                            fromPreset = true,
+                                            postInstallName = preset.presetEntry.postInstallName,
+                                            postInstallScript = preset.presetEntry.postInstall,
+                                            presetId = preset.presetEntry.id,
+                                            presetDestination = preset.presetEntry.destination
+                                        )
+                                    )
                                 )
                             } else {
                                 snackBarHost.showSnackbar(allInstalledString)
@@ -246,6 +256,45 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                 Spacer(Modifier.height(8.dp))
             }
             Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            preset.presetEntry.postInstall?.takeIf { it.isNotBlank() }?.let { script ->
+                Spacer(Modifier.height(12.dp))
+                val scriptName = preset.presetEntry.postInstallName?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.preset_post_install_default_name)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.preset_post_install_script),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = scriptName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    Button(onClick = {
+                        navigator.push(
+                            Route.Flash(
+                                FlashIt.FlashScript(
+                                    script = script,
+                                    name = scriptName
+                                )
+                            )
+                        )
+                    }) {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.size(8.dp))
+                        Text(stringResource(R.string.preset_run_script))
+                    }
+                }
+            }
         }
     }
 }

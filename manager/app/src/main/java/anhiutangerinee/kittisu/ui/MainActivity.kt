@@ -104,6 +104,7 @@ import anhiutangerinee.kittisu.ui.screen.AppProfileTemplateScreen
 import anhiutangerinee.kittisu.ui.screen.BottomBarDestination
 import anhiutangerinee.kittisu.ui.screen.ExecuteModuleActionScreen
 import anhiutangerinee.kittisu.ui.screen.FlashIt
+import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.screen.FlashScreen
 import anhiutangerinee.kittisu.ui.screen.InstallScreen
 import anhiutangerinee.kittisu.ui.screen.SulogScreen
@@ -130,6 +131,7 @@ import anhiutangerinee.kittisu.ui.util.LocalPermissionRequestInterface
 import anhiutangerinee.kittisu.ui.util.LocalSelectedPage
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.install
+import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
@@ -331,6 +333,23 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val navigator = rememberNavigator(Route.Main)
+
+                    LaunchedEffect(Unit) {
+                        if (PresetPostInstallManager.hasPendingScript()) {
+                            val pending = PresetPostInstallManager.loadPendingScript()
+                            pending?.let {
+                                navigator.push(
+                                    Route.Flash(
+                                        FlashIt.FlashScript(
+                                            script = it.script,
+                                            name = it.name,
+                                            fromPending = true
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     lateinit var permissionRequestHandler: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
 

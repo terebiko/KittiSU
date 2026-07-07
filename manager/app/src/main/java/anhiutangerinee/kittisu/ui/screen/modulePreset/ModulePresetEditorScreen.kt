@@ -214,6 +214,25 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
                     onRequiresRebootChange = { requiresRebootAtEnd = it },
                     enabled = !isReadOnly
                 )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = postInstallName,
+                    onValueChange = { postInstallName = it },
+                    label = { Text(stringResource(R.string.preset_post_install_name)) },
+                    singleLine = true,
+                    enabled = !isReadOnly,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = postInstallScript,
+                    onValueChange = { postInstallScript = it },
+                    label = { Text(stringResource(R.string.preset_post_install_script_hint)) },
+                    enabled = !isReadOnly,
+                    minLines = 4,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(16.dp))
             }
             item {

@@ -25,7 +25,9 @@ data class PresetEntry(
     val committer: String? = null,
     val team: String? = null,
     val requiresRebootAtEnd: Boolean = false,
-    val modules: List<PresetModule>
+    val modules: List<PresetModule>,
+    val postInstallName: String? = null,
+    val postInstall: String? = null
 ) : Parcelable
 
 @Parcelize

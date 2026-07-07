@@ -804,5 +804,14 @@ Important Note:\n
     <string name="preset_reboot_later">Later</string>
     <string name="preset_install_failed">Installation failed: %1$s</string>
     <string name="preset_module_failed">Failed to install %1$s</string>
+    <string name="preset_post_install">Post-install</string>
+    <string name="preset_post_install_script">Post-install script</string>
+    <string name="preset_post_install_default_name">post-install.sh</string>
+    <string name="preset_run_script">Run</string>
+    <string name="preset_post_install_name">Script name</string>
+    <string name="preset_post_install_script_hint">Bash script (runs after reboot)</string>
+    <string name="preset_post_install_confirm_title">Post-install script</string>
+    <string name="preset_post_install_confirm_content">This preset includes a post-install script "%1$s". Run it after the next reboot?</string>
+    <string name="preset_post_install_saved">Post-install script saved: %1$s</string>
 
 </resources>

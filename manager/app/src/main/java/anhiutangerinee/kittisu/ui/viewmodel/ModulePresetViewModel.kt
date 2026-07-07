@@ -362,6 +362,8 @@ class ModulePresetViewModel : ViewModel() {
             entry.committer?.let { put("committer", it) }
             entry.team?.let { put("team", it) }
             put("requiresRebootAtEnd", entry.requiresRebootAtEnd)
+            entry.postInstallName?.let { put("postInstallName", it) }
+            entry.postInstall?.let { put("postInstall", it) }
             put("modules", modules)
         }
     }

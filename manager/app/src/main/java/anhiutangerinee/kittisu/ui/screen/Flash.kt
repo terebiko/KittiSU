@@ -94,6 +94,7 @@ import anhiutangerinee.kittisu.ui.util.flashModule
 import anhiutangerinee.kittisu.ui.util.hasMetaModule
 import anhiutangerinee.kittisu.ui.util.installBoot
 import anhiutangerinee.kittisu.ui.util.module.ModuleUtils
+import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.util.restoreBoot
 import anhiutangerinee.kittisu.ui.util.uninstallPermanently
@@ -202,6 +203,7 @@ fun FlashScreen(flashIt: FlashIt) {
     var hasUpdateExecuted by rememberSaveable { mutableStateOf(false) }
     var hasUpdateCompleted by rememberSaveable { mutableStateOf(false) }
     var showRebootDialog by remember { mutableStateOf(false) }
+    var showPostInstallDialog by remember { mutableStateOf(false) }
 
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
@@ -449,7 +451,11 @@ fun FlashScreen(flashIt: FlashIt) {
                         navigator.replace(Route.Flash(nextFlashIt))
                     }
                 } else if (flashIt is FlashIt.FlashModules && flashIt.fromPreset && code == 0) {
-                    showRebootDialog = true
+                    if (!flashIt.postInstallScript.isNullOrBlank()) {
+                        showPostInstallDialog = true
+                    } else {
+                        showRebootDialog = true
+                    }
                 }
             }, onStdout = {
                 tempText = "$it\n"
@@ -600,6 +606,45 @@ fun FlashScreen(flashIt: FlashIt) {
                 TextButton(onClick = { showRebootDialog = false }) {
                     Text(stringResource(R.string.preset_reboot_later))
                 }
+            }
+        )
+    }
+
+    if (showPostInstallDialog && flashIt is FlashIt.FlashModules) {
+        val postInstallName = flashIt.postInstallName?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.preset_post_install_default_name)
+        AlertDialog(
+            onDismissRequest = {
+                showPostInstallDialog = false
+                showRebootDialog = true
+            },
+            title = { Text(stringResource(R.string.preset_post_install_confirm_title)) },
+            text = { Text(stringResource(R.string.preset_post_install_confirm_content, postInstallName)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPostInstallDialog = false
+                    PresetPostInstallManager.savePendingScript(
+                        name = postInstallName,
+                        script = flashIt.postInstallScript.orEmpty(),
+                        presetId = flashIt.presetId,
+                        presetDestination = flashIt.presetDestination
+                    )
+                    scope.launch {
+                        snackBarHost.showSnackbar(
+                            context.getString(
+                                R.string.preset_post_install_saved,
+                                postInstallName
+                            )
+                        )
+                    }
+                    showRebootDialog = true
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPostInstallDialog = false
+                    showRebootDialog = true
+                }) { Text(stringResource(android.R.string.cancel)) }
             }
         )
     }
@@ -878,8 +923,17 @@ suspend fun getModuleIdFromUri(context: Context, uri: Uri): String? {
 sealed class FlashIt : Parcelable {
     data class FlashBoot(val boot: Uri? = null, val lkm: LkmSelection, val ota: Boolean, val partition: String? = null) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
-    data class FlashModules(val uris: List<Uri>, val currentIndex: Int = 0, val fromPreset: Boolean = false) : FlashIt()
+    data class FlashModules(
+        val uris: List<Uri>,
+        val currentIndex: Int = 0,
+        val fromPreset: Boolean = false,
+        val postInstallName: String? = null,
+        val postInstallScript: String? = null,
+        val presetId: String = "",
+        val presetDestination: String = ""
+    ) : FlashIt()
     data class FlashModuleUpdate(val uri: Uri) : FlashIt() // 模块更新
+    data class FlashScript(val script: String, val name: String = "", val fromPending: Boolean = false) : FlashIt()
     data object FlashRestore : FlashIt()
     data object FlashUninstall : FlashIt()
 }
@@ -924,6 +978,13 @@ fun flashIt(
         }
         is FlashIt.FlashModuleUpdate -> {
             onFinish(false, 0)
+        }
+        is FlashIt.FlashScript -> {
+            val result = PresetPostInstallManager.runScript(flashIt.script, onStdout, onStderr)
+            if (flashIt.fromPending) {
+                PresetPostInstallManager.clearPendingScript()
+            }
+            onFinish(false, result.code)
         }
         FlashIt.FlashRestore -> restoreBoot(onFinish, onStdout, onStderr)
         FlashIt.FlashUninstall -> uninstallPermanently(onFinish, onStdout, onStderr)

@@ -236,6 +236,10 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (preset.presetEntry.postInstall?.isNotBlank() == true) {
+                    Spacer(Modifier.size(8.dp))
+                    PostInstallBadge()
+                }
                 if (preset.isLocal) {
                     Spacer(Modifier.size(8.dp))
                     LocalBadge()
@@ -253,6 +257,11 @@ fun LocalBadge() {
 @Composable
 fun RebootBadge() {
     PresetBadge(stringResource(R.string.preset_reboot), MaterialTheme.colorScheme.primaryContainer)
+}
+
+@Composable
+fun PostInstallBadge() {
+    PresetBadge(stringResource(R.string.preset_post_install), MaterialTheme.colorScheme.primaryContainer)
 }
 
 @Composable
