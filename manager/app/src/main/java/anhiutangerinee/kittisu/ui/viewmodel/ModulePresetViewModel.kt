@@ -16,6 +16,7 @@ import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.util.module.ModuleInstallPlan
 import anhiutangerinee.kittisu.ui.util.module.OFFICIAL_PRESETS_BASE_URL
 import anhiutangerinee.kittisu.ui.util.module.PlanModule
+import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
 import anhiutangerinee.kittisu.ui.util.module.PresetEntry
 import anhiutangerinee.kittisu.ui.util.module.PresetModule
 import anhiutangerinee.kittisu.ui.util.module.PresetRequirement
