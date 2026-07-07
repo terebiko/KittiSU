@@ -1,6 +1,8 @@
 package anhiutangerinee.kittisu.ui.util.module
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.edit
 import anhiutangerinee.kittisu.ksuApp
@@ -144,19 +146,30 @@ object PresetPostInstallManager {
         onStdout: (String) -> Unit,
         onStderr: (String) -> Unit
     ): Shell.Result {
-        val dir = File("/data/local/tmp/kittisu_post_install").apply { mkdirs() }
+        val dir = File(ksuApp.filesDir, SCRIPTS_DIR).apply { mkdirs() }
         val scriptFile = File(dir, "run_${System.currentTimeMillis()}.sh")
-        scriptFile.writeText(script)
-        scriptFile.setExecutable(true, false)
+        return try {
+            scriptFile.writeText(script)
+            scriptFile.setExecutable(true, false)
+        } catch (e: Exception) {
+            Log.e(TAG, "failed to write script file", e)
+            onStderr("Failed to write script file: ${e.message}\n")
+            return object : Shell.Result {
+                override fun getCode() = 1
+                override fun getOut() = emptyList<String>()
+                override fun getErr() = listOf(e.message ?: "write failed")
+            }
+        }
 
+        val mainHandler = Handler(Looper.getMainLooper())
         val stdoutCallback = object : CallbackList<String?>() {
             override fun onAddElement(s: String?) {
-                onStdout(s ?: "")
+                mainHandler.post { onStdout(s ?: "") }
             }
         }
         val stderrCallback = object : CallbackList<String?>() {
             override fun onAddElement(s: String?) {
-                onStderr(s ?: "")
+                mainHandler.post { onStderr(s ?: "") }
             }
         }
 
@@ -164,6 +177,14 @@ object PresetPostInstallManager {
             val shell = anhiutangerinee.kittisu.ui.util.getRootShell()
             shell.newJob().add("/system/bin/sh", scriptFile.absolutePath)
                 .to(stdoutCallback, stderrCallback).exec()
+        } catch (e: Exception) {
+            Log.e(TAG, "failed to execute script", e)
+            onStderr("Failed to execute script: ${e.message}\n")
+            object : Shell.Result {
+                override fun getCode() = 1
+                override fun getOut() = emptyList<String>()
+                override fun getErr() = listOf(e.message ?: "exec failed")
+            }
         } finally {
             runCatching { scriptFile.delete() }
         }
