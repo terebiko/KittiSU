@@ -21,19 +21,9 @@
         },
         {
           "moduleName": "LSPosed Vector",
-          "moduleId": "lsposed",
+          "moduleId": "zygisk_vector",
           "moduleVersion": "latest",
-          "directUrl": "github-latest://JingMatrix/Vector",
-          "stopIfFail": true,
-          "rebootAfter": false,
-          "dependsOn": [],
-          "requirement": null
-        },
-        {
-          "moduleName": "BuiltIn-BusyBox",
-          "moduleId": "BuiltIn-BusyBox",
-          "moduleVersion": "latest",
-          "directUrl": "github-latest://Magisk-Modules-Alt-Repo/BuiltIn-BusyBox",
+          "directUrl": "github-latest://JingMatrix/Vector/",
           "stopIfFail": true,
           "rebootAfter": false,
           "dependsOn": [],
@@ -51,9 +41,9 @@
         },
         {
           "moduleName": "Play Integrity Fork",
-          "moduleId": "playintegrityfork",
+          "moduleId": "playintegrityfix",
           "moduleVersion": "latest",
-          "directUrl": "github-latest://osm0sis/PlayIntegrityFork",
+          "directUrl": "github-latest://osm0sis/PlayIntegrityFork/",
           "stopIfFail": true,
           "rebootAfter": false,
           "dependsOn": [],
