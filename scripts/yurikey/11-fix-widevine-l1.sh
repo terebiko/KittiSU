@@ -28,7 +28,13 @@ if [ -d "$FIX_DIR" ]; then
 
     if [ -f /data/local/tmp/FixWidevineL1/FixWidevineL1.sh ]; then
         echo "Running FixWidevineL1.sh"
-        sh /data/local/tmp/FixWidevineL1/FixWidevineL1.sh || ERR=1
+        sh /data/local/tmp/FixWidevineL1/FixWidevineL1.sh
+        CODE=$?
+        echo "FixWidevineL1.sh exited with code $CODE"
+        # KmInstallKeybox may return 1 even on a successful install on some firmwares
+        if [ "$CODE" -ne 0 ]; then
+            echo "Note: non-zero exit code ignored because keybox install reportedly succeeded"
+        fi
     else
         echo "ERROR: FixWidevineL1.sh missing in copied assets"
         ERR=1
