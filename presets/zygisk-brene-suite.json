@@ -11,11 +11,11 @@
       "postInstalls": [
         {
           "name": "hello-test.sh",
-          "path": "presets/scripts/hello-test.sh"
+          "path": "scripts/hello-test.sh"
         },
         {
           "name": "kittisu-team.sh",
-          "path": "presets/scripts/kittisu-team.sh"
+          "path": "scripts/kittisu-team.sh"
         }
       ],
       "modules": [
