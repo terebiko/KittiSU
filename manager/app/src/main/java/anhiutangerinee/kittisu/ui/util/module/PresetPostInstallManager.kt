@@ -144,7 +144,7 @@ object PresetPostInstallManager {
         onStdout: (String) -> Unit,
         onStderr: (String) -> Unit
     ): Shell.Result {
-        val dir = File(ksuApp.filesDir, SCRIPTS_DIR).apply { mkdirs() }
+        val dir = File("/data/local/tmp/kittisu_post_install").apply { mkdirs() }
         val scriptFile = File(dir, "run_${System.currentTimeMillis()}.sh")
         scriptFile.writeText(script)
         scriptFile.setExecutable(true, false)
@@ -162,7 +162,7 @@ object PresetPostInstallManager {
 
         return try {
             val shell = anhiutangerinee.kittisu.ui.util.getRootShell()
-            shell.newJob().add("sh ${scriptFile.absolutePath}")
+            shell.newJob().add("/system/bin/sh", scriptFile.absolutePath)
                 .to(stdoutCallback, stderrCallback).exec()
         } finally {
             runCatching { scriptFile.delete() }

@@ -1012,7 +1012,17 @@ private fun resolveScriptUrl(path: String, baseUrl: String): String {
 
 private fun downloadScript(urlString: String): String {
     val url = java.net.URL(urlString)
-    return url.openStream().bufferedReader().use { it.readText() }
+    val connection = url.openConnection() as java.net.HttpURLConnection
+    connection.requestMethod = "GET"
+    connection.setRequestProperty("User-Agent", "KittiSU-Manager")
+    connection.connectTimeout = 15000
+    connection.readTimeout = 15000
+    connection.instanceFollowRedirects = true
+    val responseCode = connection.responseCode
+    if (responseCode !in 200..299) {
+        throw IllegalStateException("HTTP $responseCode for $urlString")
+    }
+    return connection.inputStream.bufferedReader().use { it.readText() }
 }
 
 fun flashIt(
@@ -1054,12 +1064,18 @@ fun flashIt(
             val currentScript = flashIt.scripts[flashIt.currentIndex]
             onStdout("\n")
             val scriptUrl = resolveScriptUrl(currentScript.path, flashIt.baseUrl)
-            val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrNull()
-            if (scriptContent == null) {
-                onStderr("Failed to download script: $scriptUrl\n")
+            onStdout("Downloading script from: $scriptUrl\n")
+            val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrElse {
+                onStderr("Failed to download script: $scriptUrl\n${it.message}\n")
                 onFinish(false, 1)
                 return
             }
+            if (scriptContent.isBlank()) {
+                onStderr("Downloaded script is empty\n")
+                onFinish(false, 1)
+                return
+            }
+            onStdout("Running script (${scriptContent.length} bytes)\n")
             val result = PresetPostInstallManager.runScript(scriptContent, onStdout, onStderr)
             onFinish(false, result.code)
         }
