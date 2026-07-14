@@ -190,8 +190,8 @@ noinline int sukisu_handle_kpm(unsigned long control_code, unsigned long arg1, u
             if (!ksu_access_ok((void __user *)(uintptr_t)arg2, 1))
                 goto invalid_arg;
 
-            n = strncpy_from_user(kernel_args_buffer, (const char __user *)(uintptr_t)arg2,
-                                  sizeof(kernel_args_buffer));
+            n = strncpy_from_user(kernel_args_buffer,
+                                  (const char __user *)(uintptr_t)arg2, sizeof(kernel_args_buffer));
             if (n < 0) {
                 res = (int)n;
                 goto exit;
@@ -380,8 +380,8 @@ exit:
     return 0;
 
 invalid_arg:
-    pr_err("kpm: invalid pointer detected! arg1: %px arg2: %px\n", (void *)(uintptr_t)arg1,
-           (void *)(uintptr_t)arg2);
+    pr_err("kpm: invalid pointer detected! arg1: %px arg2: %px\n",
+           (void *)(uintptr_t)arg1, (void *)(uintptr_t)arg2);
     res = -EFAULT;
     goto exit;
 }
