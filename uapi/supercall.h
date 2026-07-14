@@ -187,20 +187,21 @@ struct ksu_get_managers_cmd {
     struct ksu_manager_entry managers[]; // Output: Array of active manager
 } __attribute__((packed));
 
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_LOAD, 1)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_UNLOAD, 2)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_NUM, 3)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_LIST, 4)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_INFO, 5)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_CONTROL, 6)
-DEFINE_KSU_UAPI_CONST(__u8, KSU_KPM_VERSION, 7)
+/* Match SukiSU-Ultra ABI: control_code is a u64 command *value*, not a pointer. */
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_LOAD, 1)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_UNLOAD, 2)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_NUM, 3)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_LIST, 4)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_INFO, 5)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_CONTROL, 6)
+DEFINE_KSU_UAPI_CONST(__u32, KSU_KPM_VERSION, 7)
 
 struct ksu_kpm_cmd {
-    __u8 __user control_code;
-    __aligned_u64 __user arg1;
-    __aligned_u64 __user arg2;
-    __aligned_u64 __user result_code;
-} __attribute__((packed));
+    __aligned_u64 control_code; /* Input: KSU_KPM_* command value */
+    __aligned_u64 __user arg1; /* Input: path/name/buffer pointer (per cmd) */
+    __aligned_u64 __user arg2; /* Input: args pointer or buffer size (per cmd) */
+    __aligned_u64 __user result_code; /* Input: pointer to int for result */
+};
 
 DEFINE_KSU_UAPI_CONST(__u8, KERNEL_PATCH_NOT_FOUND, 0)
 DEFINE_KSU_UAPI_CONST(__u8, KERNEL_PATCH_ORIGINAL, 1)

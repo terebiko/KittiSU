@@ -24,6 +24,7 @@
 #include <linux/version.h>
 #include <linux/export.h>
 #include <linux/slab.h>
+#include "infra/symbol_resolver.h"
 #include "kpm.h"
 #include "compact.h"
 #include "policy/allowlist.h"
@@ -49,6 +50,29 @@ static int sukisu_is_current_uid_manager(void)
     return is_manager();
 }
 
+/* KPM compact ABI (SukiSU): expose last known manager appid. */
+static uid_t sukisu_get_manager_uid(void)
+{
+#ifdef CONFIG_KSU_DISABLE_MANAGER
+    return 0;
+#else
+    if (ksu_last_manager_appid == (u16)KSU_INVALID_APPID)
+        return (uid_t)-1;
+    return (uid_t)ksu_last_manager_appid;
+#endif
+}
+
+static void sukisu_set_manager_uid(uid_t uid, int force)
+{
+#ifdef CONFIG_KSU_DISABLE_MANAGER
+    (void)uid;
+    (void)force;
+#else
+    if (force || ksu_last_manager_appid == (u16)KSU_INVALID_APPID)
+        ksu_last_manager_appid = (u16)(uid % PER_USER_RANGE);
+#endif
+}
+
 struct CompactAddressSymbol {
     const char *symbol_name;
     void *addr;
@@ -64,6 +88,8 @@ static struct CompactAddressSymbol address_symbol[] = {
     { "get_ap_mod_exclude", &sukisu_get_ap_mod_exclude },
     { "is_uid_should_umount", &sukisu_is_uid_should_umount },
     { "is_current_uid_manager", &sukisu_is_current_uid_manager },
+    { "get_manager_uid", &sukisu_get_manager_uid },
+    { "sukisu_set_manager_uid", &sukisu_set_manager_uid },
 };
 
 unsigned long sukisu_compact_find_symbol(const char *name)
@@ -71,14 +97,15 @@ unsigned long sukisu_compact_find_symbol(const char *name)
     int i;
     unsigned long addr;
 
-    for (i = 0; i < (sizeof(address_symbol) / sizeof(struct CompactAddressSymbol)); i++) {
+    for (i = 0; i < (int)(sizeof(address_symbol) / sizeof(struct CompactAddressSymbol)); i++) {
         struct CompactAddressSymbol *symbol = &address_symbol[i];
 
         if (strcmp(name, symbol->symbol_name) == 0)
             return (unsigned long)symbol->addr;
     }
 
-    addr = kallsyms_lookup_name(name);
+    /* Prefer exact resolver (binary search / CFI-aware) like SukiSU-Ultra. */
+    addr = find_kernel_symbol_exact(name);
     if (addr)
         return addr;
 

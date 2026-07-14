@@ -20,7 +20,7 @@ where
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_LOAD_RUST,
+        control_code: u64::from(uapi::KSU_KPM_LOAD_RUST),
         arg1: path.as_ptr() as u64,
         arg2: args.as_ptr() as u64,
         result_code: &raw mut ret as u64,
@@ -39,7 +39,7 @@ pub fn list() -> Result<()> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_LIST_RUST,
+        control_code: u64::from(uapi::KSU_KPM_LIST_RUST),
         arg1: buf.as_mut_ptr() as u64,
         arg2: buf.len() as u64,
         result_code: &raw mut ret as u64,
@@ -65,7 +65,7 @@ pub fn unload_module(name: String) -> Result<()> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_UNLOAD_RUST,
+        control_code: u64::from(uapi::KSU_KPM_UNLOAD_RUST),
         arg1: name.as_ptr() as u64,
         arg2: 0,
         result_code: &raw mut ret as u64,
@@ -88,7 +88,7 @@ pub fn info(name: String) -> Result<()> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_INFO_RUST,
+        control_code: u64::from(uapi::KSU_KPM_INFO_RUST),
         arg1: name.as_ptr() as u64,
         arg2: buf.as_mut_ptr() as u64,
         result_code: &raw mut ret as u64,
@@ -113,7 +113,7 @@ pub fn control(name: String, args: String) -> Result<i32> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_CONTROL_RUST,
+        control_code: u64::from(uapi::KSU_KPM_CONTROL_RUST),
         arg1: name.as_ptr() as u64,
         arg2: args.as_ptr() as u64,
         result_code: &raw mut ret as u64,
@@ -134,7 +134,7 @@ pub fn control(name: String, args: String) -> Result<i32> {
 pub fn num() -> Result<i32> {
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_NUM_RUST,
+        control_code: u64::from(uapi::KSU_KPM_NUM_RUST),
         arg1: 0,
         arg2: 0,
         result_code: &raw mut ret as u64,
@@ -158,7 +158,7 @@ pub fn version() -> Result<()> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_VERSION_RUST,
+        control_code: u64::from(uapi::KSU_KPM_VERSION_RUST),
         arg1: buf.as_mut_ptr() as u64,
         arg2: buf.len() as u64,
         result_code: &raw mut ret as u64,
@@ -186,7 +186,7 @@ pub fn check_version() -> Result<String> {
 
     let mut ret = -1;
     let mut cmd = uapi::ksu_kpm_cmd {
-        control_code: uapi::KSU_KPM_VERSION_RUST,
+        control_code: u64::from(uapi::KSU_KPM_VERSION_RUST),
         arg1: buf.as_mut_ptr() as u64,
         arg2: buf.len() as u64,
         result_code: &raw mut ret as u64,
@@ -219,8 +219,10 @@ fn ensure_dir() -> Result<()> {
         let _ = fs::create_dir_all(KPM_DIR);
     }
 
-    if dir.metadata()?.permissions().mode() != 0o777 {
-        fs::set_permissions(KPM_DIR, fs::Permissions::from_mode(0o777))?;
+    // Root-only: world-writable kpm dir would let any app drop modules for boot load.
+    let mode = dir.metadata()?.permissions().mode() & 0o777;
+    if mode != 0o700 {
+        fs::set_permissions(KPM_DIR, fs::Permissions::from_mode(0o700))?;
     }
 
     Ok(())
