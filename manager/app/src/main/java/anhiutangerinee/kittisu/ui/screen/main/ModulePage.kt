@@ -870,8 +870,8 @@ private fun ModuleList(
         val success = loadingDialog.withLoading {
             withContext(Dispatchers.IO) {
                 if (isUninstall) {
-                    Shortcut.deleteModuleActionShortcut(context, module.id)
-                    Shortcut.deleteModuleWebUiShortcut(context, module.id)
+                    Shortcut.deleteModuleActionShortcut(context, module.dirId)
+                    Shortcut.deleteModuleWebUiShortcut(context, module.dirId)
                     uninstallModule(module.dirId)
                 } else {
                     undoUninstallModule(module.dirId)
@@ -905,7 +905,7 @@ private fun ModuleList(
     }
 
     fun onModuleAddShortcut(module: ModuleViewModel.ModuleInfo) {
-        shortcutModuleId = module.id
+        shortcutModuleId = module.dirId
         textFieldState.edit {
             replace(0, length, module.name)
         }
@@ -984,7 +984,7 @@ private fun ModuleList(
 
             items(
                 items = viewModel.moduleList,
-                key = { "module-$it.id" }
+                key = { "module-${it.dirId}" }
             ) { module ->
                 ModuleItem(
                     viewModel = viewModel,

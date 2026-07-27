@@ -832,6 +832,11 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
             continue;
         }
 
+        let Some(dir_id) = entry.file_name().to_str().map(ToOwned::to_owned) else {
+            warn!("Failed to get module directory id: {}", path.display());
+            continue;
+        };
+
         let mut module_prop_map = match read_module_prop(&path) {
             Ok(prop) => prop,
             Err(e) => {
@@ -840,16 +845,12 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
             }
         };
 
-        // If id is missing or empty, use directory name as fallback
-        if !module_prop_map.contains_key("id") || module_prop_map["id"].is_empty() {
-            if let Some(id) = entry.file_name().to_str() {
-                info!("Use dir name as module id: {id}");
-                module_prop_map.insert("id".to_owned(), id.to_owned());
-            } else {
-                info!("Failed to get module id from dir name");
-                continue;
-            }
+        // Metadata id may be missing or duplicated; directory id is stable.
+        if module_prop_map.get("id").is_none_or(|id| id.trim().is_empty()) {
+            info!("Use dir name as module id: {dir_id}");
+            module_prop_map.insert("id".to_owned(), dir_id.clone());
         }
+        module_prop_map.insert("dir_id".to_owned(), dir_id.clone());
 
         // Add enabled, update, remove, web, action flags
         let enabled = !path.join(defs::DISABLE_FILE_NAME).exists();
