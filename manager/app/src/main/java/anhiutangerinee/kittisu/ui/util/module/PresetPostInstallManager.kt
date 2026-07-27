@@ -8,6 +8,7 @@ import androidx.core.content.edit
 import anhiutangerinee.kittisu.ksuApp
 import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.Shell
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -58,15 +59,22 @@ object PresetPostInstallManager {
             clearPendingScripts(context)
             return
         }
-        val resolved = scripts.map { s ->
-            val url = if (s.path.startsWith("http://", ignoreCase = true) || s.path.startsWith("https://", ignoreCase = true)) {
-                s.path
-            } else {
-                val base = baseUrl.removeSuffix("/")
-                val relative = s.path.removePrefix("/")
-                "$base/$relative"
-            }
-            s.copy(path = url)
+        val resolved = scripts.mapNotNull { s ->
+            runCatching {
+                val url = if (s.path.startsWith("http://", ignoreCase = true) || s.path.startsWith("https://", ignoreCase = true)) {
+                    s.path.toHttpUrl()
+                } else {
+                    baseUrl.toHttpUrl().newBuilder().addPathSegments(s.path.trimStart('/')).build()
+                }
+                require(url.isHttps) { "Post-install script URL must use HTTPS" }
+                s.copy(path = url.toString())
+            }.onFailure {
+                Log.e(TAG, "rejected post-install script URL: ${s.path}", it)
+            }.getOrNull()
+        }
+        if (resolved.isEmpty()) {
+            clearPendingScripts(context)
+            return
         }
         val dir = File(context.filesDir, SCRIPTS_DIR).apply { mkdirs() }
         val file = File(dir, PENDING_SCRIPTS_FILE)

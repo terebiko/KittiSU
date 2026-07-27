@@ -74,4 +74,19 @@ class ModulePresetApiTest {
     fun gitHubOwnerRepo_parse_noSlashes_returnsNull() {
         assertEquals(null, GitHubOwnerRepo.parse("github-latest://ownerrepo"))
     }
+
+    @Test
+    fun joinUrl_rejectsCleartextUrl() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            joinUrl("http://example.com/presets/", "index.json")
+        }
+    }
+
+    @Test
+    fun joinUrl_resolvesHttpsPath() {
+        assertEquals(
+            "https://example.com/presets/index.json",
+            joinUrl("https://example.com/presets/", "index.json")
+        )
+    }
 }

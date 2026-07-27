@@ -493,15 +493,20 @@ fun deleteAppProfileTemplate(id: String): Boolean {
         .to(ArrayList(), null).exec().isSuccess
 }
 // KPM控制
+internal fun String.shellQuote(): String = "'${replace("'", "'\\''")}'"
+
 fun loadKpmModule(path: String, args: String? = null): String {
     val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm load $path ${args ?: ""}"
+    val cmd = buildString {
+        append(getKsuDaemonPath()).append(" kpm load ").append(path.shellQuote())
+        args?.let { append(' ').append(it.shellQuote()) }
+    }
     return ShellUtils.fastCmd(shell, cmd)
 }
 
 fun unloadKpmModule(name: String): String {
     val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm unload $name"
+    val cmd = "${getKsuDaemonPath()} kpm unload ${name.shellQuote()}"
     return ShellUtils.fastCmd(shell, cmd)
 }
 
@@ -533,7 +538,7 @@ fun listKpmModules(): String {
 
 fun getKpmModuleInfo(name: String): String {
     val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm info $name"
+    val cmd = "${getKsuDaemonPath()} kpm info ${name.shellQuote()}"
     return try {
         runCmd(shell, cmd).trim()
     } catch (e: Exception) {
@@ -544,7 +549,7 @@ fun getKpmModuleInfo(name: String): String {
 
 fun controlKpmModule(name: String, args: String? = null): Int {
     val shell = getRootShell()
-    val cmd = """${getKsuDaemonPath()} kpm control $name "${args ?: ""}""""
+    val cmd = "${getKsuDaemonPath()} kpm control ${name.shellQuote()} ${(args ?: "").shellQuote()}"
     val result = runCmd(shell, cmd)
     return result.trim().toIntOrNull() ?: -1
 }

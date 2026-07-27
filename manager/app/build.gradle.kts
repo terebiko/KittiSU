@@ -234,8 +234,6 @@ dependencies {
 
     implementation(libs.lsposed.cxx)
 
-    implementation(libs.com.github.topjohnwu.libsu.core)
-
     implementation(libs.accompanist.drawablepainter)
 
     testImplementation("junit:junit:4.13.2")

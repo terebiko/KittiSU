@@ -104,10 +104,22 @@ class DownloadService : Service() {
 
     private fun startDownload(id: Int, url: String, fileName: String) {
         val job = serviceScope.launch {
-            val target = resolveAvailableTarget(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                fileName
-            )
+            val target = try {
+                resolveAvailableTarget(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    fileName
+                )
+            } catch (e: Exception) {
+                DownloadManager.markFailed(id, e.message ?: "Invalid file name")
+                notificationManager.cancel(id)
+                notificationManager.notify(
+                    COMPLETION_NOTIFICATION_ID_BASE + id,
+                    buildFailureNotification(fileName)
+                )
+                activeJobs.remove(id)
+                stopForegroundIfIdle()
+                return@launch
+            }
             try {
                 ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute()
                     .use { resp ->
@@ -174,25 +186,7 @@ class DownloadService : Service() {
     private fun resolveAvailableTarget(
         directory: File,
         fileName: String
-    ): File {
-        val dotIndex = fileName.lastIndexOf('.')
-        val baseName = if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName
-        val extension = if (dotIndex > 0) fileName.substring(dotIndex) else ""
-
-        var index = 0
-        while (true) {
-            val candidateName = if (index == 0) {
-                fileName
-            } else {
-                "$baseName ($index)$extension"
-            }
-            val candidate = File(directory, candidateName)
-            if (!candidate.exists()) {
-                return candidate
-            }
-            index++
-        }
-    }
+    ): File = resolveDownloadTarget(directory, fileName)
 
     private fun buildProgressNotification(
         id: Int,

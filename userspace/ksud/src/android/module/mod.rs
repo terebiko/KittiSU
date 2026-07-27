@@ -62,6 +62,19 @@ pub fn validate_module_id(module_id: &str) -> Result<()> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::validate_module_id;
+
+    #[test]
+    fn validates_module_ids() {
+        assert!(validate_module_id("valid.module-1").is_ok());
+        assert!(validate_module_id("../escape").is_err());
+        assert!(validate_module_id("a/b").is_err());
+        assert!(validate_module_id("a;touch_pwned").is_err());
+    }
+}
+
 /// Get common environment variables for script execution
 pub fn get_common_script_envs(module_id: Option<&str>) -> Vec<(&'static str, String)> {
     let mut envs = vec![
@@ -612,6 +625,8 @@ pub fn enable_module(id: &str) -> Result<()> {
 }
 
 pub fn disable_module(id: &str) -> Result<()> {
+    validate_module_id(id)?;
+
     let module_path = Path::new(defs::MODULE_DIR).join(id);
     ensure!(module_path.exists(), "Module {id} not found");
 

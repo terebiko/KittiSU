@@ -9,6 +9,7 @@ import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -43,9 +44,10 @@ private fun stripTicks(s: String): String {
     return if (t.length >= 2 && t.startsWith("`") && t.endsWith("`")) t.substring(1, t.length - 1) else t
 }
 
-private fun joinUrl(base: String, file: String): String {
-    val b = if (base.endsWith("/")) base else "$base/"
-    return b + file.trimStart('/')
+internal fun joinUrl(base: String, file: String): String {
+    val baseUrl = base.toHttpUrl()
+    require(baseUrl.isHttps) { "Preset URL must use HTTPS" }
+    return baseUrl.newBuilder().addPathSegments(file.trimStart('/')).build().toString()
 }
 
 private const val GITHUB_LATEST_SCHEME = "github-latest://"

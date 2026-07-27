@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.rememberCustomDialog
@@ -106,6 +107,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -1001,28 +1003,36 @@ fun flashModuleUpdate(
 }
 
 private fun resolveScriptUrl(path: String, baseUrl: String): String {
-    return if (path.startsWith("http://", ignoreCase = true) || path.startsWith("https://", ignoreCase = true)) {
-        path
+    val url = if (path.startsWith("http://", ignoreCase = true) || path.startsWith("https://", ignoreCase = true)) {
+        path.toHttpUrl()
     } else {
-        val base = baseUrl.removeSuffix("/")
-        val relative = path.removePrefix("/")
-        "$base/$relative"
+        baseUrl.toHttpUrl().newBuilder().addPathSegments(path.trimStart('/')).build()
     }
+    require(url.isHttps) { "Post-install script URL must use HTTPS" }
+    return url.toString()
 }
 
+private const val MAX_POST_INSTALL_SCRIPT_BYTES = 1024 * 1024L
+
 private fun downloadScript(urlString: String): String {
-    val url = java.net.URL(urlString)
-    val connection = url.openConnection() as java.net.HttpURLConnection
-    connection.requestMethod = "GET"
-    connection.setRequestProperty("User-Agent", "KittiSU-Manager")
-    connection.connectTimeout = 15000
-    connection.readTimeout = 15000
-    connection.instanceFollowRedirects = true
-    val responseCode = connection.responseCode
-    if (responseCode !in 200..299) {
-        throw IllegalStateException("HTTP $responseCode for $urlString")
+    val request = okhttp3.Request.Builder().url(urlString).build()
+    return ksuApp.okhttpClient.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) {
+            throw IllegalStateException("HTTP ${response.code} for $urlString")
+        }
+        val body = response.body ?: throw IllegalStateException("Empty response for $urlString")
+        val contentLength = body.contentLength()
+        if (contentLength > MAX_POST_INSTALL_SCRIPT_BYTES) {
+            throw IllegalStateException("Script exceeds 1 MiB")
+        }
+        body.byteStream().buffered().use { input ->
+            val bytes = input.readNBytes((MAX_POST_INSTALL_SCRIPT_BYTES + 1).toInt())
+            if (bytes.size > MAX_POST_INSTALL_SCRIPT_BYTES) {
+                throw IllegalStateException("Script exceeds 1 MiB")
+            }
+            bytes.toString(Charsets.UTF_8)
+        }
     }
-    return connection.inputStream.bufferedReader().use { it.readText() }
 }
 
 fun flashIt(
@@ -1063,7 +1073,13 @@ fun flashIt(
             }
             val currentScript = flashIt.scripts[flashIt.currentIndex]
             onStdout("\n")
-            val scriptUrl = resolveScriptUrl(currentScript.path, flashIt.baseUrl)
+            val scriptUrl = runCatching {
+                resolveScriptUrl(currentScript.path, flashIt.baseUrl)
+            }.getOrElse {
+                onStderr("Invalid script URL: ${it.message}\n")
+                onFinish(false, 1)
+                return
+            }
             onStdout("Downloading script from: $scriptUrl\n")
             val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrElse {
                 onStderr("Failed to download script: $scriptUrl\n${it.message}\n")
