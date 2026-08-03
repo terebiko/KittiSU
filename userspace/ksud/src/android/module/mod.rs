@@ -734,10 +734,7 @@ fn resolve_module_icon_path(
 
 /// Resolve a module banner path to an absolute on-disk path or keep URLs as-is.
 /// Unlike icons, banners may be remote URLs (http/https) or local files.
-fn resolve_module_banner_path(
-    module_prop_map: &mut HashMap<String, String>,
-    module_path: &Path,
-) {
+fn resolve_module_banner_path(module_prop_map: &mut HashMap<String, String>, module_path: &Path) {
     let key = "banner";
     let Some(banner_value) = module_prop_map.get(key).cloned() else {
         return;
@@ -786,15 +783,18 @@ fn resolve_module_banner_path(
     // Try the installed module directory first, then the update directory as fallback.
     let candidates = [
         module_path.join(path),
-        Path::new(MODULE_UPDATE_DIR).join(module_path.file_name().unwrap_or_default()).join(path),
+        Path::new(MODULE_UPDATE_DIR)
+            .join(module_path.file_name().unwrap_or_default())
+            .join(path),
     ];
 
     for candidate in candidates {
-        if candidate.exists() && candidate.is_file() {
-            if let Some(s) = candidate.to_str() {
-                module_prop_map.insert(key.to_owned(), s.to_string());
-                return;
-            }
+        if candidate.exists()
+            && candidate.is_file()
+            && let Some(s) = candidate.to_str()
+        {
+            module_prop_map.insert(key.to_owned(), s.to_string());
+            return;
         }
     }
 
@@ -846,7 +846,10 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
         };
 
         // Metadata id may be missing or duplicated; directory id is stable.
-        if module_prop_map.get("id").is_none_or(|id| id.trim().is_empty()) {
+        if module_prop_map
+            .get("id")
+            .is_none_or(|id| id.trim().is_empty())
+        {
             info!("Use dir name as module id: {dir_id}");
             module_prop_map.insert("id".to_owned(), dir_id.clone());
         }

@@ -15,7 +15,10 @@ const MAX_KPM_FILE_SIZE: u64 = 64 * 1024 * 1024;
 fn validate_kpm_path(path: &Path) -> Result<()> {
     let metadata = fs::metadata(path)
         .with_context(|| format!("failed to inspect KPM file: {}", path.display()))?;
-    ensure!(metadata.is_file(), "KPM path must resolve to a regular file");
+    ensure!(
+        metadata.is_file(),
+        "KPM path must resolve to a regular file"
+    );
     ensure!(
         metadata.len() <= MAX_KPM_FILE_SIZE,
         "KPM file exceeds {} MiB",
@@ -23,7 +26,6 @@ fn validate_kpm_path(path: &Path) -> Result<()> {
     );
     Ok(())
 }
-
 
 pub fn load_module<P>(path: P, args: Option<&str>) -> Result<()>
 where
