@@ -86,9 +86,52 @@ class ModuleViewModel : ViewModel() {
         val metamodule: Boolean,
         val actionIconPath: String?,
         val webUiIconPath: String?,
+        val banner: String?,
         val dirId: String, // real module id (dir name)
         val moduleUpdate: ModuleUpdateInfo?
     )
+
+    internal object Parser {
+        fun parseModuleInfo(obj: JSONObject): ModuleInfo {
+            val dirId = obj.optString("dir_id").trim()
+            require(dirId.isNotEmpty()) { "module dir_id is missing" }
+            val moduleId = obj.optString("id").trim().ifEmpty { dirId }
+            return ModuleInfo(
+                id = moduleId,
+                name = obj.optString("name").ifBlank { moduleId },
+                author = obj.optString("author", "Unknown"),
+                version = obj.optString("version", "Unknown"),
+                versionCode = obj.getIntCompat("versionCode", 0),
+                description = obj.optString("description"),
+                enabled = obj.getBooleanCompat("enabled"),
+                update = obj.getBooleanCompat("update"),
+                remove = obj.getBooleanCompat("remove"),
+                updateJson = obj.optString("updateJson"),
+                hasWebUi = obj.getBooleanCompat("web"),
+                hasActionScript = obj.getBooleanCompat("action"),
+                metamodule = obj.getBooleanCompat("metamodule"),
+                actionIconPath = obj.optString("actionIcon").takeIf { it.isNotBlank() },
+                webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() },
+                banner = obj.optString("banner").takeIf { it.isNotBlank() },
+                dirId = dirId,
+                moduleUpdate = null
+            )
+        }
+
+        fun parseModuleList(
+            array: JSONArray,
+            onInvalid: (index: Int, error: Throwable) -> Unit = { _, _ -> }
+        ): List<ModuleInfo> = (0 until array.length()).mapNotNull { index ->
+            val obj = array.optJSONObject(index)
+            if (obj == null) {
+                onInvalid(index, IllegalArgumentException("module entry is not an object"))
+                return@mapNotNull null
+            }
+            runCatching { parseModuleInfo(obj) }
+                .onFailure { onInvalid(index, it) }
+                .getOrNull()
+        }
+    }
 
     var isRefreshing by mutableStateOf(false)
         private set
@@ -117,6 +160,7 @@ class ModuleViewModel : ViewModel() {
                 { if (sortEnabledFirst) !it.enabled else 0 },
                 { if (sortActionFirst) !(it.hasWebUi || it.hasActionScript) else 0 },
             ).thenBy(Collator.getInstance(Locale.getDefault()), ModuleInfo::id)
+                .thenBy(ModuleInfo::dirId)
         modules.filter {
             it.id.contains(search, true) || it.name.contains(search, true) || HanziToPinyin.getInstance()
                 .toPinyinString(it.name)?.contains(search, true) == true
@@ -151,54 +195,25 @@ class ModuleViewModel : ViewModel() {
 
                 Log.i(TAG, "result: $result")
 
-                val moduleList = mutableListOf<String>()
-                if (!manualRefresh) {
-                    oldModuleList.forEach { module ->
-                        moduleList.add(module.id + module.versionCode)
-                    }
+                val knownModuleVersions = if (manualRefresh) {
+                    emptySet()
+                } else {
+                    oldModuleList.mapTo(mutableSetOf()) { it.dirId to it.versionCode }
                 }
 
                 val array = JSONArray(result)
-                modules = (0 until array.length())
-                    .asSequence()
-                    .map { array.getJSONObject(it) }
-                    .map { obj ->
-                        val moduleId = obj.getString("id")
-                        val moduleVersionCode = obj.getIntCompat("versionCode", 0)
-                        val enabled = obj.getBooleanCompat("enabled")
-                        val update = obj.getBooleanCompat("update")
-                        val remove = obj.getBooleanCompat("remove")
-                        val updateJson = obj.optString("updateJson")
-
-                        ModuleInfo(
-                            id = moduleId,
-                            name = obj.optString("name"),
-                            author = obj.optString("author", "Unknown"),
-                            version = obj.optString("version", "Unknown"),
-                            versionCode = moduleVersionCode,
-                            description = obj.optString("description"),
-                            enabled = enabled,
-                            update = update,
-                            remove = remove,
-                            updateJson = updateJson,
-                            hasWebUi = obj.getBooleanCompat("web"),
-                            hasActionScript = obj.getBooleanCompat("action"),
-                            metamodule = obj.getBooleanCompat("metamodule"),
-                            actionIconPath = obj.optString("actionIcon").takeIf { it.isNotBlank() },
-                            webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() },
-                            dirId = obj.optString("dir_id", obj.getString("id")),
-                            moduleUpdate = null // we null moduleUpdate there, because checkUpdate may request network
-                        )
-                    }.toList()
+                modules = Parser.parseModuleList(array) { index, error ->
+                    Log.w(TAG, "Ignoring invalid module entry at index $index", error)
+                }
 
                 hasModuleRequireMount = modules.map { module ->
                     async(Dispatchers.IO) {
-                        SuFile.open("/data/adb/modules/${module.id}/system").exists()
-                                && !SuFile.open("/data/adb/modules/${module.id}/skip_mount")
+                        SuFile.open("/data/adb/modules/${module.dirId}/system").exists()
+                                && !SuFile.open("/data/adb/modules/${module.dirId}/skip_mount")
                             .exists() // skip_mount
-                                && !SuFile.open("/data/adb/modules/${module.id}/disable")
+                                && !SuFile.open("/data/adb/modules/${module.dirId}/disable")
                             .exists() // disable
-                                && !SuFile.open("/data/adb/modules/${module.id}/remove")
+                                && !SuFile.open("/data/adb/modules/${module.dirId}/remove")
                             .exists() // remove
                     }
                 }.awaitAll().any { it }
@@ -206,7 +221,7 @@ class ModuleViewModel : ViewModel() {
                 modules = modules.map { module ->
                     async(Dispatchers.IO) {
                         module.copy(
-                            moduleUpdate = if (!moduleList.contains(module.id + module.versionCode) || module.updateJson.isEmpty() || module.remove || module.update || !module.enabled)
+                            moduleUpdate = if ((module.dirId to module.versionCode) !in knownModuleVersions || module.updateJson.isEmpty() || module.remove || module.update || !module.enabled)
                                 checkUpdate(module.updateJson, module.versionCode)
                             else null
                         )

@@ -113,6 +113,10 @@ import anhiutangerinee.kittisu.ui.screen.about.AboutScreen
 import anhiutangerinee.kittisu.ui.screen.about.OpenSourceLicenseScreen
 import anhiutangerinee.kittisu.ui.screen.moduleRepo.ModuleRepoScreen
 import anhiutangerinee.kittisu.ui.screen.moduleRepo.OnlineModuleDetailScreen
+import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetDetailScreen
+import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetEditorScreen
+import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetSourcesScreen
+import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetsScreen
 import anhiutangerinee.kittisu.ui.susfs.SuSFSConfigScreen
 import anhiutangerinee.kittisu.ui.theme.KernelSUTheme
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
@@ -126,6 +130,7 @@ import anhiutangerinee.kittisu.ui.util.LocalPermissionRequestInterface
 import anhiutangerinee.kittisu.ui.util.LocalSelectedPage
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.install
+import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
@@ -327,6 +332,22 @@ class MainActivity : ComponentActivity() {
                     }
 
                     val navigator = rememberNavigator(Route.Main)
+
+                    LaunchedEffect(Unit) {
+                        if (PresetPostInstallManager.hasPendingScript()) {
+                            val pending = PresetPostInstallManager.loadPendingScripts()
+                            pending?.let {
+                                navigator.push(
+                                    Route.Flash(
+                                        FlashIt.FlashScripts(
+                                            scripts = it.scripts,
+                                            fromPending = true
+                                        )
+                                    )
+                                )
+                            }
+                        }
+                    }
 
                     lateinit var permissionRequestHandler: ManagedActivityResultLauncher<Array<String>, Map<String, @JvmSuppressWildcards Boolean>>
 
@@ -610,6 +631,10 @@ class MainActivity : ComponentActivity() {
                                             key.module
                                         )
                                     }
+                                    entry<Route.ModulePresets> { ModulePresetsScreen() }
+                                    entry<Route.ModulePresetEditor> { key -> ModulePresetEditorScreen(key.preset) }
+                                    entry<Route.ModulePresetDetail> { key -> ModulePresetDetailScreen(key.preset) }
+                                    entry<Route.ModulePresetSources> { ModulePresetSourcesScreen() }
                                     entry<Route.Install> { key -> InstallScreen(key.preselectedKernelUri) }
                                     entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                     entry<Route.ExecuteModuleAction> { key ->

@@ -62,6 +62,19 @@ pub fn validate_module_id(module_id: &str) -> Result<()> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::validate_module_id;
+
+    #[test]
+    fn validates_module_ids() {
+        assert!(validate_module_id("valid.module-1").is_ok());
+        assert!(validate_module_id("../escape").is_err());
+        assert!(validate_module_id("a/b").is_err());
+        assert!(validate_module_id("a;touch_pwned").is_err());
+    }
+}
+
 /// Get common environment variables for script execution
 pub fn get_common_script_envs(module_id: Option<&str>) -> Vec<(&'static str, String)> {
     let mut envs = vec![
@@ -612,6 +625,8 @@ pub fn enable_module(id: &str) -> Result<()> {
 }
 
 pub fn disable_module(id: &str) -> Result<()> {
+    validate_module_id(id)?;
+
     let module_path = Path::new(defs::MODULE_DIR).join(id);
     ensure!(module_path.exists(), "Module {id} not found");
 
@@ -717,6 +732,80 @@ fn resolve_module_icon_path(
     }
 }
 
+/// Resolve a module banner path to an absolute on-disk path or keep URLs as-is.
+/// Unlike icons, banners may be remote URLs (http/https) or local files.
+fn resolve_module_banner_path(module_prop_map: &mut HashMap<String, String>, module_path: &Path) {
+    let key = "banner";
+    let Some(banner_value) = module_prop_map.get(key).cloned() else {
+        return;
+    };
+    let banner_value = banner_value.trim();
+    if banner_value.is_empty() {
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Keep remote URLs as-is so the manager can load them directly.
+    if banner_value.starts_with("http://") || banner_value.starts_with("https://") {
+        return;
+    }
+
+    let path = std::path::Path::new(banner_value);
+
+    // If an absolute path is provided, keep it only if the file exists.
+    if path.is_absolute() {
+        if path.exists() && path.is_file() {
+            return;
+        }
+        log::debug!(
+            "Banner absolute path not found for module {}: {}",
+            module_prop_map.get("id").map_or("", String::as_str),
+            banner_value
+        );
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Reject parent traversal for security.
+    let has_parent = path
+        .components()
+        .any(|c| matches!(c, std::path::Component::ParentDir));
+    if has_parent {
+        log::warn!(
+            "Rejected banner with parent traversal for module {}: {}",
+            module_prop_map.get("id").map_or("", String::as_str),
+            banner_value
+        );
+        module_prop_map.remove(key);
+        return;
+    }
+
+    // Try the installed module directory first, then the update directory as fallback.
+    let candidates = [
+        module_path.join(path),
+        Path::new(MODULE_UPDATE_DIR)
+            .join(module_path.file_name().unwrap_or_default())
+            .join(path),
+    ];
+
+    for candidate in candidates {
+        if candidate.exists()
+            && candidate.is_file()
+            && let Some(s) = candidate.to_str()
+        {
+            module_prop_map.insert(key.to_owned(), s.to_string());
+            return;
+        }
+    }
+
+    log::debug!(
+        "Banner not found for module {}: {}",
+        module_prop_map.get("id").map_or("", String::as_str),
+        banner_value
+    );
+    module_prop_map.remove(key);
+}
+
 fn list_module(path: &str) -> Vec<HashMap<String, String>> {
     // Load all module configs once to minimize I/O overhead
     let all_configs = match module_config::get_all_module_configs() {
@@ -743,6 +832,11 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
             continue;
         }
 
+        let Some(dir_id) = entry.file_name().to_str().map(ToOwned::to_owned) else {
+            warn!("Failed to get module directory id: {}", path.display());
+            continue;
+        };
+
         let mut module_prop_map = match read_module_prop(&path) {
             Ok(prop) => prop,
             Err(e) => {
@@ -751,16 +845,15 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
             }
         };
 
-        // If id is missing or empty, use directory name as fallback
-        if !module_prop_map.contains_key("id") || module_prop_map["id"].is_empty() {
-            if let Some(id) = entry.file_name().to_str() {
-                info!("Use dir name as module id: {id}");
-                module_prop_map.insert("id".to_owned(), id.to_owned());
-            } else {
-                info!("Failed to get module id from dir name");
-                continue;
-            }
+        // Metadata id may be missing or duplicated; directory id is stable.
+        if module_prop_map
+            .get("id")
+            .is_none_or(|id| id.trim().is_empty())
+        {
+            info!("Use dir name as module id: {dir_id}");
+            module_prop_map.insert("id".to_owned(), dir_id.clone());
         }
+        module_prop_map.insert("dir_id".to_owned(), dir_id.clone());
 
         // Add enabled, update, remove, web, action flags
         let enabled = !path.join(defs::DISABLE_FILE_NAME).exists();
@@ -779,6 +872,7 @@ fn list_module(path: &str) -> Vec<HashMap<String, String>> {
 
         resolve_module_icon_path(&mut module_prop_map, "actionIcon", &path);
         resolve_module_icon_path(&mut module_prop_map, "webuiIcon", &path);
+        resolve_module_banner_path(&mut module_prop_map, &path);
 
         // Apply module config overrides and extract managed features
         if let Some(module_id) = module_prop_map.get("id")

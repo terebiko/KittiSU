@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.rememberCustomDialog
@@ -94,6 +95,8 @@ import anhiutangerinee.kittisu.ui.util.flashModule
 import anhiutangerinee.kittisu.ui.util.hasMetaModule
 import anhiutangerinee.kittisu.ui.util.installBoot
 import anhiutangerinee.kittisu.ui.util.module.ModuleUtils
+import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
+import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.util.restoreBoot
 import anhiutangerinee.kittisu.ui.util.uninstallPermanently
@@ -104,6 +107,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -201,6 +205,8 @@ fun FlashScreen(flashIt: FlashIt) {
     // 更新模块状态管理
     var hasUpdateExecuted by rememberSaveable { mutableStateOf(false) }
     var hasUpdateCompleted by rememberSaveable { mutableStateOf(false) }
+    var showRebootDialog by remember { mutableStateOf(false) }
+    var showPostInstallDialog by remember { mutableStateOf(false) }
 
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
@@ -261,6 +267,17 @@ fun FlashScreen(flashIt: FlashIt) {
                 if (flashIt.currentIndex == 0) {
                     moduleInstallStatus.value = ModuleInstallStatus(
                         totalModules = flashIt.uris.size,
+                        currentModule = 1
+                    )
+                    shouldWarningUserMetaModule = false
+                    hasFlashCompleted = false
+                    hasExecuted = false
+                }
+            }
+            is FlashIt.FlashScripts -> {
+                if (flashIt.currentIndex == 0) {
+                    moduleInstallStatus.value = ModuleInstallStatus(
+                        totalModules = flashIt.scripts.size,
                         currentModule = 1
                     )
                     shouldWarningUserMetaModule = false
@@ -385,6 +402,16 @@ fun FlashScreen(flashIt: FlashIt) {
                 }
             }
 
+            if (flashIt is FlashIt.FlashScripts) {
+                val scriptName = flashIt.scripts[flashIt.currentIndex].name
+                updateModuleInstallStatus(
+                    currentModuleName = scriptName
+                )
+                val runningScriptString = context.getString(R.string.preset_running_script)
+                text = runningScriptString.format(flashIt.currentIndex + 1, flashIt.scripts.size, scriptName)
+                logContent.append(text).append("\n")
+            }
+
             flashIt(flashIt, onFinish = { showReboot, code ->
                 if (code != 0) {
                     text += "$errorCodeString $code.\n$checkLogString\n"
@@ -400,7 +427,7 @@ fun FlashScreen(flashIt: FlashIt) {
 
                     viewModel.markNeedRefresh()
                 }
-                if (showReboot) {
+                if (showReboot && !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)) {
                     text += "\n\n\n"
                     showFloatAction = true
                 }
@@ -446,6 +473,30 @@ fun FlashScreen(flashIt: FlashIt) {
                     scope.launch {
                         delay(500)
                         navigator.replace(Route.Flash(nextFlashIt))
+                    }
+                } else if (flashIt is FlashIt.FlashScripts && flashIt.currentIndex < flashIt.scripts.size - 1) {
+                    val nextFlashIt = flashIt.copy(
+                        currentIndex = flashIt.currentIndex + 1
+                    )
+                    scope.launch {
+                        delay(500)
+                        navigator.replace(Route.Flash(nextFlashIt))
+                    }
+                } else if (flashIt is FlashIt.FlashScripts) {
+                    if (code != 0) {
+                        setFlashingStatus(FlashingStatus.FAILED)
+                    } else {
+                        viewModel.markNeedRefresh()
+                    }
+                    if (flashIt.fromPending) {
+                        PresetPostInstallManager.clearPendingScripts()
+                    }
+                    hasFlashCompleted = true
+                } else if (flashIt is FlashIt.FlashModules && flashIt.fromPreset && code == 0) {
+                    if (flashIt.postInstalls.isNotEmpty()) {
+                        showPostInstallDialog = true
+                    } else {
+                        showRebootDialog = true
                     }
                 }
             }, onStdout = {
@@ -550,10 +601,15 @@ fun FlashScreen(flashIt: FlashIt) {
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .blurSource(),
         ) {
-            if (flashIt is FlashIt.FlashModules) {
+            val progressInfo = when (flashIt) {
+                is FlashIt.FlashModules -> flashIt.currentIndex + 1 to flashIt.uris.size
+                is FlashIt.FlashScripts -> flashIt.currentIndex + 1 to flashIt.scripts.size
+                else -> null
+            }
+            progressInfo?.let { (currentIndex, totalCount) ->
                 ModuleInstallProgressBar(
-                    currentIndex = flashIt.currentIndex + 1,
-                    totalCount = flashIt.uris.size,
+                    currentIndex = currentIndex,
+                    totalCount = totalCount,
                     currentModuleName = currentStatus.currentModuleName,
                     status = currentFlashingStatus.value,
                     failedModules = currentStatus.failedModules
@@ -580,6 +636,66 @@ fun FlashScreen(flashIt: FlashIt) {
                 )
             }
         }
+    }
+
+    if (showRebootDialog) {
+        AlertDialog(
+            onDismissRequest = { showRebootDialog = false },
+            title = { Text(stringResource(R.string.preset_reboot_title)) },
+            text = { Text(stringResource(R.string.preset_reboot_content)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRebootDialog = false
+                    scope.launch { withContext(Dispatchers.IO) { reboot() } }
+                }) { Text(stringResource(R.string.preset_reboot_now)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRebootDialog = false }) {
+                    Text(stringResource(R.string.preset_reboot_later))
+                }
+            }
+        )
+    }
+
+    if (showPostInstallDialog && flashIt is FlashIt.FlashModules) {
+        val count = flashIt.postInstalls.size
+        val firstName = flashIt.postInstalls.firstOrNull()?.name?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.preset_post_install_default_name)
+        AlertDialog(
+            onDismissRequest = {
+                showPostInstallDialog = false
+                showRebootDialog = true
+            },
+            title = { Text(stringResource(R.string.preset_post_install_confirm_title)) },
+            text = { Text(stringResource(R.string.preset_post_install_confirm_content, count, firstName)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPostInstallDialog = false
+                    PresetPostInstallManager.savePendingScripts(
+                        context = context,
+                        presetId = flashIt.presetId,
+                        presetDestination = flashIt.presetDestination,
+                        baseUrl = flashIt.baseUrl,
+                        scripts = flashIt.postInstalls
+                    )
+                    scope.launch {
+                        snackBarHost.showSnackbar(
+                            context.getString(
+                                R.string.preset_post_install_saved,
+                                count
+                            )
+                        )
+                    }
+                    showRebootDialog = true
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showPostInstallDialog = false
+                    showRebootDialog = true
+                }) { Text(stringResource(android.R.string.cancel)) }
+            }
+        )
     }
 }
 
@@ -856,8 +972,22 @@ suspend fun getModuleIdFromUri(context: Context, uri: Uri): String? {
 sealed class FlashIt : Parcelable {
     data class FlashBoot(val boot: Uri? = null, val lkm: LkmSelection, val ota: Boolean, val partition: String? = null) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
-    data class FlashModules(val uris: List<Uri>, val currentIndex: Int = 0) : FlashIt()
+    data class FlashModules(
+        val uris: List<Uri>,
+        val currentIndex: Int = 0,
+        val fromPreset: Boolean = false,
+        val postInstalls: List<PostInstallScript> = emptyList(),
+        val presetId: String = "",
+        val presetDestination: String = "",
+        val baseUrl: String = ""
+    ) : FlashIt()
     data class FlashModuleUpdate(val uri: Uri) : FlashIt() // 模块更新
+    data class FlashScripts(
+        val scripts: List<PostInstallScript>,
+        val currentIndex: Int = 0,
+        val fromPending: Boolean = false,
+        val baseUrl: String = ""
+    ) : FlashIt()
     data object FlashRestore : FlashIt()
     data object FlashUninstall : FlashIt()
 }
@@ -870,6 +1000,39 @@ fun flashModuleUpdate(
     onStderr: (String) -> Unit
 ) {
     flashModule(uri, onFinish, onStdout, onStderr)
+}
+
+private fun resolveScriptUrl(path: String, baseUrl: String): String {
+    val url = if (path.startsWith("http://", ignoreCase = true) || path.startsWith("https://", ignoreCase = true)) {
+        path.toHttpUrl()
+    } else {
+        baseUrl.toHttpUrl().newBuilder().addPathSegments(path.trimStart('/')).build()
+    }
+    require(url.isHttps) { "Post-install script URL must use HTTPS" }
+    return url.toString()
+}
+
+private const val MAX_POST_INSTALL_SCRIPT_BYTES = 1024 * 1024L
+
+private fun downloadScript(urlString: String): String {
+    val request = okhttp3.Request.Builder().url(urlString).build()
+    return ksuApp.okhttpClient.newCall(request).execute().use { response ->
+        if (!response.isSuccessful) {
+            throw IllegalStateException("HTTP ${response.code} for $urlString")
+        }
+        val body = response.body ?: throw IllegalStateException("Empty response for $urlString")
+        val contentLength = body.contentLength()
+        if (contentLength > MAX_POST_INSTALL_SCRIPT_BYTES) {
+            throw IllegalStateException("Script exceeds 1 MiB")
+        }
+        body.byteStream().buffered().use { input ->
+            val bytes = input.readNBytes((MAX_POST_INSTALL_SCRIPT_BYTES + 1).toInt())
+            if (bytes.size > MAX_POST_INSTALL_SCRIPT_BYTES) {
+                throw IllegalStateException("Script exceeds 1 MiB")
+            }
+            bytes.toString(Charsets.UTF_8)
+        }
+    }
 }
 
 fun flashIt(
@@ -902,6 +1065,35 @@ fun flashIt(
         }
         is FlashIt.FlashModuleUpdate -> {
             onFinish(false, 0)
+        }
+        is FlashIt.FlashScripts -> {
+            if (flashIt.scripts.isEmpty() || flashIt.currentIndex >= flashIt.scripts.size) {
+                onFinish(false, 0)
+                return
+            }
+            val currentScript = flashIt.scripts[flashIt.currentIndex]
+            onStdout("\n")
+            val scriptUrl = runCatching {
+                resolveScriptUrl(currentScript.path, flashIt.baseUrl)
+            }.getOrElse {
+                onStderr("Invalid script URL: ${it.message}\n")
+                onFinish(false, 1)
+                return
+            }
+            onStdout("Downloading script from: $scriptUrl\n")
+            val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrElse {
+                onStderr("Failed to download script: $scriptUrl\n${it.message}\n")
+                onFinish(false, 1)
+                return
+            }
+            if (scriptContent.isBlank()) {
+                onStderr("Downloaded script is empty\n")
+                onFinish(false, 1)
+                return
+            }
+            onStdout("Running script (${scriptContent.length} bytes)\n")
+            val result = PresetPostInstallManager.runScript(scriptContent, onStdout, onStderr)
+            onFinish(false, result.code)
         }
         FlashIt.FlashRestore -> restoreBoot(onFinish, onStdout, onStderr)
         FlashIt.FlashUninstall -> uninstallPermanently(onFinish, onStdout, onStderr)

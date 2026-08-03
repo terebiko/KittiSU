@@ -85,12 +85,17 @@ import anhiutangerinee.kittisu.ui.theme.getCardElevation
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.getRootShell
 import anhiutangerinee.kittisu.ui.util.loadKpmModule
+import anhiutangerinee.kittisu.ui.util.shellQuote
 import anhiutangerinee.kittisu.ui.util.unloadKpmModule
 import anhiutangerinee.kittisu.ui.viewmodel.KpmViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
 import java.net.URLEncoder
+
+private val KPM_MODULE_ID = Regex("^[A-Za-z][A-Za-z0-9._-]+$")
+
+private fun isValidKpmModuleId(id: String): Boolean = KPM_MODULE_ID.matches(id)
 
 /**
  * @author ShirkNeko, liankong
@@ -137,7 +142,7 @@ fun KpmPage(bottomPadding: Dp) {
             tempFileForInstall?.let { tempFile ->
                 try {
                     val shell = getRootShell()
-                    val command = "strings ${tempFile.absolutePath} | grep 'name='"
+                    val command = "strings ${tempFile.absolutePath.shellQuote()} | grep 'name='"
                     val result = shell.newJob().add(command).to(ArrayList(), null).exec()
                     if (result.isSuccess) {
                         for (line in result.out) {
@@ -500,7 +505,7 @@ private suspend fun handleModuleInstall(
     var moduleId: String? = null
     try {
         val shell = getRootShell()
-        val command = "strings ${tempFile.absolutePath} | grep 'name='"
+        val command = "strings ${tempFile.absolutePath.shellQuote()} | grep 'name='"
         val result = shell.newJob().add(command).to(ArrayList(), null).exec()
         if (result.isSuccess) {
             for (line in result.out) {
@@ -514,8 +519,8 @@ private suspend fun handleModuleInstall(
         Log.e("KsuCli", "Failed to get module ID from strings command: ${e.message}", e)
     }
 
-    if (moduleId == null || moduleId.isEmpty()) {
-        Log.e("KsuCli", "Failed to extract module ID from file: ${tempFile.name}")
+    if (moduleId == null || !isValidKpmModuleId(moduleId)) {
+        Log.e("KsuCli", "Invalid module ID from file: ${tempFile.name}")
         snackBarHost.showSnackbar(
             message = kpmInstallFailed,
             duration = SnackbarDuration.Short
@@ -530,7 +535,7 @@ private suspend fun handleModuleInstall(
         if (isEmbed) {
             val shell = getRootShell()
             shell.newJob().add("mkdir -p /data/adb/kpm").exec()
-            shell.newJob().add("cp ${tempFile.absolutePath} $targetPath").exec()
+            shell.newJob().add("cp ${tempFile.absolutePath.shellQuote()} ${targetPath.shellQuote()}").exec()
         }
 
         val loadResult = loadKpmModule(tempFile.absolutePath)
@@ -570,12 +575,17 @@ private suspend fun handleModuleUninstall(
     confirmContent : String,
     confirmDialog: ConfirmDialogHandle
 ) {
+    if (!isValidKpmModuleId(module.id)) {
+        Log.e("KsuCli", "Refusing invalid KPM module ID: ${module.id}")
+        snackBarHost.showSnackbar(kpmUninstallFailed, duration = SnackbarDuration.Short)
+        return
+    }
     val moduleFileName = "${module.id}.kpm"
     val moduleFilePath = "/data/adb/kpm/$moduleFileName"
 
     val fileExists = try {
         val shell = getRootShell()
-        val result = shell.newJob().add("ls /data/adb/kpm/$moduleFileName").exec()
+        val result = shell.newJob().add("test -f ${moduleFilePath.shellQuote()}").exec()
         result.isSuccess
     } catch (e: Exception) {
         Log.e("KsuCli", "Failed to check module file existence: ${e.message}", e)
@@ -607,7 +617,7 @@ private suspend fun handleModuleUninstall(
 
             if (fileExists) {
                 val shell = getRootShell()
-                shell.newJob().add("rm $moduleFilePath").exec()
+                shell.newJob().add("rm -- ${moduleFilePath.shellQuote()}").exec()
             }
 
             viewModel.fetchModuleList()
@@ -779,7 +789,7 @@ private fun KpmModuleItem(
 
 private fun checkStringsCommand(tempFile: File): Int {
     val shell = getRootShell()
-    val command = "strings ${tempFile.absolutePath} | grep -E 'name=|version=|license=|author='"
+    val command = "strings ${tempFile.absolutePath.shellQuote()} | grep -E 'name=|version=|license=|author='"
     val result = shell.newJob().add(command).to(ArrayList(), null).exec()
 
     if (!result.isSuccess) {

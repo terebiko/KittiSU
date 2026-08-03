@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Parcelable
 import androidx.navigation3.runtime.NavKey
 import anhiutangerinee.kittisu.ui.screen.FlashIt
+import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleRepoViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateViewModel
@@ -103,4 +104,20 @@ sealed interface Route : NavKey, Parcelable {
         val kpmPatchEnabled: Boolean,
         val kpmUndoPatch: Boolean
     ) : Route
+
+    @Parcelize
+    @Serializable
+    data object ModulePresets : Route
+
+    @Parcelize
+    @Serializable
+    data class ModulePresetDetail(val preset: @Contextual LoadedPreset) : Route
+
+    @Parcelize
+    @Serializable
+    data object ModulePresetSources : Route
+
+    @Parcelize
+    @Serializable
+    data class ModulePresetEditor(val preset: @Contextual LoadedPreset? = null) : Route
 }

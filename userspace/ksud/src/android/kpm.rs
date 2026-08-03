@@ -5,16 +5,33 @@ use std::{
     path::Path,
 };
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 
 use crate::android::{ksucalls::ksuctl, uapi};
 
 const KPM_DIR: &str = "/data/adb/kpm";
+const MAX_KPM_FILE_SIZE: u64 = 64 * 1024 * 1024;
+
+fn validate_kpm_path(path: &Path) -> Result<()> {
+    let metadata = fs::metadata(path)
+        .with_context(|| format!("failed to inspect KPM file: {}", path.display()))?;
+    ensure!(
+        metadata.is_file(),
+        "KPM path must resolve to a regular file"
+    );
+    ensure!(
+        metadata.len() <= MAX_KPM_FILE_SIZE,
+        "KPM file exceeds {} MiB",
+        MAX_KPM_FILE_SIZE / 1024 / 1024
+    );
+    Ok(())
+}
 
 pub fn load_module<P>(path: P, args: Option<&str>) -> Result<()>
 where
     P: AsRef<Path>,
 {
+    validate_kpm_path(path.as_ref())?;
     let path = CString::new(path.as_ref().to_string_lossy().to_string())?;
     let args = args.map_or_else(|| CString::new(String::new()), CString::new)?;
 

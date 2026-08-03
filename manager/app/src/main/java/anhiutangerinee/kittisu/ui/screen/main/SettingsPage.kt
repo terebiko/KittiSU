@@ -35,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.filled.Adb
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteForever
@@ -543,6 +544,17 @@ fun SettingsPage(bottomPadding: Dp) {
                                     }
                                 )
                             }
+                        }
+
+                        item {
+                            SettingsJumpPageWidget(
+                                icon = Icons.Filled.BookmarkBorder,
+                                title = stringResource(R.string.settings_module_presets),
+                                description = stringResource(R.string.settings_module_presets_summary),
+                                onClick = {
+                                    navigator.push(Route.ModulePresets)
+                                }
+                            )
                         }
 
                         if (Natives.isLkmMode) {
