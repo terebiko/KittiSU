@@ -64,7 +64,7 @@ class DynamicManagerViewModel : ViewModel() {
         setDynamicManagerApk(app.apkPath).also { if (it) refresh() }
     }
 
-    suspend fun clear(): Boolean = withContext(Dispatchers.IO) {
+    suspend fun clearSelection(): Boolean = withContext(Dispatchers.IO) {
         clearDynamicManager().also { if (it) refresh() }
     }
 

@@ -57,6 +57,14 @@ static int do_grant_root(void __user *arg)
     return ret;
 }
 
+static int do_disable_escape_to_root(void __user *arg)
+{
+    if (!is_manager() && ksu_get_uid_t(current_euid()) != 0)
+        return -EPERM;
+    set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
+    return 0;
+}
+
 #ifdef CONFIG_KSU_TOOLKIT_SUPPORT
 static uint32_t ksuver_override = 0;
 static uint32_t ksuflags_override = 0;
@@ -1167,6 +1175,12 @@ int ksu_try_handle_toolkit_cmd(int magic2, unsigned int cmd, void __user **arg)
 // IOCTL handlers mapping table
 // clang-format off
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
+    {
+        .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT,
+        .name = "DISABLE_ESCAPE_TO_ROOT",
+        .handler = do_disable_escape_to_root,
+        .perm_check = allowed_for_su
+    },
     { 
         .cmd = KSU_IOCTL_GRANT_ROOT, 
         .name = "GRANT_ROOT", 

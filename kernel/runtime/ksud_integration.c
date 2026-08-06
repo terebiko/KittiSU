@@ -350,6 +350,56 @@ static struct file_operations fops_proxy;
 static ssize_t ksu_rc_pos = 0;
 const size_t ksu_rc_len = sizeof(KERNEL_SU_RC) - 1;
 
+#define KSU_MODULE_RC_PATH "/metadata/ksu/modules.rc"
+#define KSU_MODULE_RC_WATCHDOG_PATH "/metadata/watchdog/ksu/modules.rc"
+#define KSU_MODULE_RC_MAX (1024 * 1024)
+static char *module_rc;
+static size_t module_rc_len;
+static size_t module_rc_pos;
+
+static void load_module_rc(void)
+{
+    static bool attempted;
+    const char *paths[] = { KSU_MODULE_RC_WATCHDOG_PATH, KSU_MODULE_RC_PATH };
+    const struct cred *old_cred;
+    struct file *file = ERR_PTR(-ENOENT);
+    loff_t pos = 0;
+    ssize_t read;
+    size_t size;
+    int i;
+
+    if (attempted)
+        return;
+    attempted = true;
+    old_cred = ksu_cred ? override_creds(ksu_cred) : NULL;
+    for (i = 0; i < ARRAY_SIZE(paths); i++) {
+        file = filp_open(paths[i], O_RDONLY, 0);
+        if (!IS_ERR(file))
+            break;
+    }
+    if (IS_ERR(file))
+        goto out;
+    size = i_size_read(file_inode(file));
+    if (!size || size > KSU_MODULE_RC_MAX || !S_ISREG(file_inode(file)->i_mode))
+        goto close;
+    module_rc = kmalloc(size, GFP_KERNEL);
+    if (!module_rc)
+        goto close;
+    read = ksu_kernel_read_compat(file, module_rc, size, &pos);
+    if (read <= 0) {
+        kfree(module_rc);
+        module_rc = NULL;
+    } else {
+        module_rc_len = read;
+        pr_info("loaded %zu bytes of module init rc\n", module_rc_len);
+    }
+close:
+    filp_close(file, NULL);
+out:
+    if (old_cred)
+        revert_creds(old_cred);
+}
+
 // https://cs.android.com/android/platform/superproject/main/+/main:system/core/init/parser.cpp;l=144;drc=61197364367c9e404c7da6900658f1b16c42d0da
 // https://cs.android.com/android/platform/superproject/main/+/main:system/libbase/file.cpp;l=241-243;drc=61197364367c9e404c7da6900658f1b16c42d0da
 // The system will read init.rc file until EOF, whenever read() returns 0,
@@ -361,27 +411,30 @@ static ssize_t read_proxy(struct file *file, char __user *buf, size_t count, lof
     size_t append_count;
     if (ksu_rc_pos && ksu_rc_pos < ksu_rc_len)
         goto append_ksu_rc;
+    if (module_rc_pos < module_rc_len)
+        goto append_module_rc;
 
     ret = orig_read(file, buf, count, pos);
-    if (ret != 0 || ksu_rc_pos >= ksu_rc_len) {
+    if (ret != 0 || (ksu_rc_pos >= ksu_rc_len && module_rc_pos >= module_rc_len)) {
         return ret;
     } else {
         pr_info("read_proxy: orig read finished, start append rc\n");
     }
 append_ksu_rc:
-    append_count = ksu_rc_len - ksu_rc_pos;
-    if (append_count > count - ret)
-        append_count = count - ret;
-    // copy_to_user returns the number of not copied
-    if (copy_to_user(buf + ret, KERNEL_SU_RC + ksu_rc_pos, append_count)) {
-        pr_info("read_proxy: append error, totally appended %zd\n", ksu_rc_pos);
-    } else {
-        pr_info("read_proxy: append %zd\n", append_count);
-
+    if (ksu_rc_pos < ksu_rc_len) {
+        append_count = min(ksu_rc_len - ksu_rc_pos, count - ret);
+        if (copy_to_user(buf + ret, KERNEL_SU_RC + ksu_rc_pos, append_count))
+            return ret;
         ksu_rc_pos += append_count;
-        if (ksu_rc_pos == ksu_rc_len) {
-            pr_info("read_proxy: append done\n");
-        }
+        ret += append_count;
+    }
+
+append_module_rc:
+    if (module_rc_pos < module_rc_len && ret < count) {
+        append_count = min(module_rc_len - module_rc_pos, count - ret);
+        if (copy_to_user(buf + ret, module_rc + module_rc_pos, append_count))
+            return ret;
+        module_rc_pos += append_count;
         ret += append_count;
     }
 
@@ -395,25 +448,28 @@ static ssize_t read_iter_proxy(struct kiocb *iocb, struct iov_iter *to)
     size_t append_count;
     if (ksu_rc_pos && ksu_rc_pos < ksu_rc_len)
         goto append_ksu_rc;
+    if (module_rc_pos < module_rc_len)
+        goto append_module_rc;
 
     ret = orig_read_iter(iocb, to);
-    if (ret != 0 || ksu_rc_pos >= ksu_rc_len) {
+    if (ret != 0 || (ksu_rc_pos >= ksu_rc_len && module_rc_pos >= module_rc_len)) {
         return ret;
     } else {
         pr_info("read_iter_proxy: orig read finished, start append rc\n");
     }
 append_ksu_rc:
-    // copy_to_iter returns the number of copied bytes
-    append_count = copy_to_iter((void *)KERNEL_SU_RC + ksu_rc_pos, ksu_rc_len - ksu_rc_pos, to);
-    if (!append_count) {
-        pr_info("read_iter_proxy: append error, totally appended %zd\n", ksu_rc_pos);
-    } else {
-        pr_info("read_iter_proxy: append %zd\n", append_count);
-
+    if (ksu_rc_pos < ksu_rc_len) {
+        append_count = copy_to_iter(KERNEL_SU_RC + ksu_rc_pos, ksu_rc_len - ksu_rc_pos, to);
+        if (!append_count)
+            return ret;
         ksu_rc_pos += append_count;
-        if (ksu_rc_pos == ksu_rc_len) {
-            pr_info("read_iter_proxy: append done\n");
-        }
+        ret += append_count;
+    }
+
+append_module_rc:
+    if (module_rc_pos < module_rc_len) {
+        append_count = copy_to_iter(module_rc + module_rc_pos, module_rc_len - module_rc_pos, to);
+        module_rc_pos += append_count;
         ret += append_count;
     }
     return ret;
@@ -480,6 +536,7 @@ static __always_inline void ksu_common_newfstat_ret(unsigned long fd_long, void 
     fput(file);
 
     pr_info("%s: stat init.rc \n", __func__);
+    load_module_rc();
 
     uintptr_t statbuf_ptr_local = (uintptr_t) * (void **)statbuf_ptr;
     void __user *statbuf = (void __user *)statbuf_ptr_local;
@@ -505,7 +562,7 @@ static __always_inline void ksu_common_newfstat_ret(unsigned long fd_long, void 
         return;
     }
 
-    new_size = size + ksu_rc_len;
+    new_size = size + ksu_rc_len + module_rc_len;
     pr_info("%s: adding ksu_rc_len: %ld -> %ld \n", __func__, size, new_size);
 
     if (!copy_to_user(st_size_ptr, &new_size, len))
@@ -539,13 +596,15 @@ void ksu_handle_fstat64_ret(unsigned long *fd, struct stat64 __user **statbuf_pt
 #ifdef CONFIG_KSU_SUSFS
 void ksu_handle_vfs_fstat(int fd, loff_t *kstat_size_ptr)
 {
-    loff_t new_size = *kstat_size_ptr + ksu_rc_len;
     struct file *file = fget(fd);
 
     if (!file)
         return;
 
     if (is_init_rc(file)) {
+        loff_t new_size;
+        load_module_rc();
+        new_size = *kstat_size_ptr + ksu_rc_len + module_rc_len;
         pr_info("stat init.rc");
         pr_info("adding ksu_rc_len: %lld -> %lld", *kstat_size_ptr, new_size);
         *kstat_size_ptr = new_size;
@@ -582,7 +641,9 @@ void ksu_handle_initrc(struct file *file)
     // now we can sure that the init process is reading
     // `/init.rc` or `/system/etc/init/init.rc`
 
-    pr_info("read init.rc, comm: %s, rc_count: %zu\n", current->comm, ksu_rc_len);
+    load_module_rc();
+    pr_info("read init.rc, comm: %s, rc_count: %zu\n", current->comm,
+            ksu_rc_len + module_rc_len);
 
     // Now we need to proxy the read and modify the result!
     // But, we can not modify the file_operations directly, because it's in read-only memory.
@@ -846,6 +907,7 @@ static long ksu_sys_fstat(const struct pt_regs *regs)
     if (file) {
         if (is_init_rc(file)) {
             pr_info("stat init.rc");
+            load_module_rc();
             is_rc = true;
         }
         fput(file);
@@ -857,7 +919,7 @@ static long ksu_sys_fstat(const struct pt_regs *regs)
         void __user *st_size_ptr = statbuf + offsetof(struct stat, st_size);
         long size, new_size;
         if (!copy_from_user_nofault(&size, st_size_ptr, sizeof(long))) {
-            new_size = size + ksu_rc_len;
+            new_size = size + ksu_rc_len + module_rc_len;
             pr_info("adding ksu_rc_len: %ld -> %ld", size, new_size);
             if (!copy_to_user_nofault(st_size_ptr, &new_size, sizeof(long))) {
                 pr_info("added ksu_rc_len");

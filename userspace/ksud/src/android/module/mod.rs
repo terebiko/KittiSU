@@ -4,10 +4,10 @@ pub mod module_config;
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     env::var as env_var,
     fs::{File, Permissions, canonicalize, copy, remove_dir_all, rename, set_permissions},
-    io::Cursor,
+    io::{Cursor, Write},
     path::{Path, PathBuf},
     process::Command,
     str::FromStr,
@@ -25,7 +25,7 @@ use crate::{
     android::{
         ksucalls,
         module::ModuleType::{Active, All},
-        restorecon::{restore_syscon, setsyscon},
+        restorecon::{lsetfilecon, restore_syscon, setsyscon},
         sepolicy,
         utils::{
             detach_process_group, ensure_clean_dir, ensure_dir_exists, ensure_file_exists,
@@ -37,6 +37,7 @@ use crate::{
 };
 
 const INSTALLER_CONTENT: &str = include_str!("./installer.sh");
+const METADATA_FILE_CON: &str = "u:object_r:metadata_file:s0";
 const INSTALL_MODULE_SCRIPT: &str = concatcp!(
     INSTALLER_CONTENT,
     "\n",
@@ -415,6 +416,84 @@ pub fn handle_updated_modules() -> Result<()> {
     Ok(())
 }
 
+fn append_init_rc(dir: &Path, require_executable: bool, output: &mut File) -> Result<()> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Ok(());
+    };
+    let mut paths: Vec<_> = entries.flatten().map(|entry| entry.path()).collect();
+    paths.sort();
+    for path in paths {
+        if !path.is_file()
+            || path.extension().and_then(|extension| extension.to_str()) != Some("rc")
+            || (require_executable && !is_executable(&path))
+        {
+            continue;
+        }
+        writeln!(output, "\n# KittiSU: {}", path.display())?;
+        output.write_all(&std::fs::read(&path)?)?;
+        writeln!(output)?;
+    }
+    Ok(())
+}
+
+/// Build the init fragment consumed by the kernel on the next boot.
+pub fn regenerate_modules_rc() -> Result<()> {
+    let target_dir = if Path::new("/metadata/watchdog").is_dir() {
+        defs::PREINIT_WATCHDOG_DIR
+    } else {
+        defs::PREINIT_DIR
+    };
+    std::fs::create_dir_all(target_dir)?;
+    let target = Path::new(target_dir).join(defs::MODULES_RC_FILE);
+    let temporary = target.with_extension("tmp");
+
+    let mut output = File::create(&temporary)?;
+    append_init_rc(&Path::new(defs::ADB_DIR).join("initrc.d"), true, &mut output)?;
+
+    let mut modules = BTreeMap::new();
+    for root in [defs::MODULE_DIR, defs::MODULE_UPDATE_DIR] {
+        let Ok(entries) = std::fs::read_dir(root) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let Some(id) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            if path.is_dir() {
+                modules.insert(id.to_owned(), path);
+            }
+        }
+    }
+    for path in modules.into_values() {
+        if !path.join(defs::DISABLE_FILE_NAME).exists()
+            && !path.join(defs::REMOVE_FILE_NAME).exists()
+        {
+            append_init_rc(&path.join(defs::MODULE_INIT_RC_DIR), false, &mut output)?;
+        }
+    }
+    output.sync_all()?;
+    std::fs::rename(&temporary, &target)?;
+    lsetfilecon(&target, METADATA_FILE_CON)?;
+
+    let stale_dir = if target_dir == defs::PREINIT_DIR {
+        defs::PREINIT_WATCHDOG_DIR
+    } else {
+        defs::PREINIT_DIR
+    };
+    std::fs::remove_file(Path::new(stale_dir).join(defs::MODULES_RC_FILE)).ok();
+    Ok(())
+}
+
+fn refresh_modules_rc(result: Result<()>) -> Result<()> {
+    if result.is_ok()
+        && let Err(error) = regenerate_modules_rc()
+    {
+        warn!("Failed to regenerate modules.rc: {error}");
+    }
+    result
+}
+
 fn install_module_to_system(zip: &str) -> Result<()> {
     ensure_boot_completed()?;
 
@@ -560,7 +639,7 @@ fn install_module_to_system(zip: &str) -> Result<()> {
 }
 
 pub fn install_module(zip: &str) -> Result<()> {
-    let result = install_module_to_system(zip);
+    let result = refresh_modules_rc(install_module_to_system(zip));
     if let Err(ref e) = result {
         println!("- Error: {e}");
     }
@@ -581,7 +660,7 @@ pub fn undo_uninstall_module(id: &str) -> Result<()> {
         info!("Removed the remove mark for module {id}");
     }
 
-    Ok(())
+    refresh_modules_rc(Ok(()))
 }
 
 pub fn uninstall_module(id: &str) -> Result<()> {
@@ -596,7 +675,7 @@ pub fn uninstall_module(id: &str) -> Result<()> {
 
     info!("Module {id} marked for removal");
 
-    Ok(())
+    refresh_modules_rc(Ok(()))
 }
 
 pub fn run_action(id: &str) -> Result<()> {
@@ -621,7 +700,7 @@ pub fn enable_module(id: &str) -> Result<()> {
         info!("Module {id} enabled");
     }
 
-    Ok(())
+    refresh_modules_rc(Ok(()))
 }
 
 pub fn disable_module(id: &str) -> Result<()> {
@@ -635,16 +714,16 @@ pub fn disable_module(id: &str) -> Result<()> {
 
     info!("Module {id} disabled");
 
-    Ok(())
+    refresh_modules_rc(Ok(()))
 }
 
 pub fn disable_all_modules() -> Result<()> {
-    mark_all_modules(defs::DISABLE_FILE_NAME)
+    refresh_modules_rc(mark_all_modules(defs::DISABLE_FILE_NAME))
 }
 
 pub fn uninstall_all_modules() -> Result<()> {
     info!("Uninstalling all modules");
-    mark_all_modules(defs::REMOVE_FILE_NAME)
+    refresh_modules_rc(mark_all_modules(defs::REMOVE_FILE_NAME))
 }
 
 fn mark_all_modules(flag_file: &str) -> Result<()> {

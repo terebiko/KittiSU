@@ -122,7 +122,7 @@ fun DynamicManagerScreen() {
                                             title = clearTitle,
                                             content = clearMessage,
                                         ) == ConfirmResult.Confirmed) {
-                                        snackbar.showSnackbar(if (viewModel.clear()) clearSuccess else clearFailed)
+                                        snackbar.showSnackbar(if (viewModel.clearSelection()) clearSuccess else clearFailed)
                                     }
                                 }
                             },

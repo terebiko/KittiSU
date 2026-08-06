@@ -86,6 +86,14 @@ pub fn grant_root() -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn disable_escape_to_root() -> std::io::Result<()> {
+    ksuctl(
+        uapi::KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT_RUST,
+        std::ptr::null_mut::<u8>(),
+    )?;
+    Ok(())
+}
+
 fn report_event(event: u32) {
     let mut cmd = uapi::ksu_report_event_cmd { event };
     let _ = ksuctl(uapi::KSU_IOCTL_REPORT_EVENT_RUST, &raw mut cmd);
