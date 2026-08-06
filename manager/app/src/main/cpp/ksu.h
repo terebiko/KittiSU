@@ -15,6 +15,7 @@
 #include "uapi/ksu.h"
 
 uint32_t get_version();
+struct ksu_get_info_cmd get_info();
 
 bool uid_should_umount(int uid);
 
