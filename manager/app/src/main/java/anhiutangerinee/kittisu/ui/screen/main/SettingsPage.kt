@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Update
@@ -534,6 +535,15 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         if (ksuIsValid()) {
+                            item {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.Filled.Security,
+                                    title = stringResource(R.string.dynamic_manager_title),
+                                    description = stringResource(R.string.dynamic_manager_settings_summary),
+                                    onClick = { navigator.push(Route.DynamicManager) }
+                                )
+                            }
+
                             item(visible = isKernelUmountEnabled) {
                                 SettingsJumpPageWidget(
                                     icon = Icons.Filled.FolderOff,

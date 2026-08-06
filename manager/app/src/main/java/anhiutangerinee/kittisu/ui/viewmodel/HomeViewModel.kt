@@ -25,7 +25,6 @@ import anhiutangerinee.kittisu.ui.util.getSuSFSStatus
 import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import anhiutangerinee.kittisu.ui.util.getSuperuserCount
 import anhiutangerinee.kittisu.ui.util.getZygiskImplement
-import anhiutangerinee.kittisu.ui.util.isOfficialSignature
 import anhiutangerinee.kittisu.ui.util.isSELinuxPermissive
 import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import anhiutangerinee.kittisu.ui.util.rootAvailable

@@ -31,23 +31,7 @@ struct sdesc {
 };
 
 static apk_sign_key_t apk_sign_keys[] = {
-    { EXPECTED_SIZE_RESUKISU, EXPECTED_HASH_RESUKISU }, /* ReSukiSU/ReSukiSU */
     { EXPECTED_SIZE_KITTISU, EXPECTED_HASH_KITTISU }, /* KittiSU/KittiSU */
-    { EXPECTED_SIZE_OFFICIAL, EXPECTED_HASH_OFFICIAL }, /* tiann/KernelSU */
-    { EXPECTED_SIZE_5EC1CFF, EXPECTED_HASH_5EC1CFF }, /* 5ec1cff/KernelSU */
-    { EXPECTED_SIZE_RSUNTK, EXPECTED_HASH_RSUNTK }, /* rsuntk/KernelSU */
-    { EXPECTED_SIZE_SUKISU, EXPECTED_HASH_SUKISU }, /* SukiSU-Ultra/SukiSU-Ultra */
-    { EXPECTED_SIZE_KOWX712, EXPECTED_HASH_KOWX712 }, /* KOWX712/KernelSU */
-    { EXPECTED_SIZE_MAMBO, EXPECTED_HASH_MAMBO }, /* RapliVx/KernelSU */
-    { EXPECTED_SIZE_NEXT, EXPECTED_HASH_NEXT }, /* KernelSU-Next */
-    { EXPECTED_SIZE_WILD, EXPECTED_HASH_WILD }, /* WildKsu */
-    { EXPECTED_SIZE_YUKI1, EXPECTED_HASH_YUKI1 }, /* yukisu */
-    { EXPECTED_SIZE_KAMISU, EXPECTED_HASH_KAMISU }, /* Kaminarich/KamiSU */
-    { EXPECTED_SIZE_YUKI2, EXPECTED_HASH_YUKI2 }, /* YUKISU */
-    { EXPECTED_SIZE_pershoot, EXPECTED_HASH_pershoot }, /* KernelSU-pershoot */
-    { EXPECTED_SIZE_VORTEX, EXPECTED_HASH_VORTEX }, /* kingfinik98/VorteX */
-    { EXPECTED_SIZE_AGNESSU, EXPECTED_HASH_AGNESSU }, /* AgnesSU */
-    { EXPECTED_SIZE_xxksu, EXPECTED_HASH_xxksu }, /* xxksu */
 #ifdef EXPECTED_SIZE
     { EXPECTED_SIZE, EXPECTED_HASH }, /* Custom */
 #endif

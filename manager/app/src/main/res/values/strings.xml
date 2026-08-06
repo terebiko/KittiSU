@@ -581,6 +581,14 @@
     <string name="invalid_sign_config">Invalid Manager configuration</string>
     <string name="dynamic_manager_disabled_success">Dynamic Manager disabled</string>
     <string name="dynamic_manager_clear_failed">Failed to clear dynamic Manager</string>
+    <string name="dynamic_manager_settings_summary">Trust an installed KernelSU manager without rebuilding the kernel</string>
+    <string name="dynamic_manager_current_status">Current dynamic manager</string>
+    <string name="dynamic_manager_clear_config">Clear dynamic manager</string>
+    <string name="dynamic_manager_clear_config_summary">Only the built-in KittiSU manager remains trusted</string>
+    <string name="dynamic_manager_clear_confirm_message">Remove the dynamically trusted manager?</string>
+    <string name="dynamic_manager_grant_confirm_title">Trust this manager?</string>
+    <string name="dynamic_manager_grant_confirm_message">The selected app will receive full KernelSU manager privileges. Continue only if you trust its source and signature.</string>
+    <string name="manage_managers">Installed KernelSU managers</string>
     <string name="dynamic_managerature">Dynamic</string>
     <string name="signature_index">Signature %1$d</string>
     <string name="unknown_signature">Unknown</string>

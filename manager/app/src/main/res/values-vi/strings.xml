@@ -481,6 +481,14 @@
     <string name="invalid_sign_config">Cấu hình Trình quản lý không hợp lệ</string>
     <string name="dynamic_manager_disabled_success">Trình quản lý động đã bị vô hiệu hoá</string>
     <string name="dynamic_manager_clear_failed">Xoá Trình quản lý động thất bại</string>
+    <string name="dynamic_manager_settings_summary">Tin cậy manager KernelSU đã cài mà không cần build lại kernel</string>
+    <string name="dynamic_manager_current_status">Manager động hiện tại</string>
+    <string name="dynamic_manager_clear_config">Xoá manager động</string>
+    <string name="dynamic_manager_clear_config_summary">Chỉ manager KittiSU tích hợp sẵn còn được tin cậy</string>
+    <string name="dynamic_manager_clear_confirm_message">Gỡ quyền tin cậy của manager động?</string>
+    <string name="dynamic_manager_grant_confirm_title">Tin cậy manager này?</string>
+    <string name="dynamic_manager_grant_confirm_message">Ứng dụng được chọn sẽ có toàn quyền manager KernelSU. Chỉ tiếp tục nếu bạn tin nguồn và chữ ký của ứng dụng.</string>
+    <string name="manage_managers">Các manager KernelSU đã cài</string>
     <string name="dynamic_managerature">Trình quản lý động</string>
     <string name="signature_index">Chữ ký %1$d</string>
     <string name="unknown_signature">Không xác định</string>
