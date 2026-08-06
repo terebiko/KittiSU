@@ -72,7 +72,8 @@ static uint32_t ksuflags_override = 0;
 
 static int do_get_info(void __user *arg)
 {
-    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0,
+        .uapi_version = KERNEL_SU_UAPI_VERSION };
 
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;
@@ -102,6 +103,23 @@ static int do_get_info(void __user *arg)
     }
 
     return 0;
+}
+
+static int do_get_info_legacy(void __user *arg)
+{
+    struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+#ifdef MODULE
+    cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+#endif
+    if (is_manager())
+        cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
+    if (ksu_late_loaded)
+        cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
+#ifdef EXPECTED_PR_BUILD_SIZE
+    cmd.flags |= KSU_GET_INFO_FLAG_PR_BUILD;
+#endif
+    cmd.features = KSU_FEATURE_MAX;
+    return copy_to_user(arg, &cmd, sizeof(cmd)) ? -EFAULT : 0;
 }
 
 static int do_report_event(void __user *arg)
@@ -1175,6 +1193,12 @@ int ksu_try_handle_toolkit_cmd(int magic2, unsigned int cmd, void __user **arg)
 // IOCTL handlers mapping table
 // clang-format off
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
+    {
+        .cmd = KSU_IOCTL_GET_INFO_LEGACY,
+        .name = "GET_INFO_LEGACY",
+        .handler = do_get_info_legacy,
+        .perm_check = always_allow
+    },
     {
         .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT,
         .name = "DISABLE_ESCAPE_TO_ROOT",

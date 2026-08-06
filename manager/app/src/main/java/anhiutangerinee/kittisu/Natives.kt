@@ -39,6 +39,9 @@ object Natives {
     val version: Int
         external get
 
+    val uapiVersion: Int
+        external get
+
     val isSafeMode: Boolean
         external get
 

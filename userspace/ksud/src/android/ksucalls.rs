@@ -67,10 +67,16 @@ fn get_info() -> uapi::ksu_get_info_cmd {
             version: 0,
             flags: 0,
             features: 0,
+            uapi_version: 0,
         };
         let _ = ksuctl(uapi::KSU_IOCTL_GET_INFO_RUST, &raw mut cmd);
         cmd
     })
+}
+
+pub fn is_uapi_version_mismatch() -> bool {
+    let info = get_info();
+    info.uapi_version != 0 && info.uapi_version != 1
 }
 
 pub fn get_version() -> i32 {

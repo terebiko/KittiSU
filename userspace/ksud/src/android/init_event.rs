@@ -19,6 +19,10 @@ use crate::{
 };
 
 pub fn on_post_data_fs() -> Result<()> {
+    if ksucalls::is_uapi_version_mismatch() {
+        warn!("Kernel/userspace UAPI mismatch; skipping post-fs-data");
+        return Ok(());
+    }
     ksucalls::report_post_fs_data();
 
     utils::umask(0);
@@ -163,6 +167,10 @@ pub fn run_stage(stage: &str, block: bool) {
 }
 
 pub fn on_services() {
+    if ksucalls::is_uapi_version_mismatch() {
+        warn!("Kernel/userspace UAPI mismatch; skipping services");
+        return;
+    }
     info!("on_services triggered!");
     run_stage("service", false);
 }
