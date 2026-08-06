@@ -104,10 +104,8 @@ fun execKsud(args: String, newShell: Boolean = false): Boolean {
     }
 }
 
-private fun shellQuote(value: String) = "'${value.replace("'", "'\"'\"'")}'"
-
 fun setDynamicManagerApk(apkPath: String): Boolean =
-    execKsud("kernel dynamic-manager set-apk ${shellQuote(apkPath)}", true)
+    execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)
 
 fun clearDynamicManager(): Boolean =
     execKsud("kernel dynamic-manager clear", true)
