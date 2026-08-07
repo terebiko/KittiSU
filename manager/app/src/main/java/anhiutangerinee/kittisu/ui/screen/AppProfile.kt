@@ -24,9 +24,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.twotone.AccountCircle
+import androidx.compose.material.icons.twotone.Android
+import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -252,7 +252,7 @@ private fun AppProfileInner(
             )
             {
                 SettingsSwitchWidget(
-                    icon = Icons.Filled.Security,
+                    icon = Icons.TwoTone.Security,
                     title = stringResource(id = R.string.superuser),
                     checked = isRootGranted,
                     onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
@@ -481,7 +481,7 @@ private fun ProfileBox(
 ) {
     Column {
         SettingsBaseWidget(
-            icon = Icons.Filled.AccountCircle,
+            icon = Icons.TwoTone.AccountCircle,
             title = stringResource(R.string.profile),
             description = mode.text,
         ) {}
@@ -545,7 +545,7 @@ private fun AppProfilePreview() {
             appGroup = SuperUserViewModel.AppGroup(0, emptyList(), null),
             appIcon = {
                 Icon(
-                    imageVector = Icons.Filled.Android,
+                    imageVector = Icons.TwoTone.Android,
                     contentDescription = null,
                 )
             },

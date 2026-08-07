@@ -32,11 +32,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Input
-import androidx.compose.material.icons.filled.AutoFixHigh
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.automirrored.twotone.Input
+import androidx.compose.material.icons.twotone.AutoFixHigh
+import androidx.compose.material.icons.twotone.Edit
+import androidx.compose.material.icons.twotone.FileUpload
+import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -379,7 +379,7 @@ fun InstallScreen(
 
                         if (displayPartitions.isNotEmpty()) {
                             SettingsDropdownWidget(
-                                icon = Icons.Default.Edit,
+                                icon = Icons.TwoTone.Edit,
                                 items = displayPartitions,
                                 selectedIndex = partitionSelectionIndex,
                                 title = "${stringResource(R.string.install_select_partition)} (${suffix})",
@@ -418,7 +418,7 @@ fun InstallScreen(
                                     it.uri.lastPathSegment ?: "(file)"
                                 )
                             },
-                            icon = Icons.AutoMirrored.Filled.Input,
+                            icon = Icons.AutoMirrored.TwoTone.Input,
                         ) { }
                     }
                 }
@@ -710,7 +710,7 @@ private fun SelectInstallMethod(
                     ListItem(
                         leadingContent = {
                             Icon(
-                                Icons.Filled.AutoFixHigh,
+                                Icons.TwoTone.AutoFixHigh,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -816,7 +816,7 @@ private fun SelectInstallMethod(
                     ListItem(
                         leadingContent = {
                             Icon(
-                                Icons.Filled.FileUpload,
+                                Icons.TwoTone.FileUpload,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -911,7 +911,7 @@ private fun SelectInstallMethod(
                                     .padding(vertical = 8.dp)
                             ) {
                                 Icon(
-                                    Icons.Filled.Security,
+                                    Icons.TwoTone.Security,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.tertiary,
                                     modifier = Modifier.size(20.dp)

@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.twotone.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -242,7 +242,7 @@ fun ThemeColorDialog(
                         // 当前选中的主题显示选中标记
                         if (ThemeConfig.currentTheme::class == theme::class) {
                             Icon(
-                                Icons.Default.Check,
+                                Icons.TwoTone.Check,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary
                             )

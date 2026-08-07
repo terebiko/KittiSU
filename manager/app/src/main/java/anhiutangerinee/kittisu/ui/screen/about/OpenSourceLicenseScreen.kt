@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.ArrowBack
-import androidx.compose.material.icons.rounded.LocalPolice
+import androidx.compose.material.icons.twotone.LocalPolice
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -184,7 +184,7 @@ fun OpenSourceLicenseScreen() {
                                 color = MaterialTheme.colorScheme.tertiary,
                                 icon = {
                                     Icon(
-                                        imageVector = Icons.Rounded.LocalPolice,
+                                        imageVector = Icons.TwoTone.LocalPolice,
                                         contentDescription = null,
                                     )
                                 },

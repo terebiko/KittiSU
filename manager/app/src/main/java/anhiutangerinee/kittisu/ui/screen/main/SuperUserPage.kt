@@ -41,17 +41,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.RestoreFromTrash
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.twotone.Article
+import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.twotone.ChevronRight
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.GridView
+import androidx.compose.material.icons.twotone.MoreVert
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.RestoreFromTrash
+import androidx.compose.material.icons.twotone.Save
+import androidx.compose.material.icons.twotone.Visibility
+import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Archive
 import androidx.compose.material.icons.twotone.SearchOff
 import androidx.compose.material3.Checkbox
@@ -230,7 +230,7 @@ fun SuperUserPage(bottomPadding: Dp) {
                 dropdownContent = {
                     IconButton(onClick = { showBottomSheet = true }) {
                         Icon(
-                            imageVector = Icons.Filled.MoreVert,
+                            imageVector = Icons.TwoTone.MoreVert,
                             contentDescription = stringResource(id = R.string.settings),
                         )
                     }
@@ -240,7 +240,7 @@ fun SuperUserPage(bottomPadding: Dp) {
                         navigator.push(Route.Sulog)
                     }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Article,
+                            imageVector = Icons.AutoMirrored.TwoTone.Article,
                             contentDescription = stringResource(R.string.sulog)
                         )
                     }
@@ -325,11 +325,11 @@ private fun SuperUserFab(
             )
         },
         mainButtonIcon = if (viewModel.showBatchActions && viewModel.selectedApps.isNotEmpty()) {
-            Icons.Filled.GridView
+            Icons.TwoTone.GridView
         } else {
-            Icons.Filled.Add
+            Icons.TwoTone.Add
         },
-        mainButtonExpandedIcon = Icons.Filled.Close
+        mainButtonExpandedIcon = Icons.TwoTone.Close
     )
 }
 
@@ -481,28 +481,28 @@ private fun SuperUserBottomSheet(
     val bottomSheetMenuItems = remember(viewModel.showSystemApps) {
         listOf(
             BottomSheetMenuItem(
-                icon = Icons.Filled.Refresh,
+                icon = Icons.TwoTone.Refresh,
                 titleRes = R.string.refresh,
                 onClick = {
                     viewModel.viewModelScope.launch { viewModel.fetchAppList() }
                 }
             ),
             BottomSheetMenuItem(
-                icon = if (viewModel.showSystemApps) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                icon = if (viewModel.showSystemApps) Icons.TwoTone.VisibilityOff else Icons.TwoTone.Visibility,
                 titleRes = if (viewModel.showSystemApps) R.string.hide_system_apps else R.string.show_system_apps,
                 onClick = {
                     viewModel.updateShowSystemApps(!viewModel.showSystemApps)
                 }
             ),
             BottomSheetMenuItem(
-                icon = Icons.Filled.Save,
+                icon = Icons.TwoTone.Save,
                 titleRes = R.string.backup_allowlist,
                 onClick = {
                     backupLauncher.launch(ModuleModify.createAllowlistBackupIntent())
                 }
             ),
             BottomSheetMenuItem(
-                icon = Icons.Filled.RestoreFromTrash,
+                icon = Icons.TwoTone.RestoreFromTrash,
                 titleRes = R.string.restore_allowlist,
                 onClick = {
                     restoreLauncher.launch(ModuleModify.createAllowlistRestoreIntent())
@@ -866,7 +866,7 @@ private fun AppGroupItem(
                 }
             } else {
                 Icon(
-                    imageVector = Icons.Filled.ChevronRight,
+                    imageVector = Icons.TwoTone.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)

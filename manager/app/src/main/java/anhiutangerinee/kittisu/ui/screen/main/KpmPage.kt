@@ -26,14 +26,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Code
+import androidx.compose.material.icons.twotone.Delete
+import androidx.compose.material.icons.twotone.Download
+import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Inventory
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -202,7 +202,7 @@ fun KpmPage(bottomPadding: Dp) {
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Download,
+                                imageVector = Icons.TwoTone.Download,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(18.dp)
@@ -231,7 +231,7 @@ fun KpmPage(bottomPadding: Dp) {
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Inventory,
+                                imageVector = Icons.TwoTone.Inventory,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(18.dp)
@@ -331,7 +331,7 @@ fun KpmPage(bottomPadding: Dp) {
                         onClick = { viewModel.fetchModuleList() }
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Refresh,
+                            imageVector = Icons.TwoTone.Refresh,
                             contentDescription = stringResource(R.string.refresh),
                         )
                     }
@@ -398,7 +398,7 @@ fun KpmPage(bottomPadding: Dp) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Info,
+                            imageVector = Icons.TwoTone.Info,
                             contentDescription = null,
                             modifier = Modifier
                                 .padding(end = 16.dp)
@@ -419,7 +419,7 @@ fun KpmPage(bottomPadding: Dp) {
                             modifier = Modifier.size(24.dp),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.Close,
+                                imageVector = Icons.TwoTone.Close,
                                 contentDescription = stringResource(R.string.close_notice)
                             )
                         }
@@ -437,7 +437,7 @@ fun KpmPage(bottomPadding: Dp) {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Code,
+                            imageVector = Icons.TwoTone.Code,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                             modifier = Modifier
@@ -759,7 +759,7 @@ private fun KpmModuleItem(
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Settings,
+                        imageVector = Icons.TwoTone.Settings,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
@@ -775,7 +775,7 @@ private fun KpmModuleItem(
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
+                        imageVector = Icons.TwoTone.Delete,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )

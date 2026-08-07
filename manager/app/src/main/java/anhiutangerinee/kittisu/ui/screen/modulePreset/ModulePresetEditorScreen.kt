@@ -19,13 +19,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.twotone.ArrowDownward
+import androidx.compose.material.icons.twotone.ArrowUpward
+import androidx.compose.material.icons.twotone.Delete
+import androidx.compose.material.icons.twotone.Edit
+import androidx.compose.material.icons.twotone.PlayArrow
+import androidx.compose.material.icons.twotone.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -265,7 +265,7 @@ fun ModulePresetEditorScreen(preset: LoadedPreset?) {
                     enabled = !isReadOnly,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Icon(Icons.TwoTone.Add, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.preset_add_module))
                 }
@@ -309,7 +309,7 @@ private fun ReadOnlyWarning() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Icon(Icons.TwoTone.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
             Spacer(Modifier.size(12.dp))
             Text(
                 text = stringResource(R.string.preset_read_only),
@@ -457,17 +457,17 @@ private fun ModuleRow(
                     )
                 }
                 IconButton(onClick = onMoveUp, enabled = enabled && canMoveUp) {
-                    Icon(Icons.Filled.ArrowUpward, contentDescription = null)
+                    Icon(Icons.TwoTone.ArrowUpward, contentDescription = null)
                 }
                 IconButton(onClick = onMoveDown, enabled = enabled && canMoveDown) {
-                    Icon(Icons.Filled.ArrowDownward, contentDescription = null)
+                    Icon(Icons.TwoTone.ArrowDownward, contentDescription = null)
                 }
                 IconButton(onClick = onEdit, enabled = enabled) {
-                    Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.preset_module_name))
+                    Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_module_name))
                 }
                 IconButton(onClick = onDelete, enabled = enabled) {
                     Icon(
-                        Icons.Filled.Delete,
+                        Icons.TwoTone.Delete,
                         contentDescription = stringResource(R.string.preset_remove_module),
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -684,11 +684,11 @@ private fun PostInstallEditor(
                         )
                     }
                     IconButton(onClick = { editingIndex = index }, enabled = enabled) {
-                        Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.preset_edit))
+                        Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_edit))
                     }
                     IconButton(onClick = { postInstalls.removeAt(index) }, enabled = enabled) {
                         Icon(
-                            Icons.Filled.Delete,
+                            Icons.TwoTone.Delete,
                             contentDescription = stringResource(R.string.preset_remove_module),
                             tint = MaterialTheme.colorScheme.error
                         )
@@ -700,7 +700,7 @@ private fun PostInstallEditor(
                             )
                         )
                     }) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.preset_run_script))
+                        Icon(Icons.TwoTone.PlayArrow, contentDescription = stringResource(R.string.preset_run_script))
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -711,7 +711,7 @@ private fun PostInstallEditor(
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null)
+                Icon(Icons.TwoTone.Add, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
                 Text(stringResource(R.string.preset_add_post_install))
             }

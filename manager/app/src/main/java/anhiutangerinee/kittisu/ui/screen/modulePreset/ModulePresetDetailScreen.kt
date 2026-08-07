@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.twotone.CloudDownload
+import androidx.compose.material.icons.twotone.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
@@ -175,7 +175,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                             }
                         }
                     }) {
-                        Icon(Icons.Filled.CloudDownload, contentDescription = null)
+                        Icon(Icons.TwoTone.CloudDownload, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.preset_install))
                     }
@@ -313,7 +313,7 @@ private fun PostInstallSection(postInstalls: List<PostInstallScript>, baseUrl: S
                             )
                         )
                     }) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                        Icon(Icons.TwoTone.PlayArrow, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text(stringResource(R.string.preset_run_script))
                     }
@@ -335,7 +335,7 @@ private fun PostInstallSection(postInstalls: List<PostInstallScript>, baseUrl: S
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Icon(Icons.TwoTone.PlayArrow, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.preset_run_all_scripts))
                 }

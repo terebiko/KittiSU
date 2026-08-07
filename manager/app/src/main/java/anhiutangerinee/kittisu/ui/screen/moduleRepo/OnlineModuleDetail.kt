@@ -33,12 +33,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.OpenInBrowser
+import androidx.compose.material.icons.twotone.Code
+import androidx.compose.material.icons.twotone.KeyboardArrowDown
+import androidx.compose.material.icons.twotone.Link
+import androidx.compose.material.icons.twotone.Person
+import androidx.compose.material.icons.twotone.Download
+import androidx.compose.material.icons.twotone.OpenInBrowser
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -148,7 +148,7 @@ fun OnlineModuleDetailScreen(module: ModuleRepoViewModel.RepoModule) {
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.OpenInBrowser,
+                                imageVector = Icons.TwoTone.OpenInBrowser,
                                 contentDescription = stringResource(R.string.open_module_home_page),
                             )
                         }
@@ -257,7 +257,7 @@ fun InfoTab(
                 module.authorList.forEach { author ->
                     item {
                         SettingsBaseWidget(
-                            icon = Icons.Default.Person,
+                            icon = Icons.TwoTone.Person,
                             onClick = {
                                 uriHandler.openUri(author.link)
                             },
@@ -265,7 +265,7 @@ fun InfoTab(
                         ) {
                             Icon(
                                 modifier = Modifier.size(24.dp),
-                                imageVector = Icons.Default.Link,
+                                imageVector = Icons.TwoTone.Link,
                                 contentDescription = stringResource(R.string.author_link)
                             )
                         }
@@ -280,7 +280,7 @@ fun InfoTab(
             ) {
                 item {
                     SettingsBaseWidget(
-                        icon = Icons.Default.Code,
+                        icon = Icons.TwoTone.Code,
                         title = module.sourceUrl,
                         onClick = {
                             uriHandler.openUri(module.sourceUrl)
@@ -486,7 +486,7 @@ fun ReleaseCard(
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
-                                imageVector = Icons.Outlined.Download,
+                                imageVector = Icons.TwoTone.Download,
                                 contentDescription = null
                             )
                         }
@@ -526,7 +526,7 @@ fun CollapsibleContent(
             )
 
             Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
+                imageVector = Icons.TwoTone.KeyboardArrowDown,
                 contentDescription = null,
                 modifier = Modifier.rotate(rotation),
                 tint = MaterialTheme.colorScheme.onBackground

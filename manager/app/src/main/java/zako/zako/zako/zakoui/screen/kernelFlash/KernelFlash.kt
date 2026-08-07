@@ -24,11 +24,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.automirrored.twotone.ArrowBack
+import androidx.compose.material.icons.twotone.CheckCircle
+import androidx.compose.material.icons.twotone.Error
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.Save
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -275,7 +275,7 @@ fun KernelFlashScreen(
                     },
                     icon = {
                         Icon(
-                            Icons.Filled.Refresh,
+                            Icons.TwoTone.Refresh,
                             contentDescription = stringResource(id = R.string.reboot)
                         )
                     },
@@ -374,14 +374,14 @@ private fun FlashProgressIndicator(
                 when {
                     flashState.error.isNotEmpty() -> {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = Icons.TwoTone.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
                     flashState.isCompleted -> {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = Icons.TwoTone.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.tertiary
                         )
@@ -428,7 +428,7 @@ private fun FlashProgressIndicator(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Error,
+                        imageVector = Icons.TwoTone.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(16.dp)
@@ -493,7 +493,7 @@ private fun TopBar(
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.TwoTone.ArrowBack,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -506,7 +506,7 @@ private fun TopBar(
         actions = {
             IconButton(onClick = onSave) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    imageVector = Icons.TwoTone.Save,
                     contentDescription = stringResource(id = R.string.save_log),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

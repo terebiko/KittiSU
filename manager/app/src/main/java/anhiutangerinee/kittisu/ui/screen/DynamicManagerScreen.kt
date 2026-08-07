@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.twotone.Delete
+import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -100,7 +100,7 @@ fun DynamicManagerScreen() {
                 item {
                     SettingsBaseWidget(
                         modifier = Modifier.padding(horizontal = 16.dp),
-                        icon = Icons.Filled.Security,
+                        icon = Icons.TwoTone.Security,
                         title = stringResource(R.string.dynamic_manager_current_status),
                         description = viewModel.config?.takeIf { it.isValid() }?.let {
                             stringResource(R.string.dynamic_manager_enabled_summary, it.size.toString())
@@ -113,7 +113,7 @@ fun DynamicManagerScreen() {
                     item {
                         SettingsBaseWidget(
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            icon = Icons.Filled.Delete,
+                            icon = Icons.TwoTone.Delete,
                             title = stringResource(R.string.dynamic_manager_clear_config),
                             description = stringResource(R.string.dynamic_manager_clear_config_summary),
                             onClick = {
