@@ -49,7 +49,9 @@ import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.navigation.ModuleDeepLink
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
@@ -89,8 +91,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
     }
 
     val fromShortcut = remember(activity) {
-        val intent = activity?.intent
-        intent?.getStringExtra("shortcut_type") == "module_action"
+        DeepLinkResolver.parseModuleDeepLink(context, activity?.intent?.data) is ModuleDeepLink.Action
     }
 
     LaunchedEffect(Unit) {

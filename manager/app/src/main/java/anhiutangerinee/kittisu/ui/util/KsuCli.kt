@@ -265,7 +265,7 @@ fun runModuleAction(
     }
 
     val result = withNewRootShell(true) {
-        newJob().add("${getKsuDaemonPath()} module action $moduleId")
+        newJob().add("${getKsuDaemonPath()} module action ${moduleId.shellQuote()}")
             .to(stdoutCallback, stderrCallback).exec()
     }
 

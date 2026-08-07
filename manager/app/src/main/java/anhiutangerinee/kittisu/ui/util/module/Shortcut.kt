@@ -18,11 +18,11 @@ import androidx.core.graphics.scale
 import androidx.core.net.toUri
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.MainActivity
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.util.getRootShell
 import anhiutangerinee.kittisu.ui.util.isColorOS
 import anhiutangerinee.kittisu.ui.util.isHyperOS
 import anhiutangerinee.kittisu.ui.util.isMiui
-import anhiutangerinee.kittisu.ui.webui.WebUIActivity
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
 
@@ -45,8 +45,7 @@ object Shortcut {
         val shortcutIntent = Intent().apply {
             component = if (usingAltIcon) mainActivityAlias else mainActivity
             action = Intent.ACTION_VIEW
-            putExtra("shortcut_type", "module_action")
-            putExtra("module_id", moduleId)
+            data = DeepLinkResolver.buildActionUri(context, moduleId)
             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
         createModuleShortcut(
@@ -68,12 +67,13 @@ object Shortcut {
     ) {
         val shortcutId = "module_webui_$moduleId"
 
-        val shortcutIntent = Intent(context, WebUIActivity::class.java).apply {
+        val prefs = context.getSharedPreferences("settings", MODE_PRIVATE)
+        val mainActivity = ComponentName(context, MainActivity::class.java.name)
+        val mainActivityAlias = ComponentName(context, "${MainActivity::class.java.name}Alias")
+        val shortcutIntent = Intent().apply {
+            component = if (prefs.getBoolean("use_alt_icon", false)) mainActivityAlias else mainActivity
             action = Intent.ACTION_VIEW
-            data = "kernelsu://webui/$moduleId".toUri()
-            putExtra("id", moduleId)
-            putExtra("name", name)
-            putExtra("from_webui_shortcut", true)
+            data = DeepLinkResolver.buildWebUiUri(context, moduleId)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         createModuleShortcut(

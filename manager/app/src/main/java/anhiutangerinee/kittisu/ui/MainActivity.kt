@@ -65,7 +65,6 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
-import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -96,7 +95,9 @@ import anhiutangerinee.kittisu.ui.component.ZipFileDetector
 import anhiutangerinee.kittisu.ui.component.ZipFileInfo
 import anhiutangerinee.kittisu.ui.component.ZipType
 import anhiutangerinee.kittisu.ui.navigation.HandleDeepLink
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.navigation.ModuleDeepLink
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.navigation.rememberNavigator
 import anhiutangerinee.kittisu.ui.screen.AppProfileScreen
@@ -983,28 +984,15 @@ fun MainScreen() {
 private fun ShortcutIntentHandler(
     intentState: MutableStateFlow<Int>
 ) {
-    val navigator = LocalNavigator.current
     val activity = LocalActivity.current ?: return
     val context = LocalContext.current
     val intentStateValue by intentState.collectAsState()
     LaunchedEffect(intentStateValue) {
         val intent = activity.intent
-        val type = intent?.getStringExtra("shortcut_type") ?: return@LaunchedEffect
-        when (type) {
-            "module_action" -> {
-                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
-                navigator.push(Route.ExecuteModuleAction(moduleId))
-            }
-
-            "module_webui" -> {
-                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
-                val moduleName = intent.getStringExtra("module_name") ?: moduleId
-
+        when (val link = DeepLinkResolver.parseModuleDeepLink(context, intent?.data)) {
+            is ModuleDeepLink.WebUi -> {
                 val webIntent = Intent(context, WebUIActivity::class.java)
-                    .setData("kernelsu://webui/$moduleId".toUri())
-                    .putExtra("id", moduleId)
-                    .putExtra("name", moduleName)
-                    .putExtra("from_webui_shortcut", true)
+                    .putExtra("id", link.moduleId)
                     .addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or
                                 Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -1012,7 +1000,7 @@ private fun ShortcutIntentHandler(
                 context.startActivity(webIntent)
             }
 
-            else -> return@LaunchedEffect
+            else -> Unit
         }
     }
 }

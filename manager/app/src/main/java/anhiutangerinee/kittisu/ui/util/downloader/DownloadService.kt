@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.MainActivity
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -222,6 +223,10 @@ class DownloadService : Service() {
             action = ACTION_INSTALL_MODULE
             putExtra(EXTRA_MODULE_URI, uri.toString())
             putExtra(EXTRA_DOWNLOAD_ID, id)
+            putExtra(
+                DeepLinkResolver.INTENT_TOKEN_EXTRA,
+                DeepLinkResolver.intentToken(this@DownloadService)
+            )
             addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         val installPendingIntent = PendingIntent.getActivity(

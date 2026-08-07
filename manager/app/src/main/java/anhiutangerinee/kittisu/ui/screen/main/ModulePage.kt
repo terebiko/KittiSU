@@ -57,6 +57,7 @@ import androidx.compose.material.icons.twotone.Cloud
 import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material.icons.twotone.Download
 import androidx.compose.material.icons.twotone.Extension
+import androidx.compose.material.icons.twotone.Link
 import androidx.compose.material.icons.twotone.PlayArrow
 import androidx.compose.material.icons.twotone.Refresh
 import androidx.compose.material.icons.twotone.Warning
@@ -147,6 +148,7 @@ import anhiutangerinee.kittisu.ui.component.settings.SegmentedColumn
 import anhiutangerinee.kittisu.ui.component.settings.SettingsBaseWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsJumpPageWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsTextFieldWidget
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.screen.FlashIt
@@ -1197,6 +1199,33 @@ private fun ModuleList(
                                 },
                             )
                         }
+                    }
+
+                    item {
+                        SettingsJumpPageWidget(
+                            icon = Icons.TwoTone.Link,
+                            title = stringResource(R.string.module_shortcut_copy_url),
+                            onClick = {
+                                val moduleId = shortcutModuleId ?: return@SettingsJumpPageWidget
+                                val uri = when (selectedShortcutType) {
+                                    ShortcutType.Action ->
+                                        DeepLinkResolver.buildActionUri(context, moduleId)
+                                    ShortcutType.WebUI ->
+                                        DeepLinkResolver.buildWebUiUri(context, moduleId)
+                                    null -> return@SettingsJumpPageWidget
+                                }
+                                val clipboard =
+                                    context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText("KittiSU module URL", uri.toString())
+                                )
+                                Toast.makeText(
+                                    context,
+                                    R.string.module_shortcut_url_copied,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                        )
                     }
                 }
                 Row(
