@@ -19,6 +19,21 @@ data class BackgroundTransformation(
     val offsetY: Float = 0f
 )
 
+internal fun calculateCropSize(
+    imageWidth: Int,
+    imageHeight: Int,
+    screenWidth: Int,
+    screenHeight: Int,
+): Pair<Int, Int> {
+    val imageRatio = imageWidth.toFloat() / imageHeight
+    val screenRatio = screenWidth.toFloat() / screenHeight
+    return if (imageRatio > screenRatio) {
+        (imageHeight * screenRatio).toInt().coerceAtLeast(1) to imageHeight
+    } else {
+        imageWidth to (imageWidth / screenRatio).toInt().coerceAtLeast(1)
+    }
+}
+
 fun Context.getImageBitmap(uri: Uri): Bitmap? {
     return try {
         val contentResolver: ContentResolver = contentResolver
@@ -40,18 +55,7 @@ fun Context.applyTransformationToBitmap(bitmap: Bitmap, transformation: Backgrou
     val displayMetrics = resources.displayMetrics
     val screenWidth = displayMetrics.widthPixels
     val screenHeight = displayMetrics.heightPixels
-    val screenRatio = screenHeight.toFloat() / screenWidth.toFloat()
-
-    // 计算目标宽高
-    val targetWidth: Int
-    val targetHeight: Int
-    if (width.toFloat() / height.toFloat() > screenRatio) {
-        targetHeight = height
-        targetWidth = (height / screenRatio).toInt()
-    } else {
-        targetWidth = width
-        targetHeight = (width * screenRatio).toInt()
-    }
+    val (targetWidth, targetHeight) = calculateCropSize(width, height, screenWidth, screenHeight)
 
     // 创建与目标相同大小的位图
     val scaledBitmap = createBitmap(targetWidth, targetHeight)

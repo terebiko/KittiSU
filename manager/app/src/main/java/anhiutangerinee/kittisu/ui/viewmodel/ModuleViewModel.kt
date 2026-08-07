@@ -16,6 +16,7 @@ import anhiutangerinee.kittisu.ui.util.getRootShell
 import anhiutangerinee.kittisu.ui.util.listModules
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,9 +36,16 @@ class ModuleViewModel : ViewModel() {
     companion object {
         private const val TAG = "ModuleViewModel"
         private var modules by mutableStateOf<List<ModuleInfo>>(emptyList())
+
+        internal fun shouldCheckUpdate(
+            module: ModuleInfo,
+            knownVersions: Set<Pair<String, Int>>,
+        ) = module.updateJson.isNotBlank() && module.enabled && !module.remove && !module.update &&
+            (module.dirId to module.versionCode) !in knownVersions
     }
 
     val moduleSize = MutableStateFlow<Map<String, String>>(emptyMap())
+    private var updateCheckJob: Job? = null
 
     fun loadSize(dirId: String) = viewModelScope.launch(Dispatchers.IO) {
         moduleSize.update {
@@ -202,8 +210,15 @@ class ModuleViewModel : ViewModel() {
                 }
 
                 val array = JSONArray(result)
-                modules = Parser.parseModuleList(array) { index, error ->
+                val parsedModules = Parser.parseModuleList(array) { index, error ->
                     Log.w(TAG, "Ignoring invalid module entry at index $index", error)
+                }
+                modules = parsedModules.map { module ->
+                    module.copy(
+                        moduleUpdate = oldModuleList.firstOrNull {
+                            it.dirId == module.dirId && it.versionCode == module.versionCode
+                        }?.moduleUpdate
+                    )
                 }
 
                 hasModuleRequireMount = modules.map { module ->
@@ -218,22 +233,14 @@ class ModuleViewModel : ViewModel() {
                     }
                 }.awaitAll().any { it }
 
-                modules = modules.map { module ->
-                    async(Dispatchers.IO) {
-                        module.copy(
-                            moduleUpdate = if ((module.dirId to module.versionCode) !in knownModuleVersions || module.updateJson.isEmpty() || module.remove || module.update || !module.enabled)
-                                checkUpdate(module.updateJson, module.versionCode)
-                            else null
-                        )
-                    }
-                }.awaitAll()
-
-
-
                 isNeedRefresh = false
+                isRefreshing = false
+                callBack()
+                checkModuleUpdatesInBackground(modules, knownModuleVersions)
             }.onFailure { e ->
                 Log.e(TAG, "fetchModuleList: ", e)
                 isRefreshing = false
+                callBack()
             }
 
             // when both old and new is kotlin.collections.EmptyList
@@ -243,7 +250,26 @@ class ModuleViewModel : ViewModel() {
             }
 
             Log.i(TAG, "load cost: ${SystemClock.elapsedRealtime() - start}, modules: $modules")
-            callBack()
+        }
+    }
+
+    private fun checkModuleUpdatesInBackground(
+        snapshot: List<ModuleInfo>,
+        knownVersions: Set<Pair<String, Int>>,
+    ) {
+        updateCheckJob?.cancel()
+        updateCheckJob = viewModelScope.launch(Dispatchers.IO) {
+            val updated = snapshot.map { module ->
+                async {
+                    if (shouldCheckUpdate(module, knownVersions)) {
+                        module.copy(moduleUpdate = checkUpdate(module.updateJson, module.versionCode))
+                    } else {
+                        module
+                    }
+                }
+            }.awaitAll()
+
+            if (modules === snapshot) modules = updated
         }
     }
 

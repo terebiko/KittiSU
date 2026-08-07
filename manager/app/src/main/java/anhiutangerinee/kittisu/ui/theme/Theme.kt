@@ -706,9 +706,14 @@ private fun createColorScheme(
     dynamicColor: Boolean
 ): ColorScheme {
     return when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val seedColor =
-                if (ThemeConfig.isUseBackgroundSeedColor) backgroundSeedColor else colorResource(id = R.color.system_accent1_500).toArgb()
+        dynamicColor -> {
+            val seedColor = when {
+                ThemeConfig.isUseBackgroundSeedColor && backgroundSeedColor != 0 -> backgroundSeedColor
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                    colorResource(id = R.color.system_accent1_500).toArgb()
+                darkTheme -> ThemeConfig.currentTheme.primaryDark.toArgb()
+                else -> ThemeConfig.currentTheme.primaryLight.toArgb()
+            }
             val hct = Hct.fromInt(seedColor)
             val scheme = SchemeTonalSpot(hct, darkTheme, 0.0)
 
