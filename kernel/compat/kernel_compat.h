@@ -279,7 +279,7 @@ static inline u64 ksu_ktime_get_ns(void)
 #define untagged_addr(addr) (addr)
 #endif
 
-#ifndef in_compat_syscall
+#if !defined(in_compat_syscall) && !(defined(CONFIG_X86_64) && LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
 #define in_compat_syscall() is_compat_task()
 #endif
 
