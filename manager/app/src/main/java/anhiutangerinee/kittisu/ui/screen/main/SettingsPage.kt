@@ -95,6 +95,7 @@ import com.maxkeppeler.sheets.list.models.ListOption
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.update.UpdateChannel
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.magica.BootCompletedReceiver
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
@@ -500,6 +501,39 @@ fun SettingsPage(bottomPadding: Dp) {
                                 onCheckedChange = { enabled ->
                                     prefs.edit { putBoolean("check_update", enabled) }
                                     checkUpdate = enabled
+                                }
+                            )
+                        }
+
+                        item {
+                            val channels = listOf(
+                                stringResource(R.string.update_channel_stable),
+                                stringResource(R.string.update_channel_beta),
+                                stringResource(R.string.update_channel_nightly),
+                            )
+                            var selectedChannel by rememberSaveable {
+                                mutableIntStateOf(
+                                    UpdateChannel.entries.indexOf(
+                                        UpdateChannel.fromPreference(
+                                            prefs.getString("update_channel", null)
+                                        )
+                                    )
+                                )
+                            }
+                            SettingsDropdownWidget(
+                                icon = Icons.Filled.Update,
+                                title = stringResource(R.string.update_channel),
+                                description = stringResource(R.string.update_channel_summary),
+                                items = channels,
+                                selectedIndex = selectedChannel,
+                                onSelectedIndexChange = { index ->
+                                    selectedChannel = index
+                                    prefs.edit {
+                                        putString(
+                                            "update_channel",
+                                            UpdateChannel.entries[index].preferenceValue
+                                        )
+                                    }
                                 }
                             )
                         }

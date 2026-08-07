@@ -19,6 +19,9 @@ val androidSourceCompatibility: JavaVersion by rootProject.extra
 val androidTargetCompatibility: JavaVersion by rootProject.extra
 val managerVersionCode: Int by rootProject.extra
 val managerVersionName: String by rootProject.extra
+val managerCommit = providers.gradleProperty("commit").orElse(
+    providers.exec { commandLine("git", "rev-parse", "HEAD") }.standardOutput.asText.map { it.trim() }
+).get()
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -126,6 +129,7 @@ android {
 
         val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
+        buildConfigField("String", "GIT_COMMIT", "\"$managerCommit\"")
 
         externalNativeBuild {
             cmake {

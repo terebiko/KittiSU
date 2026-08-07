@@ -101,6 +101,8 @@ import anhiutangerinee.kittisu.KernelSUApplication
 import anhiutangerinee.kittisu.KernelVersion
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.update.UpdateChannel
+import anhiutangerinee.kittisu.data.update.checkManagerUpdate
 import anhiutangerinee.kittisu.magica.MagicaService
 import anhiutangerinee.kittisu.ui.component.KsuIsValid
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -119,7 +121,6 @@ import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.theme.getCardColors
 import anhiutangerinee.kittisu.ui.theme.getCardElevation
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
-import anhiutangerinee.kittisu.ui.util.downloader.checkNewVersion
 import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
@@ -364,15 +365,18 @@ fun HomePage(
 @Composable
 fun UpdateCard() {
     val context = LocalContext.current
+    val channel = UpdateChannel.fromPreference(
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getString("update_channel", null)
+    )
     val latestVersionInfo = LatestVersionInfo()
-    val newVersion by produceState(initialValue = latestVersionInfo) {
+    val newVersion by produceState(initialValue = latestVersionInfo, channel) {
         value = withContext(Dispatchers.IO) {
-            checkNewVersion()
+            checkManagerUpdate(channel)
         }
     }
 
     val currentVersionCode = getManagerVersion(context).second
-    val newVersionCode = newVersion.versionCode
     val newVersionUrl = newVersion.downloadUrl
     val changelog = newVersion.changelog
 
@@ -381,7 +385,7 @@ fun UpdateCard() {
     val updateText = stringResource(id = R.string.module_update)
 
     AnimatedVisibility(
-        visible = newVersionCode > currentVersionCode,
+        visible = newVersion.isNewerThan(currentVersionCode, BuildConfig.GIT_COMMIT),
         enter = fadeIn() + expandVertically(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -392,7 +396,10 @@ fun UpdateCard() {
     ) {
         val updateDialog = rememberConfirmDialog(onConfirm = { uriHandler.openUri(newVersionUrl) })
         WarningCard(
-            message = stringResource(id = R.string.new_version_available).format(newVersionCode),
+            message = stringResource(
+                R.string.manager_update_available,
+                newVersion.versionName.ifBlank { newVersion.versionCode.toString() }
+            ),
             color = MaterialTheme.colorScheme.outlineVariant,
             icon = {
                 Icon(

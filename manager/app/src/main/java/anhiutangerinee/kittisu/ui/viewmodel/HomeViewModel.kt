@@ -14,7 +14,6 @@ import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.getKernelVersion
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.susfs.util.SuSFSManager
-import anhiutangerinee.kittisu.ui.util.downloader.checkNewVersion
 import anhiutangerinee.kittisu.ui.util.getKpmModuleCount
 import anhiutangerinee.kittisu.ui.util.getKpmVersion
 import anhiutangerinee.kittisu.ui.util.getMetaModuleImplement
@@ -26,7 +25,6 @@ import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import anhiutangerinee.kittisu.ui.util.getSuperuserCount
 import anhiutangerinee.kittisu.ui.util.getZygiskImplement
 import anhiutangerinee.kittisu.ui.util.isSELinuxPermissive
-import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,9 +75,6 @@ class HomeViewModel : ViewModel() {
         private set
 
     var systemInfo by mutableStateOf(SystemInfo())
-        private set
-
-    var latestVersionInfo by mutableStateOf(LatestVersionInfo())
         private set
 
     var isSimpleMode by mutableStateOf(false)
@@ -274,18 +269,6 @@ class HomeViewModel : ViewModel() {
                 // 重新加载扩展数据
                 loadExtendedData(context)
 
-                // 检查更新
-                val settingsPrefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                val checkUpdate = settingsPrefs.getBoolean("check_update", true)
-                if (checkUpdate) {
-                    try {
-                        val newVersionInfo = withContext(Dispatchers.IO) {
-                            checkNewVersion()
-                        }
-                        latestVersionInfo = newVersionInfo
-                    } catch (_: Exception) {
-                    }
-                }
             } catch (_: Exception) {
                 // 静默处理错误
             } finally {

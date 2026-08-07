@@ -157,6 +157,12 @@
     <string name="module_changelog_failed">Fetch changelog failed: %s</string>
     <string name="settings_check_update">Update notifications</string>
     <string name="settings_check_update_summary">Auto-check for module and manager updates</string>
+    <string name="update_channel">Manager update channel</string>
+    <string name="update_channel_summary">Stable and beta use GitHub Releases; nightly uses the latest dev Actions artifact.</string>
+    <string name="update_channel_stable">Stable</string>
+    <string name="update_channel_beta">Beta</string>
+    <string name="update_channel_nightly">Nightly</string>
+    <string name="manager_update_available">Manager update available: %1$s</string>
     <string name="grant_root_failed">Failed to grant root!</string>
     <string name="home_pr_build_warning">This is a PR debug build. Do NOT use it in production!</string>
     <string name="home_pr_kernel_warning">The kernel was built with PR signature support. This is not a production kernel!</string>
