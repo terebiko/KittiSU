@@ -227,7 +227,10 @@ dependencies {
     implementation(libs.com.github.topjohnwu.libsu.service)
     implementation(libs.com.github.topjohnwu.libsu.io)
 
-    implementation(libs.m3color)
+    implementation(libs.material.kolor)
+    implementation(libs.material.components)
+    implementation(libs.monet.compat)
+    implementation(libs.androidx.palette.ktx)
     implementation(libs.capsule)
 
     implementation(libs.dev.rikka.rikkax.parcelablelist)

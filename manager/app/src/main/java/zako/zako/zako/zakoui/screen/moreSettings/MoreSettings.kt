@@ -40,6 +40,7 @@ import androidx.compose.material.icons.twotone.Check
 import androidx.compose.material.icons.twotone.ColorLens
 import androidx.compose.material.icons.twotone.Contrast
 import androidx.compose.material.icons.twotone.DarkMode
+import androidx.compose.material.icons.twotone.DesignServices
 import androidx.compose.material.icons.twotone.Draw
 import androidx.compose.material.icons.twotone.FormatColorFill
 import androidx.compose.material.icons.twotone.FormatSize
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Wallpaper
 import androidx.compose.material.icons.twotone.Animation
 import androidx.compose.material.icons.twotone.SwapHoriz
+import androidx.compose.material.icons.twotone.Style
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,6 +108,8 @@ import anhiutangerinee.kittisu.ui.theme.ThemeColors
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,6 +120,23 @@ import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
 import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 import java.io.File
 import kotlin.math.roundToInt
+
+private fun PaletteStyle.displayName(): String = when (this) {
+    PaletteStyle.TonalSpot -> "Tonal Spot"
+    PaletteStyle.Neutral -> "Neutral"
+    PaletteStyle.Vibrant -> "Vibrant"
+    PaletteStyle.Expressive -> "Expressive"
+    PaletteStyle.Rainbow -> "Rainbow"
+    PaletteStyle.FruitSalad -> "Fruit Salad"
+    PaletteStyle.Monochrome -> "Monochrome"
+    PaletteStyle.Fidelity -> "Fidelity"
+    PaletteStyle.Content -> "Content"
+}
+
+private fun ColorSpec.SpecVersion.displayName(): String = when (this) {
+    ColorSpec.SpecVersion.SPEC_2021 -> "Spec 2021"
+    ColorSpec.SpecVersion.SPEC_2025 -> "Spec 2025"
+}
 
 // TODO Rename this screen to ThemeSettingsScreen, and drop SELinux config, rewrite dynamic manager
 @SuppressLint(
@@ -512,26 +533,50 @@ private fun AppearanceSettings(
             )
         }
 
-        // TODO MonetCompat with Android S-, Choose System Seed Color or Custom background color
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            item {
-                // 动态颜色开关
-                SettingsSwitchWidget(
-                    icon = Icons.TwoTone.ColorLens,
-                    title = stringResource(R.string.dynamic_color_title),
-                    description = stringResource(R.string.dynamic_color_summary),
-                    checked = state.useDynamicColor,
-                    onCheckedChange = handlers::handleDynamicColorChange
-                )
-            }
+        item {
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.ColorLens,
+                title = stringResource(R.string.dynamic_color_title),
+                description = stringResource(R.string.dynamic_color_summary),
+                checked = state.useDynamicColor,
+                onCheckedChange = handlers::handleDynamicColorChange
+            )
         }
 
         item(
-            visible = !state.useDynamicColor || Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+            visible = !state.useDynamicColor
         ) {
-            // TODO ColorPicker seedColor
-            // 主题色选择
             ThemeColorSelection(state = state)
+        }
+
+        item {
+            SettingsDropdownWidget(
+                icon = Icons.TwoTone.Style,
+                title = stringResource(R.string.dynamic_palette_style),
+                items = PaletteStyle.entries.map { it.displayName() },
+                selectedIndex = PaletteStyle.entries.indexOf(state.dynamicPaletteStyle),
+                onSelectedIndexChange = { index ->
+                    handlers.handleDynamicPaletteStyleChange(
+                        PaletteStyle.entries.getOrElse(index) { PaletteStyle.TonalSpot }
+                    )
+                }
+            )
+        }
+
+        item {
+            SettingsDropdownWidget(
+                icon = Icons.TwoTone.DesignServices,
+                title = stringResource(R.string.dynamic_color_spec),
+                items = ColorSpec.SpecVersion.entries.map { it.displayName() },
+                selectedIndex = ColorSpec.SpecVersion.entries.indexOf(state.dynamicColorSpec),
+                onSelectedIndexChange = { index ->
+                    handlers.handleDynamicColorSpecChange(
+                        ColorSpec.SpecVersion.entries.getOrElse(index) {
+                            ColorSpec.SpecVersion.SPEC_2021
+                        }
+                    )
+                }
+            )
         }
 
         item {

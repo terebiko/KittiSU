@@ -13,6 +13,7 @@ import anhiutangerinee.kittisu.ui.util.generateMainShellBuilder
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
+import com.kieronquinn.monetcompat.core.MonetCompat
 import com.topjohnwu.superuser.internal.MainShell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +48,8 @@ class KernelSUApplication : Application(), ViewModelStoreOwner {
         }
 
         MainShell.setBuilder(generateMainShellBuilder())
+
+        runCatching { MonetCompat.enablePaletteCompat() }
 
         // For faster response when first entering superuser or webui activity
         val superUserViewModel = ViewModelProvider(this)[SuperUserViewModel::class.java]

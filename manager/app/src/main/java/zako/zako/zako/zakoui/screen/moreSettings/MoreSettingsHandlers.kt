@@ -17,9 +17,13 @@ import anhiutangerinee.kittisu.ui.theme.ThemeColors
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.saveAndApplyCustomBackground
 import anhiutangerinee.kittisu.ui.theme.saveCustomBackground
+import anhiutangerinee.kittisu.ui.theme.saveDynamicColorSpec
 import anhiutangerinee.kittisu.ui.theme.saveDynamicColorState
+import anhiutangerinee.kittisu.ui.theme.saveDynamicPaletteStyle
 import anhiutangerinee.kittisu.ui.theme.saveThemeColors
 import anhiutangerinee.kittisu.ui.theme.saveThemeMode
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
 import zako.zako.zako.zakoui.screen.moreSettings.util.toggleLauncherIcon
 
@@ -138,6 +142,16 @@ class MoreSettingsHandlers(
         state.useDynamicColor = enabled
         activity.saveDynamicColorState(enabled)
         ThemeConfig.updateTheme(dynamicColor = enabled)
+    }
+
+    fun handleDynamicColorSpecChange(spec: ColorSpec.SpecVersion) {
+        state.dynamicColorSpec = spec
+        activity.saveDynamicColorSpec(spec)
+    }
+
+    fun handleDynamicPaletteStyleChange(style: PaletteStyle) {
+        state.dynamicPaletteStyle = style
+        activity.saveDynamicPaletteStyle(style)
     }
 
     /**

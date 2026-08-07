@@ -185,6 +185,8 @@
     <string name="theme_dark">Tối</string>
     <string name="dynamic_color_title">Màu sắc động</string>
     <string name="dynamic_color_summary">Sử dụng màu sắc động làm chủ đề hệ thống</string>
+    <string name="dynamic_palette_style">Kiểu bảng màu</string>
+    <string name="dynamic_color_spec">Đặc tả màu sắc</string>
     <string name="choose_theme_color">Chọn màu chủ đề</string>
     <string name="color_default">Xanh dương</string>
     <string name="color_green">Xanh lá</string>

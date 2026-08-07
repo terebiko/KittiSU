@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 
 /**
@@ -33,6 +35,8 @@ class MoreSettingsState(
 
     // 动态颜色开关状态
     var useDynamicColor by mutableStateOf(ThemeConfig.useDynamicColor)
+    var dynamicColorSpec by mutableStateOf(ThemeConfig.dynamicColorSpec)
+    var dynamicPaletteStyle by mutableStateOf(ThemeConfig.dynamicPaletteStyle)
 
     // 语言设置
     var showLanguageDialog by mutableStateOf(false)
