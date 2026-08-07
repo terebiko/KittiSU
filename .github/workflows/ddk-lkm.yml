@@ -104,6 +104,9 @@ jobs:
         make O="$KDIR" modules_prepare
         popd
 
+        if [ ! -f "$KDIR/include/generated/compile.h" ]; then
+          cp "/opt/ddk/kdir/$KMI/include/generated/compile.h" "$KDIR/include/generated/"
+        fi
         mkdir -p "$KDIR/security/selinux"
         cp "/opt/ddk/kdir/$KMI/security/selinux/"*.h "$KDIR/security/selinux/"
 
