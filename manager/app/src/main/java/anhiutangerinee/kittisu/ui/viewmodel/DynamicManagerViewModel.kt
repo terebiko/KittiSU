@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.util.clearDynamicManager
+import anhiutangerinee.kittisu.ui.util.getDynamicManagerConfig
 import anhiutangerinee.kittisu.ui.util.setDynamicManagerApk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,7 +40,7 @@ class DynamicManagerViewModel : ViewModel() {
             ViewModelProvider(ksuApp)[SuperUserViewModel::class.java].fetchAppList()
         }
 
-        config = runCatching { Natives.getDynamicManager() }.getOrNull()
+        config = getDynamicManagerConfig()
         val managerIndexes = Natives.getManagersList()?.managers
             ?.associate { it.uid to it.signatureIndex }
             .orEmpty()
@@ -61,11 +62,31 @@ class DynamicManagerViewModel : ViewModel() {
     }
 
     suspend fun select(app: DynamicManagerApp): Boolean = withContext(Dispatchers.IO) {
-        setDynamicManagerApk(app.apkPath).also { if (it) refresh() }
+        setDynamicManagerApk(app.apkPath).also { success ->
+            if (success) {
+                config = getDynamicManagerConfig()
+                updateSelection(app.packageName)
+            }
+        }
     }
 
     suspend fun clearSelection(): Boolean = withContext(Dispatchers.IO) {
-        clearDynamicManager().also { if (it) refresh() }
+        clearDynamicManager().also { success ->
+            if (success) {
+                config = null
+                updateSelection(null)
+            }
+        }
+    }
+
+    private fun updateSelection(packageName: String?) {
+        apps = apps.map { app ->
+            if (app.selected || app.packageName == packageName) {
+                app.copy(selected = app.packageName == packageName, changeable = true)
+            } else {
+                app
+            }
+        }.sortedWith(compareByDescending<DynamicManagerApp> { it.selected }.thenBy { it.label.lowercase() })
     }
 
     private companion object {

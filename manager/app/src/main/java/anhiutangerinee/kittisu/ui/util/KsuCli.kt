@@ -110,6 +110,24 @@ fun setDynamicManagerApk(apkPath: String): Boolean =
 fun clearDynamicManager(): Boolean =
     execKsud("kernel dynamic-manager clear", true)
 
+suspend fun getDynamicManagerConfig(): Natives.DynamicManagerConfig? = withContext(Dispatchers.IO) {
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} kernel dynamic-manager get")
+        .to(ArrayList<String>(), null).exec()
+    if (!result.isSuccess) return@withContext null
+    parseDynamicManagerConfig(result.out.joinToString("\n"))
+}
+
+internal fun parseDynamicManagerConfig(output: String): Natives.DynamicManagerConfig? {
+    val match = Regex("""size:\s*(\d+),\s*hash:\s*([0-9a-fA-F]{64})""")
+        .matchEntire(output.trim())
+        ?: return null
+    return Natives.DynamicManagerConfig(
+        match.groupValues[1].toIntOrNull() ?: return null,
+        match.groupValues[2],
+    )
+}
+
 suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.IO) {
     val shell = getRootShell()
     val out = shell.newJob()

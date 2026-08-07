@@ -14,6 +14,7 @@ import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.getKernelVersion
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.susfs.util.SuSFSManager
+import anhiutangerinee.kittisu.ui.util.getDynamicManagerConfig
 import anhiutangerinee.kittisu.ui.util.getKpmModuleCount
 import anhiutangerinee.kittisu.ui.util.getKpmVersion
 import anhiutangerinee.kittisu.ui.util.getMetaModuleImplement
@@ -394,17 +395,8 @@ class HomeViewModel : ViewModel() {
 
     private suspend fun loadManagerInfo(): Pair<Natives.ManagersList?, Boolean> {
         return withContext(Dispatchers.IO) {
-            val dynamicSignConfig = try {
-                Natives.getDynamicManager()
-            } catch (_: Exception) {
-                null
-            }
-
-            val isDynamicSignEnabled = try {
-                dynamicSignConfig?.isValid() == true
-            } catch (_: Exception) {
-                false
-            }
+            val dynamicSignConfig = runCatching { getDynamicManagerConfig() }.getOrNull()
+            val isDynamicSignEnabled = dynamicSignConfig?.isValid() == true
 
             val managersList = try {
                 Natives.getManagersList()

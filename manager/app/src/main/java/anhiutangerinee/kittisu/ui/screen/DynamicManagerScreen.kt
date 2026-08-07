@@ -166,7 +166,9 @@ fun DynamicManagerScreen() {
                                 }
                             }
                         },
-                        trailingContent = { Checkbox(app.selected, null, enabled = app.changeable) },
+                        trailingContent = {
+                            Checkbox(app.selected || !app.changeable, null, enabled = app.changeable)
+                        },
                     )
                 }
             }
