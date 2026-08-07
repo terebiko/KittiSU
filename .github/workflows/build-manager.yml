@@ -360,9 +360,15 @@ jobs:
             --strip
 
       - name: Delete gradle build
-        uses: GeekyEggo/delete-artifact@v6
-        with:
-          name: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
+        run: |
+          artifact_id=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" \
+            --jq '.artifacts[0].id')
+          test -n "$artifact_id"
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
         
       - name: Upload build artifact
         if: ${{ github.event_name == 'pull_request' || (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/sync-upstream' || github.ref == 'refs/heads/managerfix')) || github.ref_type == 'tag' }}
