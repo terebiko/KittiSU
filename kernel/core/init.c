@@ -40,7 +40,7 @@
 #endif
 
 // if we are using the upstream hook, check x86-64 compatible
-#if defined(CONFIG_KSU_TRACEPOINT_HOOK) && defined(__x86_64__)
+#if defined(CONFIG_KSU_TRACEPOINT_HOOK) && defined(__x86_64__) && !defined(CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER)
 #include <asm/cpufeature.h>
 #include <linux/version.h>
 #ifndef X86_FEATURE_INDIRECT_SAFE
@@ -172,7 +172,7 @@ int __init kernelsu_init(void)
 #endif
 
     // If we are in tracepoint hook, remember to check x86-64 compatible
-#if defined(CONFIG_KSU_TRACEPOINT_HOOK) && defined(__x86_64__)
+#if defined(CONFIG_KSU_TRACEPOINT_HOOK) && defined(__x86_64__) && !defined(CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER)
     // If the kernel has the hardening patch, X86_FEATURE_INDIRECT_SAFE must be set
     if (!boot_cpu_has(X86_FEATURE_INDIRECT_SAFE)) {
         pr_alert("*************************************************************");

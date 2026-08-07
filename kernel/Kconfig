@@ -69,6 +69,15 @@ config KSU_MULTI_MANAGER_SUPPORT
 	help
 		Enable multi KernelSU manager support
 
+config KSU_X86_PATCH_SYSCALL_DISPATCHER
+	bool "Patch the hardened x86_64 syscall dispatcher"
+	depends on KSU && X86_64 && KSU_TRACEPOINT_HOOK
+	default n
+	help
+	  Patch the x86_64 dispatcher at runtime so tracepoint syscall
+	  redirection also works for kernels without the indirect-safe bypass.
+	  This is intended for x86_64 LKM builds.
+
 config KPM
     bool "Enable SukiSU KPM"
     depends on KSU && 64BIT

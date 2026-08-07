@@ -9,6 +9,7 @@ on:
       - '.github/workflows/build-lkm.yml'
       - '.github/workflows/ddk-lkm.yml'
       - '.github/workflows/ksud.yml'
+      - '.github/workflows/ksuinit.yml'
       - 'manager/**'
       - 'kernel/**'
       - 'userspace/**'
@@ -98,6 +99,38 @@ jobs:
     with:
       target: ${{ matrix.target }}
       os: ${{ matrix.os }}
+
+  build-ksud-linux-host:
+    needs: [build-lkm, build-ksuinit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+
+      - name: Prepare x86_64 and aarch64 patch assets
+        run: |
+          cp aarch64-android*-lkm/*_kernelsu.ko userspace/ksud/bin/aarch64/
+          cp x86_64-android*-lkm/*_kernelsu.ko userspace/ksud/bin/x86_64/
+          mv ksuinit-aarch64/ksuinit userspace/ksud/bin/aarch64/
+          mv ksuinit-x86_64/ksuinit userspace/ksud/bin/x86_64/
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: userspace/ksud
+          cache-targets: false
+
+      - name: Build Linux host ksud
+        run: cargo build --release --manifest-path userspace/ksud/Cargo.toml
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ksud-x86_64-linux-host
+          path: userspace/ksud/target/release/ksud
 
   build-manager:
     needs: [generate-key]
