@@ -114,6 +114,8 @@
     <string name="install_inactive_slot_warning">Thiết bị của bạn sẽ **BUỘC** phải khởi động vào phân vùng chưa được sử dụng!\nChỉ sử dụng tùy chọn này sau khi cập nhật OTA hoàn tất.\nTiếp tục?</string>
     <string name="install_next">Kế tiếp</string>
     <string name="install_select_partition">Chọn phân vùng</string>
+    <string name="install_force_backup">Sao lưu ảnh boot gốc</string>
+    <string name="install_force_backup_summary">Lưu ảnh đã chọn để có thể khôi phục trước khi OTA hoặc gỡ cài đặt.</string>
     <string name="install_upload_lkm_file">Sử dụng file LKM cục bộ</string>
     <string name="install_only_support_ko_file">Chỉ hỗ trợ các file .ko</string>
     <string name="select_file_tip">Phân vùng %1$s được khuyến nghị</string>

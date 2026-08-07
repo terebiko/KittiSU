@@ -121,17 +121,33 @@ mod android {
         Ok(base16ct::lower::encode_string(&result))
     }
 
-    pub(super) fn do_backup(cpio: &mut Cpio, image: &Path) -> Result<()> {
+    pub(super) fn do_backup(
+        cpio: &mut Cpio,
+        image: &Path,
+        fallback_dir: Option<&Path>,
+    ) -> Result<()> {
         let sha1 = calculate_sha1(image)?;
         let filename = format!("{KSU_BACKUP_FILE_PREFIX}{sha1}");
 
         println!("- Backup stock boot image");
-        let target = format!("{KSU_BACKUP_DIR}{filename}");
+        let mut target = Path::new(KSU_BACKUP_DIR).join(&filename);
         let mut target_file = OpenOptions::new()
             .create(true)
             .truncate(true)
             .write(true)
-            .open(&target)?;
+            .open(&target)
+            .or_else(|primary_error| {
+                let Some(dir) = fallback_dir else {
+                    return Err(primary_error);
+                };
+                std::fs::create_dir_all(dir)?;
+                target = dir.join(&filename);
+                OpenOptions::new()
+                    .create(true)
+                    .truncate(true)
+                    .write(true)
+                    .open(&target)
+            })?;
         let mut source = OpenOptions::new()
             .create(false)
             .truncate(false)
@@ -140,12 +156,12 @@ mod android {
             .open(image)?;
 
         std::io::copy(&mut source, &mut target_file)
-            .with_context(|| format!("backup to {target}"))?;
+            .with_context(|| format!("backup to {}", target.display()))?;
 
         let backup_file = CpioEntry::regular(0o755, Box::new(sha1));
         cpio.add(BACKUP_FILENAME, backup_file)?;
         println!("- Stock image has been backup to");
-        println!("- {target}");
+        println!("- {}", target.display());
         Ok(())
     }
 
@@ -411,6 +427,16 @@ pub struct BootPatchArgs {
     #[arg(short, long, default_value = "false")]
     pub flash: bool,
 
+    /// Force backup source image as stock image
+    #[cfg(target_os = "android")]
+    #[arg(long, default_value = "false")]
+    pub backup: bool,
+
+    /// Fallback directory used when /data/adb is not available
+    #[cfg(target_os = "android")]
+    #[arg(long, default_value = None)]
+    pub backup_dir: Option<PathBuf>,
+
     /// output path, if not specified, will use current directory
     #[arg(short, long, default_value = None)]
     pub out: Option<PathBuf>,
@@ -477,6 +503,10 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             ota,
             #[cfg(target_os = "android")]
             flash,
+            #[cfg(target_os = "android")]
+            backup,
+            #[cfg(target_os = "android")]
+            backup_dir,
             #[cfg(target_os = "android")]
             partition,
             #[cfg(not(target_os = "android"))]
@@ -643,9 +673,8 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             cpio.add("kernelsu.ko", CpioEntry::regular(0o755, kernelsu_ko))?;
 
             #[cfg(target_os = "android")]
-            if !is_kernelsu_patched
-                && flash
-                && let Err(e) = do_backup(&mut cpio, &boot_image_file)
+            if (backup || (!is_kernelsu_patched && flash))
+                && let Err(e) = do_backup(&mut cpio, &boot_image_file, backup_dir.as_deref())
             {
                 println!("- Backup stock image failed: {e:?}");
             }

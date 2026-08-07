@@ -50,6 +50,7 @@ mod android {
 
     pub const KSU_BACKUP_DIR: &str = WORKING_DIR;
     pub const KSU_BACKUP_FILE_PREFIX: &str = "ksu_backup_";
+    pub const KSU_TEMP_BACKUP_DIR_NAME: &str = "boot_backup";
     pub const BACKUP_FILENAME: &str = "stock_image.sha1";
     pub const UMOUNT_CONFIG_PATH: &str = concatcp!(WORKING_DIR, ".umount");
 

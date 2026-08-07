@@ -63,6 +63,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +89,7 @@ import anhiutangerinee.kittisu.ui.component.rememberCustomDialog
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.component.settings.SettingsBaseWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsDropdownWidget
+import anhiutangerinee.kittisu.ui.component.settings.SettingsSwitchWidget
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.theme.CardConfig
@@ -131,6 +133,7 @@ fun InstallScreen(
     var showSlotSelectionDialog by remember { mutableStateOf(false) }
     var showKpmPatchDialog by remember { mutableStateOf(false) }
     var tempKernelUri by remember { mutableStateOf<Uri?>(null) }
+    var forceBackup by rememberSaveable { mutableStateOf(false) }
 
     val kernelVersion = getKernelVersion()
     val isGKI = kernelVersion.isGKI()
@@ -208,7 +211,8 @@ fun InstallScreen(
                         boot = if (method is InstallMethod.SelectFile) method.uri else null,
                         lkm = lkmSelection,
                         ota = isOta,
-                        partition = partitionSelection
+                        partition = partitionSelection,
+                        backup = method is InstallMethod.SelectFile && forceBackup
                     )
                     navigator.push(Route.Flash(flashIt))
                 }
@@ -398,6 +402,24 @@ fun InstallScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
+                if (installMethod is InstallMethod.SelectFile) {
+                    ElevatedCard(
+                        colors = getCardColors(MaterialTheme.colorScheme.surfaceVariant),
+                        elevation = getCardElevation(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                    ) {
+                        SettingsSwitchWidget(
+                            icon = Icons.TwoTone.Security,
+                            title = stringResource(R.string.install_force_backup),
+                            description = stringResource(R.string.install_force_backup_summary),
+                            checked = forceBackup,
+                            onCheckedChange = { forceBackup = it },
+                        )
+                    }
+                }
+
                 if (isGKI) {
                     // 使用本地的LKM文件
                     ElevatedCard(

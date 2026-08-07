@@ -970,7 +970,13 @@ suspend fun getModuleIdFromUri(context: Context, uri: Uri): String? {
 
 @Parcelize
 sealed class FlashIt : Parcelable {
-    data class FlashBoot(val boot: Uri? = null, val lkm: LkmSelection, val ota: Boolean, val partition: String? = null) : FlashIt()
+    data class FlashBoot(
+        val boot: Uri? = null,
+        val lkm: LkmSelection,
+        val ota: Boolean,
+        val partition: String? = null,
+        val backup: Boolean = false,
+    ) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
     data class FlashModules(
         val uris: List<Uri>,
@@ -1047,6 +1053,7 @@ fun flashIt(
             flashIt.lkm,
             flashIt.ota,
             flashIt.partition,
+            flashIt.backup,
             onFinish,
             onStdout,
             onStderr
