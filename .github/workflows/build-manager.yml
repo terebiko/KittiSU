@@ -41,9 +41,25 @@ jobs:
           run_id=${run_url##*/}
           test -n "$run_id"
           echo "Remote build: $run_url" >> "$GITHUB_STEP_SUMMARY"
-          gh run watch "$run_id" \
-            --repo thanhhuybynight/GKI_KernelSU_SUSFS \
-            --exit-status
+          if gh run watch "$run_id" \
+              --repo thanhhuybynight/GKI_KernelSU_SUSFS \
+              --exit-status; then
+            remote_status=0
+          else
+            remote_status=$?
+          fi
+
+          gh api --paginate \
+            "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/runs/$run_id/jobs" \
+            --jq '.jobs[] | [.id, .name] | @tsv' |
+          while IFS=$'\t' read -r job_id job_name; do
+            echo "::group::Remote GKI: $job_name"
+            gh api \
+              "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/jobs/$job_id/logs" || true
+            echo "::endgroup::"
+          done
+
+          exit "$remote_status"
 
   generate-key:
     runs-on: ubuntu-latest
