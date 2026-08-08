@@ -9,7 +9,7 @@ mod ksucalls;
 mod late_load;
 mod module;
 mod profile;
-mod resetprop;
+pub(crate) mod resetprop;
 mod restorecon;
 mod sepolicy;
 mod su;
