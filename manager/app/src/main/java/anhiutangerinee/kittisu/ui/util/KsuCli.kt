@@ -226,6 +226,21 @@ private fun flashWithIO(
     }
 }
 
+fun flashAnyKernel(
+    zipFile: File,
+    slot: String?,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit
+): Boolean {
+    val command = buildString {
+        append(getKsuDaemonPath()).append(" anykernel3 ").append(zipFile.absolutePath.shellQuote())
+        slot?.let { append(" --slot ").append(it.shellQuote()) }
+    }
+    val result = flashWithIO(command, onStdout, onStderr)
+    Log.i(TAG, "AnyKernel3 flash result: ${result.isSuccess}, code: ${result.code}")
+    return result.isSuccess
+}
+
 fun flashModule(
     uri: Uri,
     onFinish: (Boolean, Int) -> Unit,
