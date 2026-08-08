@@ -13,16 +13,13 @@ import anhiutangerinee.kittisu.KernelVersion
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.getKernelVersion
 import anhiutangerinee.kittisu.ksuApp
-import anhiutangerinee.kittisu.ui.susfs.util.SuSFSManager
+import anhiutangerinee.kittisu.data.susfs.SuSFSConfigHelper
 import anhiutangerinee.kittisu.ui.util.getDynamicManagerConfig
 import anhiutangerinee.kittisu.ui.util.getKpmModuleCount
 import anhiutangerinee.kittisu.ui.util.getKpmVersion
 import anhiutangerinee.kittisu.ui.util.getMetaModuleImplement
 import anhiutangerinee.kittisu.ui.util.getModuleCount
 import anhiutangerinee.kittisu.ui.util.getSELinuxStatus
-import anhiutangerinee.kittisu.ui.util.getSuSFSFeatures
-import anhiutangerinee.kittisu.ui.util.getSuSFSStatus
-import anhiutangerinee.kittisu.ui.util.getSuSFSVersion
 import anhiutangerinee.kittisu.ui.util.getSuperuserCount
 import anhiutangerinee.kittisu.ui.util.getZygiskImplement
 import anhiutangerinee.kittisu.ui.util.isSELinuxPermissive
@@ -222,9 +219,7 @@ class HomeViewModel : ViewModel() {
                     val susfsInfo = loadSuSFSInfo()
                     systemInfo = systemInfo.copy(
                         susfsEnabled = susfsInfo.first,
-                        susfsVersionSupported = susfsInfo.first && SuSFSManager.isBinaryAvailable(
-                            context
-                        ), // enabled & have binary
+                        susfsVersionSupported = susfsInfo.first,
                         susfsVersion = susfsInfo.second,
                         susfsFeatures = susfsInfo.third,
                     )
@@ -363,31 +358,15 @@ class HomeViewModel : ViewModel() {
 
     private suspend fun loadSuSFSInfo(): Triple<Boolean, String, String> {
         return withContext(Dispatchers.IO) {
-            val susfsEnabled = try {
-                getSuSFSStatus().equals("true", ignoreCase = true)
-            } catch (_: Exception) {
-                false
-            }
+            val susfsVersion = runCatching { SuSFSConfigHelper.showVersion() }.getOrDefault("")
+            val susfsEnabled = susfsVersion.isNotEmpty()
 
             if (!susfsEnabled) {
                 return@withContext Triple(false, "", "")
             }
 
-            val susfsVersion = try {
-                getSuSFSVersion()
-            } catch (_: Exception) {
-                ""
-            }
-
-            if (susfsVersion.isEmpty()) {
-                return@withContext Triple(true, "", "")
-            }
-
-            val susfsFeatures = try {
-                getSuSFSFeatures()
-            } catch (_: Exception) {
-                ""
-            }
+            val susfsFeatures =
+                runCatching { SuSFSConfigHelper.showEnabledFeatures() }.getOrDefault("")
 
             Triple(true, susfsVersion, susfsFeatures)
         }
