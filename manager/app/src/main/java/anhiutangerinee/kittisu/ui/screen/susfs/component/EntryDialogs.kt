@@ -181,9 +181,9 @@ fun ManualAddDialog(
                                     title = stringResource(R.string.susfs_entry_select_subtype),
                                     description = selectedSubtype,
                                     iconPlaceholder = false,
-                                    choice = subtypes.indexOf(selectedSubtype).coerceAtLeast(0),
-                                    data = subtypes,
-                                    onChoiceChange = { index -> onSubtypeChange(subtypes[index]) }
+                                    selectedIndex = subtypes.indexOf(selectedSubtype).coerceAtLeast(0),
+                                    items = subtypes,
+                                    onSelectedIndexChange = { index -> onSubtypeChange(subtypes[index]) }
                                 )
                             }
                         }

@@ -263,7 +263,6 @@ fun SusKstatTab(
                     } else {
                         TextFieldLineLimits.SingleLine
                     },
-                    renderBackgroundBlur = false
                 )
             }
             if (selectedSubtype == subtypeStatically) {
@@ -271,7 +270,6 @@ fun SusKstatTab(
                     SettingsBaseWidget(
                         iconPlaceholder = false,
                         title = staticallyFieldsLabel,
-                        renderBackgroundBlur = false,
                     )
                 }
                 listOf(
@@ -295,7 +293,6 @@ fun SusKstatTab(
                             useLabelAsPlaceholder = true,
                             enabled = !isLoading,
                             lineLimits = TextFieldLineLimits.SingleLine,
-                            renderBackgroundBlur = false
                         )
                     }
                 }

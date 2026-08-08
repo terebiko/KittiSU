@@ -172,7 +172,6 @@ fun OpenRedirectTab(
                     useLabelAsPlaceholder = true,
                     enabled = !isLoading,
                     lineLimits = TextFieldLineLimits.SingleLine,
-                    renderBackgroundBlur = false,
                 )
             }
             item {
@@ -182,7 +181,6 @@ fun OpenRedirectTab(
                     useLabelAsPlaceholder = true,
                     enabled = !isLoading,
                     lineLimits = TextFieldLineLimits.SingleLine,
-                    renderBackgroundBlur = false,
                 )
             }
             item {
@@ -190,10 +188,10 @@ fun OpenRedirectTab(
                     title = uidSchemeLabel,
                     description = selectedUidLabel,
                     iconPlaceholder = false,
-                    choice = uidSchemeOptions.indexOfFirst { it.first == manualUidScheme }
+                    selectedIndex = uidSchemeOptions.indexOfFirst { it.first == manualUidScheme }
                         .coerceAtLeast(0),
-                    data = uidSchemeOptions.map { it.second },
-                    onChoiceChange = { index -> manualUidScheme = uidSchemeOptions[index].first },
+                    items = uidSchemeOptions.map { it.second },
+                    onSelectedIndexChange = { index -> manualUidScheme = uidSchemeOptions[index].first },
                 )
             }
         },

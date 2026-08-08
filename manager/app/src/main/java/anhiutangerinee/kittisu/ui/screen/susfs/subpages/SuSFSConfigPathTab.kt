@@ -178,7 +178,6 @@ fun SusPathTab(
                         minHeightInLines = 4,
                         maxHeightInLines = 8
                     ),
-                    renderBackgroundBlur = false
                 )
             }
         }

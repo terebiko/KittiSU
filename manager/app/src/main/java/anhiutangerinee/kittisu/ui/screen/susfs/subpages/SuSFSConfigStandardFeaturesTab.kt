@@ -273,7 +273,6 @@ fun StandardFeaturesTab(
                                 useLabelAsPlaceholder = true,
                                 enabled = !isLoading,
                                 lineLimits = TextFieldLineLimits.SingleLine,
-                                renderBackgroundBlur = false
                             )
                         }
                         item {
@@ -283,7 +282,6 @@ fun StandardFeaturesTab(
                                 useLabelAsPlaceholder = true,
                                 enabled = !isLoading,
                                 lineLimits = TextFieldLineLimits.SingleLine,
-                                renderBackgroundBlur = false
                             )
                         }
                     }
@@ -318,7 +316,6 @@ fun StandardFeaturesTab(
                                 useLabelAsPlaceholder = true,
                                 enabled = !isLoading,
                                 lineLimits = TextFieldLineLimits.SingleLine,
-                                renderBackgroundBlur = false
                             )
                         }
                     }
