@@ -81,10 +81,7 @@ enum Commands {
     },
 
     /// Manage susfs component
-    Susfs {
-        #[command(subcommand)]
-        command: Susfs,
-    },
+    Susfs(susfs::cli::SusfsArgs),
 
     /// Manage auto apply user custom umount configs
     UmountConfig {
@@ -570,16 +567,7 @@ mod kpm_cmd {
     }
 }
 
-#[derive(clap::Subcommand, Debug)]
-enum Susfs {
-    /// Get SUSFS Status
-    Status,
-    /// Get SUSFS Version
-    Version,
-    /// Get SUSFS enable Features
-    Features,
-}
-
+#[allow(clippy::similar_names)]
 pub fn run() -> Result<()> {
     android_logger::init_once(
         Config::default()
@@ -598,6 +586,11 @@ pub fn run() -> Result<()> {
         return crate::android::resetprop::run_from_args(&all_args);
     }
 
+    if arg0.ends_with("ksu_susfs") {
+        let all_args: Vec<String> = std::env::args().collect();
+        return crate::android::susfs::cli::run_from_args(&all_args);
+    }
+
     let cli = Args::parse();
 
     log::info!("command: {:?}", cli.command);
@@ -609,16 +602,7 @@ pub fn run() -> Result<()> {
             init_event::on_boot_completed();
             Ok(())
         }
-        Commands::Susfs { command } => {
-            match command {
-                Susfs::Version => println!("{}", susfs::get_susfs_version()),
-
-                Susfs::Status => println!("{}", susfs::get_susfs_status()),
-
-                Susfs::Features => println!("{}", susfs::get_susfs_features()),
-            }
-            Ok(())
-        }
+        Commands::Susfs(args) => crate::android::susfs::cli::run_main(args),
         Commands::UmountConfig { command } => match command {
             UmountConfigOp::Add { mnt, flags } => umount_config::add_umount(&mnt, flags),
             UmountConfigOp::Del { mnt } => umount_config::del_umount(&mnt),
