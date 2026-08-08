@@ -43,6 +43,7 @@ jobs:
           echo "Remote build: $run_url" >> "$GITHUB_STEP_SUMMARY"
           if gh run watch "$run_id" \
               --repo thanhhuybynight/GKI_KernelSU_SUSFS \
+              --interval 30 \
               --exit-status; then
             remote_status=0
           else
