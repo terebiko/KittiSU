@@ -27,6 +27,10 @@ pub fn on_post_data_fs() -> Result<()> {
 
     utils::umask(0);
 
+    if let Err(e) = crate::android::recovery::begin_boot() {
+        warn!("boot recovery tracking failed: {e}");
+    }
+
     // Clear all temporary module configs early
     if let Err(e) = crate::android::module::module_config::clear_all_temp_configs() {
         warn!("clear temp configs failed: {e}");
@@ -180,6 +184,7 @@ pub fn on_services() {
 
 pub fn on_boot_completed() {
     ksucalls::report_boot_complete();
+    crate::android::recovery::boot_completed();
     info!("on_boot_completed triggered!");
 
     run_stage("boot-completed", false);

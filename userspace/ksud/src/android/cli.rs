@@ -169,6 +169,12 @@ enum Commands {
 
     /// Resetprop - Magisk-compatible system property tool
     Resetprop(crate::android::resetprop::Args),
+
+    /// Show or reset bootloop recovery state
+    Recovery {
+        #[arg(long)]
+        reset: bool,
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -617,6 +623,13 @@ pub fn run() -> Result<()> {
 
     let result = match cli.command {
         Commands::AnyKernel3 { zip, slot } => anykernel3::flash(&zip, slot),
+        Commands::Recovery { reset } => {
+            if reset {
+                crate::android::recovery::reset()
+            } else {
+                crate::android::recovery::show()
+            }
+        }
         Commands::PostFsData => init_event::on_post_data_fs(),
         Commands::BootCompleted => {
             init_event::on_boot_completed();
