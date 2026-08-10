@@ -104,6 +104,15 @@ fun execKsud(args: String, newShell: Boolean = false): Boolean {
     }
 }
 
+fun backupModules(path: String): Boolean {
+    val quoted = path.shellQuote()
+    return execKsud("module backup $quoted", true) &&
+        ShellUtils.fastCmdResult(getRootShell(), "chmod 0644 $quoted")
+}
+
+fun restoreModules(path: String): Boolean =
+    execKsud("module restore ${path.shellQuote()}", true)
+
 fun setDynamicManagerApk(apkPath: String): Boolean =
     execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)
 

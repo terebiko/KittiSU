@@ -647,4 +647,7 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="preset_module_failed">Cài đặt %1$s thất bại</string>
     <string name="module_shortcut_copy_url">Sao chép URL module an toàn</string>
     <string name="module_shortcut_url_copied">Đã sao chép URL module an toàn</string>
+    <string name="module_backup">Sao lưu module</string>
+    <string name="module_restore">Khôi phục module</string>
+    <string name="module_restore_complete">Đã khôi phục module. Hãy khởi động lại để áp dụng.</string>
 </resources>

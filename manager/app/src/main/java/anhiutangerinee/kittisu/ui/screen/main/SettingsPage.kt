@@ -118,14 +118,17 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
+import anhiutangerinee.kittisu.ui.util.backupModules
 import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
+import anhiutangerinee.kittisu.ui.util.restoreModules
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -177,6 +180,42 @@ fun SettingsPage(bottomPadding: Dp) {
                 }
                 loadingDialog.hide()
                 snackBarHost.showSnackbar(logSaved)
+            }
+        }
+        val moduleOperationFailed = stringResource(R.string.operation_failed)
+        val moduleRestoreComplete = stringResource(R.string.module_restore_complete)
+        val exportModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/x-tar")
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules.tar")
+                val success = backupModules(archive.absolutePath)
+                if (success) {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        archive.inputStream().use { it.copyTo(output) }
+                    }
+                }
+                archive.delete()
+                snackBarHost.showSnackbar(if (success) logSaved else moduleOperationFailed)
+            }
+        }
+        val restoreModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules-restore.tar")
+                val copied = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        archive.outputStream().use { input.copyTo(it) }
+                    } ?: error("cannot open module backup")
+                }.isSuccess
+                val success = copied && restoreModules(archive.absolutePath)
+                archive.delete()
+                snackBarHost.showSnackbar(
+                    if (success) moduleRestoreComplete else moduleOperationFailed
+                )
             }
         }
 
@@ -569,6 +608,26 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         if (ksuIsValid()) {
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.Save,
+                                    title = stringResource(R.string.module_backup),
+                                    onClick = { exportModulesLauncher.launch("kittisu-modules.tar") }
+                                ) {}
+                            }
+
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.AutoMirrored.TwoTone.Undo,
+                                    title = stringResource(R.string.module_restore),
+                                    onClick = {
+                                        restoreModulesLauncher.launch(
+                                            arrayOf("application/x-tar", "application/octet-stream")
+                                        )
+                                    }
+                                ) {}
+                            }
+
                             item {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.Security,
