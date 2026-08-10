@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.util.Properties
 
@@ -127,6 +128,27 @@ fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): B
     val ids = moduleIds.joinToString(" ") { it.shellQuote() }
     return execKsud("module restore ${path.shellQuote()} $ids", true)
 }
+
+data class BootRecoveryState(val failures: Int, val modules: List<String>)
+
+fun getBootRecoveryState(): BootRecoveryState? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} recovery")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONObject(output.joinToString("\n"))
+        val modules = json.getJSONArray("modules")
+        BootRecoveryState(
+            json.getInt("failures"),
+            List(modules.length()) { modules.getString(it) },
+        )
+    }.getOrNull()
+}
+
+fun resetBootRecovery(): Boolean = execKsud("recovery --reset", true)
 
 fun setDynamicManagerApk(apkPath: String): Boolean =
     execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)

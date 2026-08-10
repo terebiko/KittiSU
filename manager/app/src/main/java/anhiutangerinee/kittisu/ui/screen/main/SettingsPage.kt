@@ -121,13 +121,16 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
+import anhiutangerinee.kittisu.ui.util.BootRecoveryState
 import anhiutangerinee.kittisu.ui.util.backupModules
 import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
+import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
 import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
 import anhiutangerinee.kittisu.ui.util.restoreModules
+import anhiutangerinee.kittisu.ui.util.resetBootRecovery
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -191,6 +194,11 @@ fun SettingsPage(bottomPadding: Dp) {
         var pendingRestoreArchive by remember { mutableStateOf<File?>(null) }
         var availableRestoreModules by remember { mutableStateOf(emptyList<String>()) }
         var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
+        var bootRecoveryState by remember { mutableStateOf<BootRecoveryState?>(null) }
+        var showBootRecoveryDialog by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            bootRecoveryState = withContext(Dispatchers.IO) { getBootRecoveryState() }
+        }
         val exportModulesLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/x-tar")
         ) { uri: Uri? ->
@@ -284,6 +292,46 @@ fun SettingsPage(bottomPadding: Dp) {
                         archive.delete()
                         pendingRestoreArchive = null
                     }) { Text(stringResource(android.R.string.cancel)) }
+                }
+            )
+        }
+
+        if (showBootRecoveryDialog) {
+            val state = bootRecoveryState
+            AlertDialog(
+                onDismissRequest = { showBootRecoveryDialog = false },
+                title = { Text(stringResource(R.string.boot_recovery)) },
+                text = {
+                    Text(
+                        if (state == null || state.modules.isEmpty()) {
+                            stringResource(R.string.boot_recovery_empty)
+                        } else {
+                            stringResource(
+                                R.string.boot_recovery_details,
+                                state.failures,
+                                state.modules.joinToString("\n"),
+                            )
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = state != null && (state.failures > 0 || state.modules.isNotEmpty()),
+                        onClick = {
+                            scope.launch(Dispatchers.IO) {
+                                if (resetBootRecovery()) {
+                                    val state = getBootRecoveryState()
+                                    withContext(Dispatchers.Main) { bootRecoveryState = state }
+                                }
+                            }
+                            showBootRecoveryDialog = false
+                        }
+                    ) { Text(stringResource(R.string.boot_recovery_reset)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBootRecoveryDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
                 }
             )
         }
@@ -682,6 +730,20 @@ fun SettingsPage(bottomPadding: Dp) {
                                     icon = Icons.TwoTone.Save,
                                     title = stringResource(R.string.module_backup),
                                     onClick = { exportModulesLauncher.launch("kittisu-modules.tar") }
+                                ) {}
+                            }
+
+                            item {
+                                val state = bootRecoveryState
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.RemoveModerator,
+                                    title = stringResource(R.string.boot_recovery),
+                                    description = if (state == null || state.failures == 0) {
+                                        stringResource(R.string.boot_recovery_empty)
+                                    } else {
+                                        stringResource(R.string.boot_recovery_summary, state.failures)
+                                    },
+                                    onClick = { showBootRecoveryDialog = true }
                                 ) {}
                             }
 

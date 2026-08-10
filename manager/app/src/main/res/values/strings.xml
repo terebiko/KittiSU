@@ -706,6 +706,11 @@ Important Note:\n
     <string name="module_restore">Restore modules</string>
     <string name="module_restore_complete">Modules restored. Reboot to apply.</string>
     <string name="module_restore_select">Select modules to restore</string>
+    <string name="boot_recovery">Boot recovery</string>
+    <string name="boot_recovery_empty">No incomplete boot is recorded.</string>
+    <string name="boot_recovery_summary">Incomplete boot attempts: %1$d</string>
+    <string name="boot_recovery_details">Incomplete boot attempts: %1$d\n\nAffected modules:\n%2$s</string>
+    <string name="boot_recovery_reset">Clear state</string>
     <string name="changes_take_effect_immediately">All changes will take effect immediately.</string>
     <string name="group_contains_apps">Contains %d apps</string>
     <string name="meta_module_disabled">module not mounted, because metamodule disabled</string>
