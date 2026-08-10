@@ -140,7 +140,7 @@ pub fn inspect(archive: &Path) -> Result<()> {
             && let Some(id) = rest.strip_suffix("/module.prop")
         {
             super::validate_module_id(id)?;
-            ids.push(id);
+            ids.push(id.to_owned());
         }
     }
     if ids.is_empty() {
