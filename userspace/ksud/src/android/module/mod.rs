@@ -1,5 +1,6 @@
 pub mod metamodule;
 pub mod module_config;
+pub mod backup;
 
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};

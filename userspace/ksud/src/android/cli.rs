@@ -313,6 +313,26 @@ enum Sepolicy {
 
 #[derive(clap::Subcommand, Debug)]
 enum Module {
+    /// Back up installed modules and their state
+    Backup {
+        /// Destination tar archive
+        archive: PathBuf,
+    },
+
+    /// Inspect a module backup
+    InspectBackup {
+        /// Module backup tar archive
+        archive: PathBuf,
+    },
+
+    /// Restore modules into the next-boot update directory
+    Restore {
+        /// Module backup tar archive
+        archive: PathBuf,
+        /// Optional module IDs; restore every module when omitted
+        ids: Vec<String>,
+    },
+
     /// Install module <ZIP>
     Install {
         /// module zip file path
@@ -614,6 +634,9 @@ pub fn run() -> Result<()> {
         Commands::Module { command } => {
             utils::switch_mnt_ns(1)?;
             match command {
+                Module::Backup { archive } => module::backup::backup(&archive),
+                Module::InspectBackup { archive } => module::backup::inspect(&archive),
+                Module::Restore { archive, ids } => module::backup::restore(&archive, &ids),
                 Module::Install { zip } => module::install_module(&zip),
                 Module::UndoUninstall { id } => module::undo_uninstall_module(&id),
                 Module::Uninstall { id } => module::uninstall_module(&id),
