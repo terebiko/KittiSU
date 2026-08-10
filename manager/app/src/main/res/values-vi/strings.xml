@@ -650,4 +650,5 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="module_backup">Sao lưu module</string>
     <string name="module_restore">Khôi phục module</string>
     <string name="module_restore_complete">Đã khôi phục module. Hãy khởi động lại để áp dụng.</string>
+    <string name="module_restore_select">Chọn module cần khôi phục</string>
 </resources>

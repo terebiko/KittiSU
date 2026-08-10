@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -56,6 +58,7 @@ import androidx.compose.material.icons.twotone.RemoveCircle
 import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -123,6 +126,7 @@ import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
+import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
 import anhiutangerinee.kittisu.ui.util.restoreModules
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
@@ -184,6 +188,9 @@ fun SettingsPage(bottomPadding: Dp) {
         }
         val moduleOperationFailed = stringResource(R.string.operation_failed)
         val moduleRestoreComplete = stringResource(R.string.module_restore_complete)
+        var pendingRestoreArchive by remember { mutableStateOf<File?>(null) }
+        var availableRestoreModules by remember { mutableStateOf(emptyList<String>()) }
+        var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
         val exportModulesLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/x-tar")
         ) { uri: Uri? ->
@@ -211,12 +218,74 @@ fun SettingsPage(bottomPadding: Dp) {
                         archive.outputStream().use { input.copyTo(it) }
                     } ?: error("cannot open module backup")
                 }.isSuccess
-                val success = copied && restoreModules(archive.absolutePath)
-                archive.delete()
-                snackBarHost.showSnackbar(
-                    if (success) moduleRestoreComplete else moduleOperationFailed
-                )
+                val modules = if (copied) inspectModuleBackup(archive.absolutePath) else null
+                withContext(Dispatchers.Main) {
+                    if (modules.isNullOrEmpty()) {
+                        archive.delete()
+                        snackBarHost.showSnackbar(moduleOperationFailed)
+                    } else {
+                        pendingRestoreArchive = archive
+                        availableRestoreModules = modules
+                        selectedRestoreModules = modules.toSet()
+                    }
+                }
             }
+        }
+
+        pendingRestoreArchive?.let { archive ->
+            AlertDialog(
+                onDismissRequest = {
+                    archive.delete()
+                    pendingRestoreArchive = null
+                },
+                title = { Text(stringResource(R.string.module_restore_select)) },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        availableRestoreModules.forEach { id ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedRestoreModules = if (id in selectedRestoreModules) {
+                                            selectedRestoreModules - id
+                                        } else {
+                                            selectedRestoreModules + id
+                                        }
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = id in selectedRestoreModules,
+                                    onCheckedChange = null
+                                )
+                                Text(id)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = selectedRestoreModules.isNotEmpty(),
+                        onClick = {
+                            val selected = selectedRestoreModules
+                            pendingRestoreArchive = null
+                            scope.launch(Dispatchers.IO) {
+                                val success = restoreModules(archive.absolutePath, selected)
+                                archive.delete()
+                                snackBarHost.showSnackbar(
+                                    if (success) moduleRestoreComplete else moduleOperationFailed
+                                )
+                            }
+                        }
+                    ) { Text(stringResource(R.string.restore)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        archive.delete()
+                        pendingRestoreArchive = null
+                    }) { Text(stringResource(android.R.string.cancel)) }
+                }
+            )
         }
 
         var isKernelUmountEnabled by rememberSaveable {

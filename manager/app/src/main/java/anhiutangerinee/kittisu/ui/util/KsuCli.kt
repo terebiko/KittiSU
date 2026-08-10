@@ -110,8 +110,23 @@ fun backupModules(path: String): Boolean {
         ShellUtils.fastCmdResult(getRootShell(), "chmod 0644 $quoted")
 }
 
-fun restoreModules(path: String): Boolean =
-    execKsud("module restore ${path.shellQuote()}", true)
+fun inspectModuleBackup(path: String): List<String>? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} module inspect-backup ${path.shellQuote()}")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONArray(output.joinToString("\n"))
+        List(json.length()) { json.getString(it) }
+    }.getOrNull()
+}
+
+fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): Boolean {
+    val ids = moduleIds.joinToString(" ") { it.shellQuote() }
+    return execKsud("module restore ${path.shellQuote()} $ids", true)
+}
 
 fun setDynamicManagerApk(apkPath: String): Boolean =
     execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)

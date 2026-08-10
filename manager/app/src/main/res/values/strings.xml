@@ -705,6 +705,7 @@ Important Note:\n
     <string name="module_backup">Back up modules</string>
     <string name="module_restore">Restore modules</string>
     <string name="module_restore_complete">Modules restored. Reboot to apply.</string>
+    <string name="module_restore_select">Select modules to restore</string>
     <string name="changes_take_effect_immediately">All changes will take effect immediately.</string>
     <string name="group_contains_apps">Contains %d apps</string>
     <string name="meta_module_disabled">module not mounted, because metamodule disabled</string>
