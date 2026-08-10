@@ -7,6 +7,45 @@ use anyhow::{Context, Result, bail, ensure};
 
 use crate::{assets, defs};
 
+fn compatibility_value<'a>(module_prop: &'a str, key: &str) -> Option<&'a str> {
+    module_prop.lines().find_map(|line| {
+        let (name, value) = line.split_once('=')?;
+        (name.trim() == key).then(|| value.trim())
+    })
+}
+
+fn validate_compatibility(module: &Path, id: &str) -> Result<()> {
+    let module_prop = std::fs::read_to_string(module.join("module.prop"))?;
+    let sdk = crate::android::utils::getprop("ro.build.version.sdk")
+        .unwrap_or_default()
+        .parse::<u32>()
+        .unwrap_or_default();
+    let ksu_version = defs::VERSION_CODE.trim().parse::<u32>().unwrap_or_default();
+
+    for (key, actual, minimum) in [
+        ("minApi", sdk, true),
+        ("maxApi", sdk, false),
+        ("minKsuVersion", ksu_version, true),
+    ] {
+        let Some(required) = compatibility_value(&module_prop, key) else {
+            continue;
+        };
+        let required = required
+            .parse::<u32>()
+            .with_context(|| format!("invalid {key} in module {id}"))?;
+        let compatible = if minimum {
+            actual >= required
+        } else {
+            actual <= required
+        };
+        ensure!(
+            compatible,
+            "module {id} is incompatible: {key}={required}, current={actual}"
+        );
+    }
+    Ok(())
+}
+
 fn run_tar(args: &[&str]) -> Result<std::process::Output> {
     Command::new(assets::BUSYBOX_PATH)
         .arg("tar")
@@ -98,6 +137,7 @@ pub fn restore(archive: &Path, selected: &[String]) -> Result<()> {
             entry.path().join("module.prop").is_file(),
             "invalid module: {id}"
         );
+        validate_compatibility(&entry.path(), &id)?;
         let target = PathBuf::from(defs::MODULE_UPDATE_DIR).join(&id);
         if target.exists() {
             std::fs::remove_dir_all(&target)?;
@@ -148,4 +188,17 @@ pub fn inspect(archive: &Path) -> Result<()> {
     }
     println!("{}", serde_json::to_string(&ids)?);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::compatibility_value;
+
+    #[test]
+    fn reads_exact_compatibility_keys() {
+        let properties = "id=test\nminApi=29\nminApiExtra=99\nmaxApi=35\n";
+        assert_eq!(compatibility_value(properties, "minApi"), Some("29"));
+        assert_eq!(compatibility_value(properties, "maxApi"), Some("35"));
+        assert_eq!(compatibility_value(properties, "missing"), None);
+    }
 }
