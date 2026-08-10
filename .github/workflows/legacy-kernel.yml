@@ -2,6 +2,12 @@ name: Legacy kernel regression
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - testing
+    paths:
+      - kernel/**
+      - .github/workflows/legacy-kernel.yml
   pull_request:
     paths:
       - kernel/**
