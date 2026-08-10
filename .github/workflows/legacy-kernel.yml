@@ -26,32 +26,32 @@ jobs:
       matrix:
         include:
           - version: '3.4'
-            ref: android-3.4
+            ref: deprecated/android-3.4
             arch: arm
             cross: arm-linux-gnueabi-
             package: gcc-arm-linux-gnueabi
           - version: '3.18'
-            ref: android-3.18
+            ref: deprecated/android-3.18
             arch: arm64
             cross: aarch64-linux-gnu-
             package: gcc-aarch64-linux-gnu
           - version: '4.4'
-            ref: android-4.4
+            ref: deprecated/android-4.4
             arch: arm64
             cross: aarch64-linux-gnu-
             package: gcc-aarch64-linux-gnu
           - version: '4.9'
-            ref: android-4.9
+            ref: deprecated/android-4.9
             arch: arm64
             cross: aarch64-linux-gnu-
             package: gcc-aarch64-linux-gnu
           - version: '4.14'
-            ref: android-4.14
+            ref: deprecated/android-4.14
             arch: arm64
             cross: aarch64-linux-gnu-
             package: gcc-aarch64-linux-gnu
           - version: '4.19'
-            ref: android-4.19-stable
+            ref: deprecated/android-4.19-stable
             arch: arm64
             cross: aarch64-linux-gnu-
             package: gcc-aarch64-linux-gnu
