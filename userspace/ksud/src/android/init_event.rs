@@ -27,6 +27,10 @@ pub fn on_post_data_fs() -> Result<()> {
 
     utils::umask(0);
 
+    if let Err(e) = crate::android::recovery::begin_boot() {
+        warn!("boot recovery tracking failed: {e}");
+    }
+
     // Clear all temporary module configs early
     if let Err(e) = crate::android::module::module_config::clear_all_temp_configs() {
         warn!("clear temp configs failed: {e}");
@@ -105,6 +109,9 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("KPM: Failed to start KPM watcher: {e}");
     }
 
+    // Apply metadata-sensitive entries before modules alter mounts and overlays.
+    crate::android::susfs::init_event::on_post_fs_data();
+
     // execute metamodule post-fs-data script first (priority)
     if let Err(e) = metamodule::exec_stage_script("post-fs-data", true) {
         warn!("exec metamodule post-fs-data script failed: {e}");
@@ -177,9 +184,13 @@ pub fn on_services() {
 
 pub fn on_boot_completed() {
     ksucalls::report_boot_complete();
+    crate::android::recovery::boot_completed();
     info!("on_boot_completed triggered!");
 
     run_stage("boot-completed", false);
+    if !is_safe_mode() {
+        crate::android::susfs::init_event::on_boot_completed();
+    }
 }
 
 const fn resetprop() -> ResetProp {

@@ -22,6 +22,8 @@ val managerVersionName: String by rootProject.extra
 val managerCommit = providers.gradleProperty("commit").orElse(
     providers.exec { commandLine("git", "rev-parse", "HEAD") }.standardOutput.asText.map { it.trim() }
 ).get()
+val managerPackageName = providers.gradleProperty("KSU_PACKAGE_NAME").orElse("anhiutangerinee.kittisu")
+val managerName = providers.gradleProperty("KSU_NAME").orElse("KittiSU")
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -85,6 +87,7 @@ android {
         buildConfig = true
         compose = true
         prefab = true
+        resValues = true
     }
 
     packaging {
@@ -126,6 +129,8 @@ android {
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
         versionName = managerVersionName
+        applicationId = managerPackageName.get()
+        resValue("string", "app_name", managerName.get())
 
         val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
@@ -172,7 +177,7 @@ baselineProfile {
 
 base {
     archivesName.set(
-        "KittiSU_${managerVersionName}_${managerVersionCode}"
+        "${managerName.get().replace(" ", "_")}_${managerVersionName}_${managerVersionCode}"
     )
 }
 

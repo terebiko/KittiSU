@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.util.Properties
 
@@ -103,6 +104,51 @@ fun execKsud(args: String, newShell: Boolean = false): Boolean {
         ShellUtils.fastCmdResult(getRootShell(), "${getKsuDaemonPath()} $args")
     }
 }
+
+fun backupModules(path: String): Boolean {
+    val quoted = path.shellQuote()
+    return execKsud("module backup $quoted", true) &&
+        ShellUtils.fastCmdResult(getRootShell(), "chmod 0644 $quoted")
+}
+
+fun inspectModuleBackup(path: String): List<String>? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} module inspect-backup ${path.shellQuote()}")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONArray(output.joinToString("\n"))
+        List(json.length()) { json.getString(it) }
+    }.getOrNull()
+}
+
+fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): Boolean {
+    val ids = moduleIds.joinToString(" ") { it.shellQuote() }
+    return execKsud("module restore ${path.shellQuote()} $ids", true)
+}
+
+data class BootRecoveryState(val failures: Int, val modules: List<String>)
+
+fun getBootRecoveryState(): BootRecoveryState? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} recovery")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONObject(output.joinToString("\n"))
+        val modules = json.getJSONArray("modules")
+        BootRecoveryState(
+            json.getInt("failures"),
+            List(modules.length()) { modules.getString(it) },
+        )
+    }.getOrNull()
+}
+
+fun resetBootRecovery(): Boolean = execKsud("recovery --reset", true)
 
 fun setDynamicManagerApk(apkPath: String): Boolean =
     execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)
@@ -224,6 +270,21 @@ private fun flashWithIO(
     return withNewRootShell {
         newJob().add(cmd).to(stdoutCallback, stderrCallback).exec()
     }
+}
+
+fun flashAnyKernel(
+    zipFile: File,
+    slot: String?,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit
+): Boolean {
+    val command = buildString {
+        append(getKsuDaemonPath()).append(" anykernel3 ").append(zipFile.absolutePath.shellQuote())
+        slot?.let { append(" --slot ").append(it.shellQuote()) }
+    }
+    val result = flashWithIO(command, onStdout, onStderr)
+    Log.i(TAG, "AnyKernel3 flash result: ${result.isSuccess}, code: ${result.code}")
+    return result.isSuccess
 }
 
 fun flashModule(

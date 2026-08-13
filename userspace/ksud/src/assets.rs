@@ -8,8 +8,10 @@ mod android {
     use crate::{android::utils::ensure_binary, assets::Asset, defs::BINARY_DIR};
 
     pub const RESETPROP_PATH: &str = concatcp!(BINARY_DIR, "resetprop");
+    pub const KSU_SUSFS_PATH: &str = concatcp!(BINARY_DIR, "ksu_susfs");
     pub const BUSYBOX_PATH: &str = concatcp!(BINARY_DIR, "busybox");
     pub const BOOTCTL_PATH: &str = concatcp!(BINARY_DIR, "bootctl");
+    pub const MKBOOTFS_PATH: &str = concatcp!(BINARY_DIR, "mkbootfs");
 
     pub fn ensure_binaries(ignore_if_exist: bool) -> anyhow::Result<()> {
         for file in Asset::iter() {
@@ -26,6 +28,11 @@ mod android {
         let resetprop_link = RESETPROP_PATH;
         let _ = std::fs::remove_file(resetprop_link);
         std::os::unix::fs::symlink("/data/adb/ksud", resetprop_link)?;
+
+        if crate::android::susfs::api::features::show::version().is_ok() {
+            let _ = std::fs::remove_file(KSU_SUSFS_PATH);
+            std::fs::hard_link("/data/adb/ksud", KSU_SUSFS_PATH)?;
+        }
 
         Ok(())
     }

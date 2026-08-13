@@ -1,11 +1,12 @@
 package zako.zako.zako.zakoui.screen.kernelFlash.state
 
-import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.net.Uri
-import androidx.documentfile.provider.DocumentFile
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.ui.util.flashAnyKernel
 import anhiutangerinee.kittisu.ui.util.install
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import anhiutangerinee.kittisu.utils.AssetsUtil
@@ -17,14 +18,10 @@ import kotlinx.coroutines.flow.update
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-
-/**
- * @author ShirkNeko
- * @date 2025/5/31.
- */
 data class FlashState(
     val isFlashing: Boolean = false,
     val isCompleted: Boolean = false,
@@ -36,6 +33,7 @@ data class FlashState(
 
 class HorizonKernelState {
     private val _state = MutableStateFlow(FlashState())
+    private val fullLogs = ConcurrentLinkedQueue<String>()
     val state: StateFlow<FlashState> = _state.asStateFlow()
 
     fun updateProgress(progress: Float) {
@@ -47,22 +45,28 @@ class HorizonKernelState {
     }
 
     fun addLog(log: String) {
-        _state.update {
-            it.copy(logs = it.logs + log)
-        }
+        fullLogs.add(log)
+        _state.update { it.copy(logs = it.logs + log) }
     }
 
+    fun addConsoleLog(log: String) {
+        fullLogs.add(log)
+    }
+
+    fun getFullLog(): String = fullLogs.joinToString("\n")
+
     fun setError(error: String) {
-        _state.update { it.copy(error = error) }
+        _state.update { it.copy(isFlashing = false, error = error) }
     }
 
     fun startFlashing() {
+        fullLogs.clear()
         _state.update {
             it.copy(
                 isFlashing = true,
                 isCompleted = false,
                 progress = 0f,
-                currentStep = "under preparation...",
+                currentStep = "",
                 logs = emptyList(),
                 error = ""
             )
@@ -70,10 +74,11 @@ class HorizonKernelState {
     }
 
     fun completeFlashing() {
-        _state.update { it.copy(isCompleted = true, progress = 1f) }
+        _state.update { it.copy(isFlashing = false, isCompleted = true, progress = 1f) }
     }
 
     fun reset() {
+        fullLogs.clear()
         _state.value = FlashState()
     }
 }
@@ -86,12 +91,7 @@ class HorizonKernelWorker(
     private val kpmUndoPatch: Boolean = false
 ) : Thread() {
     var uri: Uri? = null
-    private lateinit var filePath: String
-    private lateinit var binaryPath: String
-    private lateinit var workDir: String
-
     private var onFlashComplete: (() -> Unit)? = null
-    private var originalSlot: String? = null
 
     fun setOnFlashCompleteListener(listener: () -> Unit) {
         onFlashComplete = listener
@@ -101,15 +101,9 @@ class HorizonKernelWorker(
         state.startFlashing()
         state.updateStep(context.getString(R.string.horizon_preparing))
 
-        filePath = "${context.filesDir.absolutePath}/${DocumentFile.fromSingleUri(context, uri!!)?.name}"
-        binaryPath = "${context.filesDir.absolutePath}/META-INF/com/google/android/update-binary"
-        workDir = "${context.filesDir.absolutePath}/work"
-
+        val zipFile = File(context.cacheDir, "anykernel3.zip")
+        val workDir = File(context.cacheDir, "kpm-kernel-patch")
         try {
-            state.updateStep(context.getString(R.string.horizon_cleaning_files))
-            state.updateProgress(0.1f)
-            cleanup()
-
             if (!rootAvailable()) {
                 state.setError(context.getString(R.string.root_required))
                 return
@@ -117,327 +111,123 @@ class HorizonKernelWorker(
 
             state.updateStep(context.getString(R.string.horizon_copying_files))
             state.updateProgress(0.2f)
-            copy()
+            copyToCache(zipFile)
 
-            if (!File(filePath).exists()) {
-                state.setError(context.getString(R.string.horizon_copy_failed))
-                return
-            }
-
-            state.updateStep(context.getString(R.string.horizon_extracting_tool))
-            state.updateProgress(0.4f)
-            getBinary()
-
-            // KPM修补
             if (kpmPatchEnabled || kpmUndoPatch) {
                 state.updateStep(context.getString(R.string.kpm_preparing_tools))
-                state.updateProgress(0.5f)
-                prepareKpmTools()
-
-                state.updateStep(
-                    if (kpmUndoPatch) context.getString(R.string.kpm_undoing_patch)
-                    else context.getString(R.string.kpm_applying_patch)
-                )
-                state.updateProgress(0.55f)
-                performKpmPatch()
+                state.updateProgress(0.45f)
+                patchKpm(zipFile, workDir)
             }
-
-            state.updateStep(context.getString(R.string.horizon_patching_script))
-            state.updateProgress(0.6f)
-            patch()
 
             state.updateStep(context.getString(R.string.horizon_flashing))
             state.updateProgress(0.7f)
-
-            val isAbDevice = isAbDevice()
-
-            if (isAbDevice && slot != null) {
-                state.updateStep(context.getString(R.string.horizon_getting_original_slot))
-                state.updateProgress(0.72f)
-                originalSlot = runCommandGetOutput("getprop ro.boot.slot_suffix")
-
-                state.updateStep(context.getString(R.string.horizon_setting_target_slot))
-                state.updateProgress(0.74f)
-                runCommand(true, "resetprop -n ro.boot.slot_suffix _$slot")
+            if (!flashAnyKernel(zipFile, slot, ::handleOutput, ::handleConsoleOutput)) {
+                state.setError(context.getString(R.string.flash_failed_message))
+                return
             }
 
-            flash()
-
-            if (isAbDevice && !originalSlot.isNullOrEmpty()) {
-                state.updateStep(context.getString(R.string.horizon_restoring_original_slot))
-                state.updateProgress(0.8f)
-                runCommand(true, "resetprop ro.boot.slot_suffix $originalSlot")
+            runCatching { install() }.onFailure {
+                Log.w(TAG, "Failed to refresh ksud after a successful kernel flash", it)
             }
-
-            try {
-                install()
-            } catch (e: Exception) {
-                state.updateStep("ksud update skipped: ${e.message}")
-            }
-
             state.updateStep(context.getString(R.string.horizon_flash_complete_status))
             state.completeFlashing()
-
-            (context as? Activity)?.runOnUiThread {
-                onFlashComplete?.invoke()
-            }
-        } catch (e: Exception) {
-            state.setError(e.message ?: context.getString(R.string.horizon_unknown_error))
-
-            if (isAbDevice() && !originalSlot.isNullOrEmpty()) {
-                state.updateStep(context.getString(R.string.horizon_restoring_original_slot))
-                state.updateProgress(0.8f)
-                runCommand(true, "resetprop ro.boot.slot_suffix $originalSlot")
-            }
+            Handler(Looper.getMainLooper()).post { onFlashComplete?.invoke() }
+        } catch (error: Exception) {
+            state.setError(error.message ?: context.getString(R.string.horizon_unknown_error))
+        } finally {
+            zipFile.delete()
+            workDir.deleteRecursively()
         }
     }
 
-    private fun prepareKpmTools() {
-        File(workDir).mkdirs()
-
-        val kptoolsPath = "$workDir/kptools"
-        val kpimgPath = "$workDir/kpimg"
-
-        AssetsUtil.exportFiles(context, "kptools", kptoolsPath)
-        if (!File(kptoolsPath).exists()) {
-            throw IOException("Local kptools file extraction failed")
+    private fun copyToCache(zipFile: File) {
+        zipFile.delete()
+        val source = uri ?: throw IOException(context.getString(R.string.horizon_copy_failed))
+        val input = context.contentResolver.openInputStream(source)
+            ?: throw IOException(context.getString(R.string.horizon_copy_failed))
+        input.use { sourceStream ->
+            zipFile.outputStream().use { output -> sourceStream.copyTo(output) }
         }
-
-        AssetsUtil.exportFiles(context, "kpimg", kpimgPath)
-        if (!File(kpimgPath).exists()) {
-            throw IOException("Local kpimg file extraction failed")
-        }
-
-        runCommand(true, "chmod a+rx $kptoolsPath")
+        if (!zipFile.isFile) throw IOException(context.getString(R.string.horizon_copy_failed))
     }
 
-    /**
-     * 执行KPM修补操作
-     */
-    private fun performKpmPatch() {
-        try {
-            // 创建临时解压目录
-            val extractDir = "$workDir/extracted"
-            File(extractDir).mkdirs()
+    private fun patchKpm(zipFile: File, workDir: File) {
+        workDir.deleteRecursively()
+        val extracted = File(workDir, "extracted").apply { mkdirs() }
+        val kptools = File(workDir, "kptools")
+        val kpimg = File(workDir, "kpimg")
+        AssetsUtil.exportFiles(context, "kptools", kptools.absolutePath)
+        AssetsUtil.exportFiles(context, "kpimg", kpimg.absolutePath)
+        if (!kptools.isFile || !kpimg.isFile) {
+            throw IOException("Local KPM tool extraction failed")
+        }
+        runCommand("chmod a+rx ${kptools.absolutePath}")
+        runCommand("cd ${extracted.absolutePath} && unzip -o ${quote(zipFile.absolutePath)}")
 
-            // 解压压缩包到临时目录
-            val unzipResult = runCommand(true, "cd $extractDir && unzip -o \"$filePath\"")
-            if (unzipResult != 0) {
-                throw IOException(context.getString(R.string.kpm_extract_zip_failed))
-            }
+        val imagePath = Shell.cmd("find ${extracted.absolutePath} -name '*Image*' -type f")
+            .exec().out.firstOrNull()?.trim().orEmpty()
+        if (imagePath.isEmpty()) throw IOException(context.getString(R.string.kpm_image_file_not_found))
 
-            // 查找Image文件
-            val findImageResult = runCommandGetOutput("find $extractDir -name '*Image*' -type f")
-            if (findImageResult.isBlank()) {
-                throw IOException(context.getString(R.string.kpm_image_file_not_found))
-            }
-
-            val imageFile = findImageResult.lines().first().trim()
-            val imageDir = File(imageFile).parent
-            val imageName = File(imageFile).name
-
-            state.addLog(context.getString(R.string.kpm_found_image_file, imageFile))
-
-            // 复制KPM工具到Image文件所在目录
-            runCommand(true, "cp $workDir/kptools $imageDir/")
-            runCommand(true, "cp $workDir/kpimg $imageDir/")
-
-            // 执行KPM修补命令
-            val patchCommand = if (kpmUndoPatch) {
-                "cd $imageDir && chmod a+rx kptools && ./kptools -u -s 123 -i $imageName -k kpimg -o oImage && mv oImage $imageName"
-            } else {
-                "cd $imageDir && chmod a+rx kptools && ./kptools -p -s 123 -i $imageName -k kpimg -o oImage && mv oImage $imageName"
-            }
-
-            val patchResult = runCommand(true, patchCommand)
-            if (patchResult != 0) {
-                throw IOException(
-                    if (kpmUndoPatch) context.getString(R.string.kpm_undo_patch_failed)
-                    else context.getString(R.string.kpm_patch_failed)
-                )
-            }
-
-            state.addLog(
-                if (kpmUndoPatch) context.getString(R.string.kpm_undo_patch_success)
-                else context.getString(R.string.kpm_patch_success)
+        val image = File(imagePath)
+        val imageDir = image.parentFile ?: throw IOException("Image has no parent directory")
+        kptools.copyTo(File(imageDir, "kptools"), overwrite = true)
+        kpimg.copyTo(File(imageDir, "kpimg"), overwrite = true)
+        val operation = if (kpmUndoPatch) "-u" else "-p"
+        runCommand(
+            "cd ${imageDir.absolutePath} && chmod a+rx kptools && " +
+                "./kptools $operation -s 123 -i ${quote(image.name)} -k kpimg -o oImage && " +
+                "mv oImage ${quote(image.name)}"
+        )
+        File(imageDir, "kptools").delete()
+        File(imageDir, "kpimg").delete()
+        repackZipFolder(extracted, zipFile)
+        state.addLog(
+            context.getString(
+                if (kpmUndoPatch) R.string.kpm_undo_patch_success else R.string.kpm_patch_success
             )
-
-            // 清理KPM工具文件
-            runCommand(true, "rm -f $imageDir/kptools $imageDir/kpimg $imageDir/oImage")
-
-            // 重新打包ZIP文件
-            val originalFileName = File(filePath).name
-            val patchedFilePath = "$workDir/patched_$originalFileName"
-
-            repackZipFolder(extractDir, patchedFilePath)
-
-            // 替换原始文件
-            runCommand(true, "mv \"$patchedFilePath\" \"$filePath\"")
-
-            state.addLog(context.getString(R.string.kpm_file_repacked))
-
-        } catch (e: Exception) {
-            state.addLog(context.getString(R.string.kpm_patch_operation_failed, e.message))
-            throw e
-        } finally {
-            // 清理临时文件
-            runCommand(true, "rm -rf $workDir")
-        }
+        )
     }
 
-    private fun repackZipFolder(sourceDir: String, zipFilePath: String) {
-        try {
-            val buffer = ByteArray(1024)
-            val sourceFolder = File(sourceDir)
-
-            FileOutputStream(zipFilePath).use { fos ->
-                ZipOutputStream(fos).use { zos ->
-                    sourceFolder.walkTopDown().forEach { file ->
-                        if (file.isFile) {
-                            val relativePath = file.relativeTo(sourceFolder).path
-                            val zipEntry = ZipEntry(relativePath)
-                            zos.putNextEntry(zipEntry)
-
-                            file.inputStream().use { fis ->
-                                var length: Int
-                                while (fis.read(buffer).also { length = it } > 0) {
-                                    zos.write(buffer, 0, length)
-                                }
-                            }
-
-                            zos.closeEntry()
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            throw IOException("Failed to create zip file: ${e.message}", e)
-        }
-    }
-
-    // 检查设备是否为AB分区设备
-    private fun isAbDevice(): Boolean {
-        val abUpdate = runCommandGetOutput("getprop ro.build.ab_update")
-        if (!abUpdate.toBoolean()) return false
-
-        val slotSuffix = runCommandGetOutput("getprop ro.boot.slot_suffix")
-        return slotSuffix.isNotEmpty()
-    }
-
-    private fun cleanup() {
-        runCommand(false, "find ${context.filesDir.absolutePath} -type f ! -name '*.jpg' ! -name '*.png' -delete")
-        runCommand(false, "rm -rf $workDir")
-    }
-
-    private fun copy() {
-        uri?.let { safeUri ->
-            context.contentResolver.openInputStream(safeUri)?.use { input ->
-                FileOutputStream(File(filePath)).use { output ->
-                    input.copyTo(output)
+    private fun repackZipFolder(sourceDir: File, destination: File) {
+        val temporary = File(destination.parentFile, "${destination.name}.patched")
+        FileOutputStream(temporary).use { output ->
+            ZipOutputStream(output).use { zip ->
+                sourceDir.walkTopDown().filter(File::isFile).forEach { file ->
+                    zip.putNextEntry(ZipEntry(file.relativeTo(sourceDir).invariantSeparatorsPath))
+                    file.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
                 }
             }
         }
-    }
-
-    private fun getBinary() {
-        runCommand(false, "unzip \"$filePath\" \"*/update-binary\" -d ${context.filesDir.absolutePath}")
-        if (!File(binaryPath).exists()) {
-            throw IOException("Failed to extract update-binary")
+        if (!temporary.renameTo(destination)) {
+            temporary.copyTo(destination, overwrite = true)
+            temporary.delete()
         }
     }
 
-    @SuppressLint("StringFormatInvalid")
-    private fun patch() {
-        val kernelVersion = runCommandGetOutput("cat /proc/version")
-        val versionRegex = """\d+\.\d+\.\d+""".toRegex()
-        val version = kernelVersion.let { versionRegex.find(it) }?.value ?: ""
-        val toolName = if (version.isNotEmpty()) {
-            val parts = version.split('.')
-            if (parts.size >= 2) {
-                val major = parts[0].toIntOrNull() ?: 0
-                val minor = parts[1].toIntOrNull() ?: 0
-                if (major < 5 || (major == 5 && minor <= 10)) "5_10" else "5_15+"
-            } else {
-                "5_15+"
-            }
-        } else {
-            "5_15+"
-        }
-        val toolPath = "${context.filesDir.absolutePath}/mkbootfs"
-        AssetsUtil.exportFiles(context, "$toolName-mkbootfs", toolPath)
-        state.addLog("${context.getString(R.string.kernel_version_log, version)} ${context.getString(R.string.tool_version_log, toolName)}")
-        runCommand(false, "sed -i '/chmod -R 755 tools bin;/i cp -f $toolPath \$AKHOME/tools;' $binaryPath")
+    private fun runCommand(command: String) {
+        val result = Shell.cmd(command).exec()
+        if (!result.isSuccess) throw IOException("Command failed (${result.code}): $command")
     }
 
-    private fun flash() {
-        val process = ProcessBuilder("su")
-            .redirectErrorStream(true)
-            .start()
-
-        try {
-            process.outputStream.bufferedWriter().use { writer ->
-                writer.write("export POSTINSTALL=${context.filesDir.absolutePath}\n")
-
-                // 写入槽位信息到临时文件
-                slot?.let { selectedSlot ->
-                    writer.write("echo \"$selectedSlot\" > ${context.filesDir.absolutePath}/bootslot\n")
-                }
-
-                // 构建刷写命令
-                val flashCommand = buildString {
-                    append("sh $binaryPath 3 1 \"$filePath\"")
-                    if (slot != null) {
-                        append(" \"$(cat ${context.filesDir.absolutePath}/bootslot)\"")
-                    }
-                    append(" && touch ${context.filesDir.absolutePath}/done\n")
-                }
-
-                writer.write(flashCommand)
-                writer.write("exit\n")
-                writer.flush()
-            }
-
-            process.inputStream.bufferedReader().use { reader ->
-                reader.lineSequence().forEach { line ->
-                    if (line.startsWith("ui_print")) {
-                        val logMessage = line.removePrefix("ui_print").trim()
-                        state.addLog(logMessage)
-
-                        when {
-                            logMessage.contains("extracting", ignoreCase = true) -> {
-                                state.updateProgress(0.75f)
-                            }
-                            logMessage.contains("installing", ignoreCase = true) -> {
-                                state.updateProgress(0.85f)
-                            }
-                            logMessage.contains("complete", ignoreCase = true) -> {
-                                state.updateProgress(0.95f)
-                            }
-                        }
-                    }
-                }
-            }
-        } finally {
-            process.destroy()
-        }
-
-        if (!File("${context.filesDir.absolutePath}/done").exists()) {
-            throw IOException(context.getString(R.string.flash_failed_message))
+    private fun handleOutput(line: String) {
+        Log.i(TAG, line)
+        state.addLog(line)
+        when {
+            line.contains("extracting", ignoreCase = true) -> state.updateProgress(0.75f)
+            line.contains("installing", ignoreCase = true) -> state.updateProgress(0.85f)
+            line.contains("complete", ignoreCase = true) -> state.updateProgress(0.95f)
         }
     }
 
-    private fun runCommand(su: Boolean, cmd: String): Int {
-        val shell = if (su) "su" else "sh"
-        val process = Runtime.getRuntime().exec(arrayOf(shell, "-c", cmd))
-
-        return try {
-            process.waitFor()
-        } finally {
-            process.destroy()
-        }
+    private fun handleConsoleOutput(line: String) {
+        Log.i(TAG, line)
+        state.addConsoleLog(line)
     }
 
-    private fun runCommandGetOutput(cmd: String): String {
-        return Shell.cmd(cmd).exec().out.joinToString("\n").trim()
+    private fun quote(value: String): String = "'${value.replace("'", "'\\''")}'"
+
+    private companion object {
+        const val TAG = "HorizonKernelWorker"
     }
 }

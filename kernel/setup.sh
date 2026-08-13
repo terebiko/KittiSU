@@ -2,6 +2,7 @@
 set -eu
 
 GKI_ROOT=$(pwd)
+KITTISU_REPOSITORY=${KITTISU_REPOSITORY:-https://github.com/terebiko/KittiSU}
 
 display_usage() {
 	echo "Usage: $0 [--cleanup | <commit-or-tag>]"
@@ -41,7 +42,7 @@ setup_kernelsu() {
 	echo "[+] Setting up KernelSU..."
 	# Clone the repository and rename it to KernelSU
 	if [ ! -d "$GKI_ROOT/KernelSU" ]; then
-		git clone https://github.com/anotheranhiutangerine/KittiSU KernelSU
+		git clone "$KITTISU_REPOSITORY" KernelSU
 		echo "[+] Repository cloned."
 	fi
 	cd "$GKI_ROOT/KernelSU"

@@ -39,6 +39,8 @@ fun getBugreportFile(context: Context): File {
     val bootConfig = File(bugreportDir, "boot_config.txt")
     val kernelConfig = File(bugreportDir, "defconfig.gz")
     val kallsyms = File(bugreportDir, "kallsyms.txt")
+    val bootRecovery = File(bugreportDir, "boot_recovery.json")
+    val bootPending = File(bugreportDir, "boot_pending.json")
 
     val shell = getRootShell(true)
 
@@ -64,6 +66,8 @@ fun getBugreportFile(context: Context): File {
     shell.newJob().add("cp /proc/modules ${procModules.absolutePath}").exec()
     shell.newJob().add("cp /proc/bootconfig ${bootConfig.absolutePath}").exec()
     shell.newJob().add("cp /proc/config.gz ${kernelConfig.absolutePath}").exec()
+    shell.newJob().add("cp /data/adb/ksu/boot_recovery.json ${bootRecovery.absolutePath}").exec()
+    shell.newJob().add("cp /data/adb/ksu/boot_pending.json ${bootPending.absolutePath}").exec()
     shell.newJob().add("ORIG=\$(cat /proc/sys/kernel/kptr_restrict); echo 1 > /proc/sys/kernel/kptr_restrict; cat /proc/kallsyms > ${kallsyms.absolutePath}; echo \$ORIG > /proc/sys/kernel/kptr_restrict").exec()
 
     val selinux = ShellUtils.fastCmd(shell, "getenforce")
@@ -115,4 +119,3 @@ fun getBugreportFile(context: Context): File {
 
     return targetFile
 }
-

@@ -11,6 +11,7 @@ use crate::{
         module::{self, module_config},
         profile, sepolicy, su, sulog, susfs, umount_config, utils,
     },
+    anykernel3::{self, Slot},
     apk_sign, assets,
     boot_patch::{BootPatchArgs, BootRestoreArgs},
     defs,
@@ -26,6 +27,17 @@ struct Args {
 
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
+    /// Flash an AnyKernel3 ZIP
+    #[command(name = "anykernel3")]
+    AnyKernel3 {
+        /// AnyKernel3 ZIP file path
+        zip: PathBuf,
+
+        /// Select A/B slot for flashing
+        #[arg(long, value_enum)]
+        slot: Option<Slot>,
+    },
+
     /// Manage KernelSU modules
     Module {
         #[command(subcommand)]
@@ -69,10 +81,7 @@ enum Commands {
     },
 
     /// Manage susfs component
-    Susfs {
-        #[command(subcommand)]
-        command: Susfs,
-    },
+    Susfs(susfs::cli::SusfsArgs),
 
     /// Manage auto apply user custom umount configs
     UmountConfig {
@@ -160,6 +169,12 @@ enum Commands {
 
     /// Resetprop - Magisk-compatible system property tool
     Resetprop(crate::android::resetprop::Args),
+
+    /// Show or reset bootloop recovery state
+    Recovery {
+        #[arg(long)]
+        reset: bool,
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -304,6 +319,26 @@ enum Sepolicy {
 
 #[derive(clap::Subcommand, Debug)]
 enum Module {
+    /// Back up installed modules and their state
+    Backup {
+        /// Destination tar archive
+        archive: PathBuf,
+    },
+
+    /// Inspect a module backup
+    InspectBackup {
+        /// Module backup tar archive
+        archive: PathBuf,
+    },
+
+    /// Restore modules into the next-boot update directory
+    Restore {
+        /// Module backup tar archive
+        archive: PathBuf,
+        /// Optional module IDs; restore every module when omitted
+        ids: Vec<String>,
+    },
+
     /// Install module <ZIP>
     Install {
         /// module zip file path
@@ -558,16 +593,7 @@ mod kpm_cmd {
     }
 }
 
-#[derive(clap::Subcommand, Debug)]
-enum Susfs {
-    /// Get SUSFS Status
-    Status,
-    /// Get SUSFS Version
-    Version,
-    /// Get SUSFS enable Features
-    Features,
-}
-
+#[allow(clippy::similar_names)]
 pub fn run() -> Result<()> {
     android_logger::init_once(
         Config::default()
@@ -586,26 +612,30 @@ pub fn run() -> Result<()> {
         return crate::android::resetprop::run_from_args(&all_args);
     }
 
+    if arg0.ends_with("ksu_susfs") {
+        let all_args: Vec<String> = std::env::args().collect();
+        return crate::android::susfs::cli::run_from_args(&all_args);
+    }
+
     let cli = Args::parse();
 
     log::info!("command: {:?}", cli.command);
 
     let result = match cli.command {
+        Commands::AnyKernel3 { zip, slot } => anykernel3::flash(&zip, slot),
+        Commands::Recovery { reset } => {
+            if reset {
+                crate::android::recovery::reset()
+            } else {
+                crate::android::recovery::show()
+            }
+        }
         Commands::PostFsData => init_event::on_post_data_fs(),
         Commands::BootCompleted => {
             init_event::on_boot_completed();
             Ok(())
         }
-        Commands::Susfs { command } => {
-            match command {
-                Susfs::Version => println!("{}", susfs::get_susfs_version()),
-
-                Susfs::Status => println!("{}", susfs::get_susfs_status()),
-
-                Susfs::Features => println!("{}", susfs::get_susfs_features()),
-            }
-            Ok(())
-        }
+        Commands::Susfs(args) => crate::android::susfs::cli::run_main(args),
         Commands::UmountConfig { command } => match command {
             UmountConfigOp::Add { mnt, flags } => umount_config::add_umount(&mnt, flags),
             UmountConfigOp::Del { mnt } => umount_config::del_umount(&mnt),
@@ -617,6 +647,9 @@ pub fn run() -> Result<()> {
         Commands::Module { command } => {
             utils::switch_mnt_ns(1)?;
             match command {
+                Module::Backup { archive } => module::backup::backup(&archive),
+                Module::InspectBackup { archive } => module::backup::inspect(&archive),
+                Module::Restore { archive, ids } => module::backup::restore(&archive, &ids),
                 Module::Install { zip } => module::install_module(&zip),
                 Module::UndoUninstall { id } => module::undo_uninstall_module(&id),
                 Module::Uninstall { id } => module::uninstall_module(&id),

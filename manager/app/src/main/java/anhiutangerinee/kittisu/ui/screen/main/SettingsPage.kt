@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -56,6 +58,7 @@ import androidx.compose.material.icons.twotone.RemoveCircle
 import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -118,14 +121,21 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
+import anhiutangerinee.kittisu.ui.util.BootRecoveryState
+import anhiutangerinee.kittisu.ui.util.backupModules
 import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
+import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
+import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
+import anhiutangerinee.kittisu.ui.util.restoreModules
+import anhiutangerinee.kittisu.ui.util.resetBootRecovery
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -178,6 +188,152 @@ fun SettingsPage(bottomPadding: Dp) {
                 loadingDialog.hide()
                 snackBarHost.showSnackbar(logSaved)
             }
+        }
+        val moduleOperationFailed = stringResource(R.string.operation_failed)
+        val moduleRestoreComplete = stringResource(R.string.module_restore_complete)
+        var pendingRestoreArchive by remember { mutableStateOf<File?>(null) }
+        var availableRestoreModules by remember { mutableStateOf(emptyList<String>()) }
+        var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
+        var bootRecoveryState by remember { mutableStateOf<BootRecoveryState?>(null) }
+        var showBootRecoveryDialog by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            bootRecoveryState = withContext(Dispatchers.IO) { getBootRecoveryState() }
+        }
+        val exportModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/x-tar")
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules.tar")
+                val success = backupModules(archive.absolutePath)
+                if (success) {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        archive.inputStream().use { it.copyTo(output) }
+                    }
+                }
+                archive.delete()
+                snackBarHost.showSnackbar(if (success) logSaved else moduleOperationFailed)
+            }
+        }
+        val restoreModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules-restore.tar")
+                val copied = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        archive.outputStream().use { input.copyTo(it) }
+                    } ?: error("cannot open module backup")
+                }.isSuccess
+                val modules = if (copied) inspectModuleBackup(archive.absolutePath) else null
+                withContext(Dispatchers.Main) {
+                    if (modules.isNullOrEmpty()) {
+                        archive.delete()
+                        snackBarHost.showSnackbar(moduleOperationFailed)
+                    } else {
+                        pendingRestoreArchive = archive
+                        availableRestoreModules = modules
+                        selectedRestoreModules = modules.toSet()
+                    }
+                }
+            }
+        }
+
+        pendingRestoreArchive?.let { archive ->
+            AlertDialog(
+                onDismissRequest = {
+                    archive.delete()
+                    pendingRestoreArchive = null
+                },
+                title = { Text(stringResource(R.string.module_restore_select)) },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        availableRestoreModules.forEach { id ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedRestoreModules = if (id in selectedRestoreModules) {
+                                            selectedRestoreModules - id
+                                        } else {
+                                            selectedRestoreModules + id
+                                        }
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = id in selectedRestoreModules,
+                                    onCheckedChange = null
+                                )
+                                Text(id)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = selectedRestoreModules.isNotEmpty(),
+                        onClick = {
+                            val selected = selectedRestoreModules
+                            pendingRestoreArchive = null
+                            scope.launch(Dispatchers.IO) {
+                                val success = restoreModules(archive.absolutePath, selected)
+                                archive.delete()
+                                snackBarHost.showSnackbar(
+                                    if (success) moduleRestoreComplete else moduleOperationFailed
+                                )
+                            }
+                        }
+                    ) { Text(stringResource(R.string.restore)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        archive.delete()
+                        pendingRestoreArchive = null
+                    }) { Text(stringResource(android.R.string.cancel)) }
+                }
+            )
+        }
+
+        if (showBootRecoveryDialog) {
+            val state = bootRecoveryState
+            AlertDialog(
+                onDismissRequest = { showBootRecoveryDialog = false },
+                title = { Text(stringResource(R.string.boot_recovery)) },
+                text = {
+                    Text(
+                        if (state == null || state.modules.isEmpty()) {
+                            stringResource(R.string.boot_recovery_empty)
+                        } else {
+                            stringResource(
+                                R.string.boot_recovery_details,
+                                state.failures,
+                                state.modules.joinToString("\n"),
+                            )
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = state != null && (state.failures > 0 || state.modules.isNotEmpty()),
+                        onClick = {
+                            scope.launch(Dispatchers.IO) {
+                                if (resetBootRecovery()) {
+                                    val state = getBootRecoveryState()
+                                    withContext(Dispatchers.Main) { bootRecoveryState = state }
+                                }
+                            }
+                            showBootRecoveryDialog = false
+                        }
+                    ) { Text(stringResource(R.string.boot_recovery_reset)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBootRecoveryDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+            )
         }
 
         var isKernelUmountEnabled by rememberSaveable {
@@ -569,6 +725,40 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         if (ksuIsValid()) {
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.Save,
+                                    title = stringResource(R.string.module_backup),
+                                    onClick = { exportModulesLauncher.launch("kittisu-modules.tar") }
+                                ) {}
+                            }
+
+                            item {
+                                val state = bootRecoveryState
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.RemoveModerator,
+                                    title = stringResource(R.string.boot_recovery),
+                                    description = if (state == null || state.failures == 0) {
+                                        stringResource(R.string.boot_recovery_empty)
+                                    } else {
+                                        stringResource(R.string.boot_recovery_summary, state.failures)
+                                    },
+                                    onClick = { showBootRecoveryDialog = true }
+                                ) {}
+                            }
+
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.AutoMirrored.TwoTone.Undo,
+                                    title = stringResource(R.string.module_restore),
+                                    onClick = {
+                                        restoreModulesLauncher.launch(
+                                            arrayOf("application/x-tar", "application/octet-stream")
+                                        )
+                                    }
+                                ) {}
+                            }
+
                             item {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.Security,

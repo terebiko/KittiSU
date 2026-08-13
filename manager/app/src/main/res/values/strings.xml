@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">KittiSU</string>
     <string name="home">Home</string>
     <string name="learn_more">Learn more</string>
     <string name="home_not_installed">Not installed</string>
@@ -703,6 +702,15 @@ Important Note:\n
     <string name="umount_path_added">Umount path added</string>
     <string name="umount_path_removed">Umount path removed</string>
     <string name="operation_failed">Operation failed</string>
+    <string name="module_backup">Back up modules</string>
+    <string name="module_restore">Restore modules</string>
+    <string name="module_restore_complete">Modules restored. Reboot to apply.</string>
+    <string name="module_restore_select">Select modules to restore</string>
+    <string name="boot_recovery">Boot recovery</string>
+    <string name="boot_recovery_empty">No incomplete boot is recorded.</string>
+    <string name="boot_recovery_summary">Incomplete boot attempts: %1$d</string>
+    <string name="boot_recovery_details">Incomplete boot attempts: %1$d\n\nAffected modules:\n%2$s</string>
+    <string name="boot_recovery_reset">Clear state</string>
     <string name="changes_take_effect_immediately">All changes will take effect immediately.</string>
     <string name="group_contains_apps">Contains %d apps</string>
     <string name="meta_module_disabled">module not mounted, because metamodule disabled</string>

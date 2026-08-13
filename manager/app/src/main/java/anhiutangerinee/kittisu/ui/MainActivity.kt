@@ -119,7 +119,7 @@ import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetDetailScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetEditorScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetSourcesScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetsScreen
-import anhiutangerinee.kittisu.ui.susfs.SuSFSConfigScreen
+import anhiutangerinee.kittisu.ui.screen.susfs.SuSFSConfigScreen
 import anhiutangerinee.kittisu.ui.theme.KernelSUTheme
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.backgroundImagePainter
