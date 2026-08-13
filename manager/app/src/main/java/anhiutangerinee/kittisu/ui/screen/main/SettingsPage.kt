@@ -129,6 +129,7 @@ import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
 import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
+import anhiutangerinee.kittisu.ui.util.rootAvailable
 import anhiutangerinee.kittisu.ui.util.restoreModules
 import anhiutangerinee.kittisu.ui.util.resetBootRecovery
 import com.topjohnwu.superuser.ShellUtils
@@ -640,76 +641,6 @@ fun SettingsPage(bottomPadding: Dp) {
             }
 
             item {
-                // 应用设置卡片
-                SegmentedColumn(
-                    title = stringResource(R.string.app_settings),
-                    content = {
-                        item {
-                            // 更新检查开关
-                            var checkUpdate by rememberSaveable {
-                                mutableStateOf(prefs.getBoolean("check_update", true))
-                            }
-                            SettingsSwitchWidget(
-                                icon = Icons.TwoTone.Update,
-                                title = stringResource(R.string.settings_check_update),
-                                description = stringResource(R.string.settings_check_update_summary),
-                                checked = checkUpdate,
-                                onCheckedChange = { enabled ->
-                                    prefs.edit { putBoolean("check_update", enabled) }
-                                    checkUpdate = enabled
-                                }
-                            )
-                        }
-
-                        item {
-                            val channels = listOf(
-                                stringResource(R.string.update_channel_stable),
-                                stringResource(R.string.update_channel_beta),
-                                stringResource(R.string.update_channel_nightly),
-                            )
-                            var selectedChannel by rememberSaveable {
-                                mutableIntStateOf(
-                                    UpdateChannel.entries.indexOf(
-                                        UpdateChannel.fromPreference(
-                                            prefs.getString("update_channel", null)
-                                        )
-                                    )
-                                )
-                            }
-                            SettingsDropdownWidget(
-                                icon = Icons.TwoTone.Update,
-                                title = stringResource(R.string.update_channel),
-                                description = stringResource(R.string.update_channel_summary),
-                                items = channels,
-                                selectedIndex = selectedChannel,
-                                onSelectedIndexChange = { index ->
-                                    selectedChannel = index
-                                    prefs.edit {
-                                        putString(
-                                            "update_channel",
-                                            UpdateChannel.entries[index].preferenceValue
-                                        )
-                                    }
-                                }
-                            )
-                        }
-
-                        item {
-                            // 更多设置
-                            SettingsJumpPageWidget(
-                                icon = Icons.TwoTone.Settings,
-                                title = stringResource(R.string.more_settings),
-                                description = stringResource(R.string.more_settings),
-                                onClick = {
-                                    navigator.push(Route.MoreSettings)
-                                }
-                            )
-                        }
-                    }
-                )
-            }
-
-            item {
                 // 工具卡片
                 SegmentedColumn(
                     title = stringResource(R.string.tools),
@@ -780,15 +711,17 @@ fun SettingsPage(bottomPadding: Dp) {
                             }
                         }
 
-                        item {
-                            SettingsJumpPageWidget(
-                                icon = Icons.TwoTone.BookmarkBorder,
-                                title = stringResource(R.string.settings_module_presets),
-                                description = stringResource(R.string.settings_module_presets_summary),
-                                onClick = {
-                                    navigator.push(Route.ModulePresets)
-                                }
-                            )
+                        if (rootAvailable()) {
+                            item {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.BookmarkBorder,
+                                    title = stringResource(R.string.settings_module_presets),
+                                    description = stringResource(R.string.settings_module_presets_summary),
+                                    onClick = {
+                                        navigator.push(Route.ModulePresets)
+                                    }
+                                )
+                            }
                         }
 
                         if (Natives.isLkmMode) {
@@ -797,6 +730,76 @@ fun SettingsPage(bottomPadding: Dp) {
                                     loadingDialog.withLoading(it)
                                 }
                             }
+                        }
+                    }
+                )
+            }
+
+            item {
+                // 应用设置卡片
+                SegmentedColumn(
+                    title = stringResource(R.string.app_settings),
+                    content = {
+                        item {
+                            // 更新检查开关
+                            var checkUpdate by rememberSaveable {
+                                mutableStateOf(prefs.getBoolean("check_update", true))
+                            }
+                            SettingsSwitchWidget(
+                                icon = Icons.TwoTone.Update,
+                                title = stringResource(R.string.settings_check_update),
+                                description = stringResource(R.string.settings_check_update_summary),
+                                checked = checkUpdate,
+                                onCheckedChange = { enabled ->
+                                    prefs.edit { putBoolean("check_update", enabled) }
+                                    checkUpdate = enabled
+                                }
+                            )
+                        }
+
+                        item {
+                            val channels = listOf(
+                                stringResource(R.string.update_channel_stable),
+                                stringResource(R.string.update_channel_beta),
+                                stringResource(R.string.update_channel_nightly),
+                            )
+                            var selectedChannel by rememberSaveable {
+                                mutableIntStateOf(
+                                    UpdateChannel.entries.indexOf(
+                                        UpdateChannel.fromPreference(
+                                            prefs.getString("update_channel", null)
+                                        )
+                                    )
+                                )
+                            }
+                            SettingsDropdownWidget(
+                                icon = Icons.TwoTone.Update,
+                                title = stringResource(R.string.update_channel),
+                                description = stringResource(R.string.update_channel_summary),
+                                items = channels,
+                                selectedIndex = selectedChannel,
+                                onSelectedIndexChange = { index ->
+                                    selectedChannel = index
+                                    prefs.edit {
+                                        putString(
+                                            "update_channel",
+                                            UpdateChannel.entries[index].preferenceValue
+                                        )
+                                    }
+                                }
+                            )
+                        }
+
+                        item {
+                            // 更多设置
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Settings,
+                                title = stringResource(R.string.more_settings),
+                                description = stringResource(R.string.more_settings),
+                                onClick = {
+                                    navigator.push(Route.MoreSettings)
+                                }
+                            )
                         }
                     }
                 )

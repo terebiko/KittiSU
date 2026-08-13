@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -524,12 +525,14 @@ class MainActivity : ComponentActivity() {
                                 PredictiveBackAnimation.MIUIX -> MiuixPredictiveBackAnimation()
                             }
                         }
+                        val currentPredictiveBackAnimationHandler =
+                            rememberUpdatedState(predictiveBackAnimationHandler)
 
                         var gestureState: NavigationEventState<SceneInfo<NavKey>>? = null
                         val navigationScope = rememberCoroutineScope()
                         val onBack: (() -> Unit) -> Unit = { callBack ->
                             navigationScope.launch {
-                                predictiveBackAnimationHandler.onBackPressed(
+                                currentPredictiveBackAnimationHandler.value.onBackPressed(
                                     transitionState = gestureState?.transitionState,
                                     currentPageKey = navigator.current()
                                 )
@@ -558,14 +561,14 @@ class MainActivity : ComponentActivity() {
                                     rememberViewModelStoreNavEntryDecorator(),
                                     NavEntryDecorator(
                                         onPop = { key ->
-                                            predictiveBackAnimationHandler.onPagePop(
+                                            currentPredictiveBackAnimationHandler.value.onPagePop(
                                                 contentPageKey = key,
                                                 animationScope = navigationScope
                                             )
                                         }
                                     ) { content ->
                                         val snackBarHostState = remember { SnackbarHostState() }
-                                        with(predictiveBackAnimationHandler) {
+                                        with(currentPredictiveBackAnimationHandler.value) {
                                             Box(
                                                 modifier = Modifier
                                                     .predictiveBackAnimationDecorator(
@@ -700,17 +703,17 @@ class MainActivity : ComponentActivity() {
                             contentAlignment = Alignment.TopStart,
                             sizeTransform = null,
                             predictivePopTransitionSpec = { swipeEdge ->
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onPredictivePopTransitionSpec(swipeEdge = swipeEdge)
                                 }
                             },
                             popTransitionSpec = {
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onPopTransitionSpec()
                                 }
                             },
                             transitionSpec = {
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onTransitionSpec()
                                 }
                             }

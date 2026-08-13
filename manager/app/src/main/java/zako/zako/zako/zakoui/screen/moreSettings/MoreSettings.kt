@@ -613,19 +613,26 @@ private fun AppearanceSettings(
             }
         }
 
-        expandableItem(
-            expanded = ThemeConfig.customBackgroundUri != null,
-            topContent = {
-                CustomBackgroundSettings(
-                    state = state,
-                    handlers = handlers,
-                    pickImageLauncher = pickImageLauncher,
-                )
-            },
-            bottomContent = {
-                backgroundAdjustmentControls(state, handlers, coroutineScope)
-            }
-        )
+        item {
+            CustomBackgroundSettings(
+                state = state,
+                handlers = handlers,
+                pickImageLauncher = pickImageLauncher,
+            )
+        }
+
+        item(topPadding = 1.dp) {
+            val context = LocalContext.current
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.Contrast,
+                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
+                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
+                checked = ThemeConfig.isHighContrastMode,
+                onCheckedChange = { isChecked ->
+                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
+                }
+            )
+        }
 
         expandableItem(
             expanded = ThemeConfig.isFullScreenBackgroundEnabled,
@@ -965,30 +972,6 @@ private fun CustomBackgroundSettings(
             }
         },
     )
-}
-
-private fun SegmentedColumnScope.backgroundAdjustmentControls(
-    state: MoreSettingsState,
-    handlers: MoreSettingsHandlers,
-    coroutineScope: CoroutineScope,
-) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        item(
-            topPadding = 1.dp,
-        ) {
-            val context = LocalContext.current
-
-            SettingsSwitchWidget(
-                icon = Icons.TwoTone.Contrast,
-                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
-                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
-                checked = ThemeConfig.isHighContrastMode,
-                onCheckedChange = { isChecked ->
-                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
-                }
-            )
-        }
-    }
 }
 
 @Composable

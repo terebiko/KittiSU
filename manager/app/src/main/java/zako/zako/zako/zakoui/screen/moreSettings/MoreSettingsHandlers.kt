@@ -199,7 +199,6 @@ class MoreSettingsHandlers(
         CardConfig.cardAlpha = 0.55f
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, true)
-        BackgroundManager.saveEnableHighContrastMode(activity, false)
         CardConfig.cardElevation = 0.dp
         CardConfig.isCustomBackgroundEnabled = true
         CardConfig.save(activity)
@@ -229,7 +228,6 @@ class MoreSettingsHandlers(
 
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, false)
-        BackgroundManager.saveEnableHighContrastMode(activity, false)
 
         activity.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit {
             putBoolean("prevent_background_refresh", false)
