@@ -188,6 +188,11 @@ else
   endif
 endif
 
+# Check if KPM is enabled (stub for builder compatibility)
+ifdef CONFIG_KPM
+  $(info -- CONFIG_KPM is set but KPM is removed from KittiSU; doing nothing.)
+endif
+
 ifndef CONFIG_KSU_TRACEPOINT_HOOK
   # For old kernel, pkg observer maybe let system freeze
   # https://github.com/ReSukiSU/ReSukiSU/issues/82#issuecomment-4015396974
