@@ -56,7 +56,8 @@ private val ZIP_CONTENT_TYPES = setOf("application/zip", "application/x-zip-comp
 internal data class GitHubOwnerRepo(val owner: String, val repo: String) {
     companion object {
         fun parse(raw: String): GitHubOwnerRepo? {
-            val path = raw.removePrefix(GITHUB_LATEST_SCHEME).trim('/')
+            if (!raw.startsWith(GITHUB_LATEST_SCHEME, ignoreCase = true)) return null
+            val path = raw.substring(GITHUB_LATEST_SCHEME.length).trim('/')
             val parts = path.split('/').filter { it.isNotBlank() }
             if (parts.size < 2) return null
             return GitHubOwnerRepo(parts[0], parts[1])

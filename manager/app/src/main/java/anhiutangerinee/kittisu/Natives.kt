@@ -75,7 +75,7 @@ object Natives {
         /**
          * Detected Rifsxd's Kernel Patch fork in this kernel
          *
-         * Manager should warn user manager's built in kpm management will stop working
+         * Manager should warn user it may conflict with KernelSU
          *
          * @see <a href="https://github.com/KernelSU-Next/KPatch-Next">https://github.com/KernelSU-Next/KPatch-Next</a>
          */
@@ -138,7 +138,6 @@ object Natives {
     external fun isSelinuxHideEnabled(): Boolean
     external fun setSelinuxHideEnabled(enabled: Boolean): Int
 
-    external fun isKPMEnabled(): Boolean
     external fun getHookType(): String
 
     /**

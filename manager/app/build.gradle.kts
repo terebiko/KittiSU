@@ -167,6 +167,10 @@ android {
         sourceCompatibility = androidSourceCompatibility
         targetCompatibility = androidTargetCompatibility
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 baselineProfile {
@@ -258,4 +262,5 @@ dependencies {
     implementation(libs.accompanist.drawablepainter)
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

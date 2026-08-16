@@ -26,7 +26,7 @@ jobs:
             -f kernelsu_variant=ReSukiSU \
             -f version=KittiSU-${KITTISU_BRANCH} \
             -f build_time=N \
-            -f use_kpm='enabled (开启)' \
+            -f use_kpm='disabled (关闭)' \
             -f droidspaces=678 \
             -f artifact_upload_mode='上传全部' \
             -f droidspaces_ntsync=false \

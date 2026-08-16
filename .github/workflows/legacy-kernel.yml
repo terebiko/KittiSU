@@ -83,7 +83,7 @@ jobs:
         run: |
           make defconfig
           scripts/config --enable KSU --enable KSU_MANUAL_HOOK \
-            --disable KSU_TRACEPOINT_HOOK --disable KPM
+            --disable KSU_TRACEPOINT_HOOK
           make olddefconfig
           make prepare modules_prepare
           make KCFLAGS=-Wno-error WERROR=0 -j2 M=drivers/kernelsu modules

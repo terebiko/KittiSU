@@ -78,17 +78,6 @@ config KSU_X86_PATCH_SYSCALL_DISPATCHER
 	  redirection also works for kernels without the indirect-safe bypass.
 	  This is intended for x86_64 LKM builds.
 
-config KPM
-    bool "Enable SukiSU KPM"
-    depends on KSU && 64BIT
-    select KALLSYMS
-    select KALLSYMS_ALL
-    default n
-    help
-	  Enabling this option will activate the KPM feature of SukiSU.
-	  This option is suitable for scenarios where you need to force KPM to be enabled.
-	  but it may affect system stability.
-
 choice
 	prompt "KernelSU Hooking Method"
 	depends on KSU
