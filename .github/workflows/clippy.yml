@@ -25,6 +25,7 @@ jobs:
       - run: |
           rustup update nightly
           rustup default nightly
+          rustup component add clippy
           rustup target install aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
       - uses: Swatinem/rust-cache@v2
         if: github.event_name != 'pull_request'
