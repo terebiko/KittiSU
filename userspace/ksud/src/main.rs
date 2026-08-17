@@ -1,5 +1,9 @@
+#![cfg_attr(target_os = "android", feature(decl_macro))]
+
 #[cfg(target_os = "android")]
 mod android;
+#[cfg(target_os = "android")]
+mod anykernel3;
 mod apk_sign;
 mod assets;
 mod boot_patch;

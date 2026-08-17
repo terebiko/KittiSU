@@ -6,8 +6,6 @@ use log::{info, warn};
 use prop_rs_android::{resetprop::ResetProp, sys_prop};
 use rustix::process::chdir;
 
-#[cfg(all(target_arch = "aarch64", target_os = "android"))]
-use crate::android::kpm;
 use crate::{
     android::{
         dynamic_manager, ksucalls,
@@ -19,9 +17,17 @@ use crate::{
 };
 
 pub fn on_post_data_fs() -> Result<()> {
+    if ksucalls::is_uapi_version_mismatch() {
+        warn!("Kernel/userspace UAPI mismatch; skipping post-fs-data");
+        return Ok(());
+    }
     ksucalls::report_post_fs_data();
 
     utils::umask(0);
+
+    if let Err(e) = crate::android::recovery::begin_boot() {
+        warn!("boot recovery tracking failed: {e}");
+    }
 
     // Clear all temporary module configs early
     if let Err(e) = crate::android::module::module_config::clear_all_temp_configs() {
@@ -96,10 +102,8 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("init features failed: {e}");
     }
 
-    #[cfg(all(target_arch = "aarch64", target_os = "android"))]
-    if let Err(e) = kpm::booted_load() {
-        warn!("KPM: Failed to start KPM watcher: {e}");
-    }
+    // Apply metadata-sensitive entries before modules alter mounts and overlays.
+    crate::android::susfs::init_event::on_post_fs_data();
 
     // execute metamodule post-fs-data script first (priority)
     if let Err(e) = metamodule::exec_stage_script("post-fs-data", true) {
@@ -163,15 +167,23 @@ pub fn run_stage(stage: &str, block: bool) {
 }
 
 pub fn on_services() {
+    if ksucalls::is_uapi_version_mismatch() {
+        warn!("Kernel/userspace UAPI mismatch; skipping services");
+        return;
+    }
     info!("on_services triggered!");
     run_stage("service", false);
 }
 
 pub fn on_boot_completed() {
     ksucalls::report_boot_complete();
+    crate::android::recovery::boot_completed();
     info!("on_boot_completed triggered!");
 
     run_stage("boot-completed", false);
+    if !is_safe_mode() {
+        crate::android::susfs::init_event::on_boot_completed();
+    }
 }
 
 const fn resetprop() -> ResetProp {

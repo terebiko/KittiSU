@@ -15,6 +15,7 @@
 #include "uapi/ksu.h"
 
 uint32_t get_version();
+struct ksu_get_info_cmd get_info();
 
 bool uid_should_umount(int uid);
 
@@ -31,8 +32,6 @@ void get_full_version(char* buff);
 bool set_app_profile(const struct app_profile *profile);
 
 int get_app_profile(struct app_profile* profile);
-
-bool is_KPM_enable();
 
 void get_hook_type(char* hook_type);
 
@@ -80,7 +79,6 @@ bool legacy_set_app_profile(const struct app_profile* profile);
 bool legacy_get_app_profile(char* key, struct app_profile* profile);
 bool legacy_set_su_enabled(bool enabled);
 bool legacy_is_su_enabled();
-bool legacy_is_KPM_enable();
 bool legacy_get_hook_type(char* hook_type, size_t size);
 void legacy_get_full_version(char* buff);
 

@@ -29,32 +29,36 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.filled.Adb
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteForever
-import androidx.compose.material.icons.filled.Fence
-import androidx.compose.material.icons.filled.FolderOff
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Policy
-import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Update
-import androidx.compose.material.icons.rounded.ElectricalServices
-import androidx.compose.material.icons.rounded.FolderDelete
-import androidx.compose.material.icons.rounded.RemoveCircle
-import androidx.compose.material.icons.rounded.RemoveModerator
+import androidx.compose.material.icons.automirrored.twotone.Undo
+import androidx.compose.material.icons.automirrored.twotone.Article
+import androidx.compose.material.icons.twotone.Adb
+import androidx.compose.material.icons.twotone.BookmarkBorder
+import androidx.compose.material.icons.twotone.BugReport
+import androidx.compose.material.icons.twotone.Delete
+import androidx.compose.material.icons.twotone.DeleteForever
+import androidx.compose.material.icons.twotone.Fence
+import androidx.compose.material.icons.twotone.FolderOff
+import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Policy
+import androidx.compose.material.icons.twotone.RadioButtonChecked
+import androidx.compose.material.icons.twotone.RadioButtonUnchecked
+import androidx.compose.material.icons.twotone.Save
+import androidx.compose.material.icons.twotone.Security
+import androidx.compose.material.icons.twotone.Settings
+import androidx.compose.material.icons.twotone.Share
+import androidx.compose.material.icons.twotone.Update
+import androidx.compose.material.icons.twotone.ElectricalServices
+import androidx.compose.material.icons.twotone.FolderDelete
+import androidx.compose.material.icons.twotone.RemoveCircle
+import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -94,6 +98,7 @@ import com.maxkeppeler.sheets.list.models.ListOption
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.update.UpdateChannel
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.magica.BootCompletedReceiver
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
@@ -116,14 +121,22 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
+import anhiutangerinee.kittisu.ui.util.BootRecoveryState
+import anhiutangerinee.kittisu.ui.util.backupModules
 import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
+import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
+import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
+import anhiutangerinee.kittisu.ui.util.rootAvailable
+import anhiutangerinee.kittisu.ui.util.restoreModules
+import anhiutangerinee.kittisu.ui.util.resetBootRecovery
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -177,6 +190,152 @@ fun SettingsPage(bottomPadding: Dp) {
                 snackBarHost.showSnackbar(logSaved)
             }
         }
+        val moduleOperationFailed = stringResource(R.string.operation_failed)
+        val moduleRestoreComplete = stringResource(R.string.module_restore_complete)
+        var pendingRestoreArchive by remember { mutableStateOf<File?>(null) }
+        var availableRestoreModules by remember { mutableStateOf(emptyList<String>()) }
+        var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
+        var bootRecoveryState by remember { mutableStateOf<BootRecoveryState?>(null) }
+        var showBootRecoveryDialog by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            bootRecoveryState = withContext(Dispatchers.IO) { getBootRecoveryState() }
+        }
+        val exportModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("application/x-tar")
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules.tar")
+                val success = backupModules(archive.absolutePath)
+                if (success) {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        archive.inputStream().use { it.copyTo(output) }
+                    }
+                }
+                archive.delete()
+                snackBarHost.showSnackbar(if (success) logSaved else moduleOperationFailed)
+            }
+        }
+        val restoreModulesLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri == null) return@rememberLauncherForActivityResult
+            scope.launch(Dispatchers.IO) {
+                val archive = File(context.cacheDir, "kittisu-modules-restore.tar")
+                val copied = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        archive.outputStream().use { input.copyTo(it) }
+                    } ?: error("cannot open module backup")
+                }.isSuccess
+                val modules = if (copied) inspectModuleBackup(archive.absolutePath) else null
+                withContext(Dispatchers.Main) {
+                    if (modules.isNullOrEmpty()) {
+                        archive.delete()
+                        snackBarHost.showSnackbar(moduleOperationFailed)
+                    } else {
+                        pendingRestoreArchive = archive
+                        availableRestoreModules = modules
+                        selectedRestoreModules = modules.toSet()
+                    }
+                }
+            }
+        }
+
+        pendingRestoreArchive?.let { archive ->
+            AlertDialog(
+                onDismissRequest = {
+                    archive.delete()
+                    pendingRestoreArchive = null
+                },
+                title = { Text(stringResource(R.string.module_restore_select)) },
+                text = {
+                    Column(Modifier.verticalScroll(rememberScrollState())) {
+                        availableRestoreModules.forEach { id ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedRestoreModules = if (id in selectedRestoreModules) {
+                                            selectedRestoreModules - id
+                                        } else {
+                                            selectedRestoreModules + id
+                                        }
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = id in selectedRestoreModules,
+                                    onCheckedChange = null
+                                )
+                                Text(id)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = selectedRestoreModules.isNotEmpty(),
+                        onClick = {
+                            val selected = selectedRestoreModules
+                            pendingRestoreArchive = null
+                            scope.launch(Dispatchers.IO) {
+                                val success = restoreModules(archive.absolutePath, selected)
+                                archive.delete()
+                                snackBarHost.showSnackbar(
+                                    if (success) moduleRestoreComplete else moduleOperationFailed
+                                )
+                            }
+                        }
+                    ) { Text(stringResource(R.string.restore)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        archive.delete()
+                        pendingRestoreArchive = null
+                    }) { Text(stringResource(android.R.string.cancel)) }
+                }
+            )
+        }
+
+        if (showBootRecoveryDialog) {
+            val state = bootRecoveryState
+            AlertDialog(
+                onDismissRequest = { showBootRecoveryDialog = false },
+                title = { Text(stringResource(R.string.boot_recovery)) },
+                text = {
+                    Text(
+                        if (state == null || state.modules.isEmpty()) {
+                            stringResource(R.string.boot_recovery_empty)
+                        } else {
+                            stringResource(
+                                R.string.boot_recovery_details,
+                                state.failures,
+                                state.modules.joinToString("\n"),
+                            )
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = state != null && (state.failures > 0 || state.modules.isNotEmpty()),
+                        onClick = {
+                            scope.launch(Dispatchers.IO) {
+                                if (resetBootRecovery()) {
+                                    val state = getBootRecoveryState()
+                                    withContext(Dispatchers.Main) { bootRecoveryState = state }
+                                }
+                            }
+                            showBootRecoveryDialog = false
+                        }
+                    ) { Text(stringResource(R.string.boot_recovery_reset)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showBootRecoveryDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+            )
+        }
 
         var isKernelUmountEnabled by rememberSaveable {
             mutableStateOf(
@@ -211,7 +370,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             item {
                                 // 配置文件模板入口
                                 SettingsJumpPageWidget(
-                                    icon = Icons.Filled.Fence,
+                                    icon = Icons.TwoTone.Fence,
                                     title = stringResource(R.string.settings_profile_template),
                                     description = stringResource(R.string.settings_profile_template_summary),
                                     onClick = {
@@ -242,7 +401,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                     else -> stringResource(id = R.string.settings_sucompat_summary)
                                 }
                                 SettingsDropdownWidget(
-                                    icon = Icons.Rounded.RemoveModerator,
+                                    icon = Icons.TwoTone.RemoveModerator,
                                     title = stringResource(id = R.string.settings_sucompat),
                                     description = suSummary,
                                     items = modeItems,
@@ -291,7 +450,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                     else -> stringResource(id = R.string.settings_kernel_umount_summary)
                                 }
                                 SettingsSwitchWidget(
-                                    icon = Icons.Rounded.RemoveCircle,
+                                    icon = Icons.TwoTone.RemoveCircle,
                                     title = stringResource(id = R.string.settings_kernel_umount),
                                     description = umountSummary,
                                     enabled = umountStatus == "supported",
@@ -315,7 +474,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 }
 
                                 SettingsSwitchWidget(
-                                    icon = Icons.Rounded.ElectricalServices,
+                                    icon = Icons.TwoTone.ElectricalServices,
                                     title = stringResource(id = R.string.settings_auto_jailbreak),
                                     description = stringResource(id = R.string.settings_auto_jailbreak_summary),
                                     checked = savedAutoJailbreakStatus,
@@ -364,7 +523,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 }
 
                                 SettingsSwitchWidget(
-                                    icon = Icons.Filled.Adb,
+                                    icon = Icons.TwoTone.Adb,
                                     title = stringResource(id = R.string.settings_adb_root),
                                     description = adbRootSummary,
                                     checked = isAdbRootEnabled,
@@ -396,7 +555,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                     else -> stringResource(id = R.string.settings_sulog_summary)
                                 }
                                 SettingsSwitchWidget(
-                                    icon = Icons.AutoMirrored.Rounded.Article,
+                                    icon = Icons.AutoMirrored.TwoTone.Article,
                                     title = stringResource(id = R.string.settings_sulog),
                                     description = sulogSummary,
                                     enabled = sulogStatus == "supported",
@@ -427,7 +586,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                     else -> stringResource(id = R.string.settings_selinux_hide_summary)
                                 }
                                 SettingsSwitchWidget(
-                                    icon = Icons.Filled.Policy,
+                                    icon = Icons.TwoTone.Policy,
                                     title = stringResource(id = R.string.settings_selinux_hide),
                                     description = selinuxHideSummary,
                                     enabled = selinuxHideStatus == "supported",
@@ -465,7 +624,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 // 卸载模块开关
                                 var umountChecked by rememberSaveable { mutableStateOf(Natives.isDefaultUmountModules()) }
                                 SettingsSwitchWidget(
-                                    icon = Icons.Rounded.FolderDelete,
+                                    icon = Icons.TwoTone.FolderDelete,
                                     title = stringResource(id = R.string.settings_umount_modules_default),
                                     description = stringResource(id = R.string.settings_umount_modules_default_summary),
                                     checked = umountChecked,
@@ -482,6 +641,101 @@ fun SettingsPage(bottomPadding: Dp) {
             }
 
             item {
+                // 工具卡片
+                SegmentedColumn(
+                    title = stringResource(R.string.tools),
+                    content = {
+                        item {
+                            SettingsBaseWidget(
+                                icon = Icons.TwoTone.BugReport,
+                                title = stringResource(R.string.send_log),
+                                onClick = {
+                                    showBottomsheet = true
+                                }
+                            ) {}
+                        }
+
+                        if (ksuIsValid()) {
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.Save,
+                                    title = stringResource(R.string.module_backup),
+                                    onClick = { exportModulesLauncher.launch("kittisu-modules.tar") }
+                                ) {}
+                            }
+
+                            item {
+                                val state = bootRecoveryState
+                                SettingsBaseWidget(
+                                    icon = Icons.TwoTone.RemoveModerator,
+                                    title = stringResource(R.string.boot_recovery),
+                                    description = if (state == null || state.failures == 0) {
+                                        stringResource(R.string.boot_recovery_empty)
+                                    } else {
+                                        stringResource(R.string.boot_recovery_summary, state.failures)
+                                    },
+                                    onClick = { showBootRecoveryDialog = true }
+                                ) {}
+                            }
+
+                            item {
+                                SettingsBaseWidget(
+                                    icon = Icons.AutoMirrored.TwoTone.Undo,
+                                    title = stringResource(R.string.module_restore),
+                                    onClick = {
+                                        restoreModulesLauncher.launch(
+                                            arrayOf("application/x-tar", "application/octet-stream")
+                                        )
+                                    }
+                                ) {}
+                            }
+
+                            item {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.Security,
+                                    title = stringResource(R.string.dynamic_manager_title),
+                                    description = stringResource(R.string.dynamic_manager_settings_summary),
+                                    onClick = { navigator.push(Route.DynamicManager) }
+                                )
+                            }
+
+                            item(visible = isKernelUmountEnabled) {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.FolderOff,
+                                    title = stringResource(R.string.umount_path_manager),
+                                    description = stringResource(R.string.umount_path_manager_summary),
+                                    onClick = {
+                                        navigator.push(Route.UmountManager)
+                                    }
+                                )
+                            }
+                        }
+
+                        if (rootAvailable()) {
+                            item {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.BookmarkBorder,
+                                    title = stringResource(R.string.settings_module_presets),
+                                    description = stringResource(R.string.settings_module_presets_summary),
+                                    onClick = {
+                                        navigator.push(Route.ModulePresets)
+                                    }
+                                )
+                            }
+                        }
+
+                        if (Natives.isLkmMode) {
+                            item {
+                                UninstallItem {
+                                    loadingDialog.withLoading(it)
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+
+            item {
                 // 应用设置卡片
                 SegmentedColumn(
                     title = stringResource(R.string.app_settings),
@@ -492,7 +746,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 mutableStateOf(prefs.getBoolean("check_update", true))
                             }
                             SettingsSwitchWidget(
-                                icon = Icons.Filled.Update,
+                                icon = Icons.TwoTone.Update,
                                 title = stringResource(R.string.settings_check_update),
                                 description = stringResource(R.string.settings_check_update_summary),
                                 checked = checkUpdate,
@@ -504,65 +758,48 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
+                            val channels = listOf(
+                                stringResource(R.string.update_channel_stable),
+                                stringResource(R.string.update_channel_beta),
+                                stringResource(R.string.update_channel_nightly),
+                            )
+                            var selectedChannel by rememberSaveable {
+                                mutableIntStateOf(
+                                    UpdateChannel.entries.indexOf(
+                                        UpdateChannel.fromPreference(
+                                            prefs.getString("update_channel", null)
+                                        )
+                                    )
+                                )
+                            }
+                            SettingsDropdownWidget(
+                                icon = Icons.TwoTone.Update,
+                                title = stringResource(R.string.update_channel),
+                                description = stringResource(R.string.update_channel_summary),
+                                items = channels,
+                                selectedIndex = selectedChannel,
+                                onSelectedIndexChange = { index ->
+                                    selectedChannel = index
+                                    prefs.edit {
+                                        putString(
+                                            "update_channel",
+                                            UpdateChannel.entries[index].preferenceValue
+                                        )
+                                    }
+                                }
+                            )
+                        }
+
+                        item {
                             // 更多设置
                             SettingsJumpPageWidget(
-                                icon = Icons.Filled.Settings,
+                                icon = Icons.TwoTone.Settings,
                                 title = stringResource(R.string.more_settings),
                                 description = stringResource(R.string.more_settings),
                                 onClick = {
                                     navigator.push(Route.MoreSettings)
                                 }
                             )
-                        }
-                    }
-                )
-            }
-
-            item {
-                // 工具卡片
-                SegmentedColumn(
-                    title = stringResource(R.string.tools),
-                    content = {
-                        item {
-                            SettingsBaseWidget(
-                                icon = Icons.Filled.BugReport,
-                                title = stringResource(R.string.send_log),
-                                onClick = {
-                                    showBottomsheet = true
-                                }
-                            ) {}
-                        }
-
-                        if (ksuIsValid()) {
-                            item(visible = isKernelUmountEnabled) {
-                                SettingsJumpPageWidget(
-                                    icon = Icons.Filled.FolderOff,
-                                    title = stringResource(R.string.umount_path_manager),
-                                    description = stringResource(R.string.umount_path_manager_summary),
-                                    onClick = {
-                                        navigator.push(Route.UmountManager)
-                                    }
-                                )
-                            }
-                        }
-
-                        item {
-                            SettingsJumpPageWidget(
-                                icon = Icons.Filled.BookmarkBorder,
-                                title = stringResource(R.string.settings_module_presets),
-                                description = stringResource(R.string.settings_module_presets_summary),
-                                onClick = {
-                                    navigator.push(Route.ModulePresets)
-                                }
-                            )
-                        }
-
-                        if (Natives.isLkmMode) {
-                            item {
-                                UninstallItem {
-                                    loadingDialog.withLoading(it)
-                                }
-                            }
                         }
                     }
                 )
@@ -620,7 +857,7 @@ fun SettingsPage(bottomPadding: Dp) {
                     content = {
                         item {
                             SettingsJumpPageWidget(
-                                icon = Icons.Filled.Info,
+                                icon = Icons.TwoTone.Info,
                                 title = stringResource(R.string.about),
                                 onClick = {
                                     navigator.push(Route.About)
@@ -652,13 +889,13 @@ private fun LogBottomSheet(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             LogActionButton(
-                icon = Icons.Filled.Save,
+                icon = Icons.TwoTone.Save,
                 text = stringResource(R.string.save_log),
                 onClick = onSaveLog
             )
 
             LogActionButton(
-                icon = Icons.Filled.Share,
+                icon = Icons.TwoTone.Share,
                 text = stringResource(R.string.send_log),
                 onClick = onShareLog
             )
@@ -710,9 +947,6 @@ fun UninstallItem(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uninstallConfirmDialog = rememberConfirmDialog()
-    val showTodo = {
-        Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
-    }
     val uninstallDialog = rememberUninstallDialog { uninstallType ->
         scope.launch {
             val result = uninstallConfirmDialog.awaitConfirm(
@@ -722,7 +956,6 @@ fun UninstallItem(
             if (result == ConfirmResult.Confirmed) {
                 withLoading {
                     when (uninstallType) {
-                        UninstallType.TEMPORARY -> showTodo()
                         UninstallType.PERMANENT -> navigator.push(Route.Flash(FlashIt.FlashUninstall))
                         UninstallType.RESTORE_STOCK_IMAGE -> navigator.push(Route.Flash(FlashIt.FlashRestore))
                         UninstallType.NONE -> Unit
@@ -733,7 +966,7 @@ fun UninstallItem(
     }
 
     SettingsJumpPageWidget(
-        icon = Icons.Filled.Delete,
+        icon = Icons.TwoTone.Delete,
         title = stringResource(id = R.string.settings_uninstall),
         onClick = {
             uninstallDialog.show()
@@ -742,22 +975,17 @@ fun UninstallItem(
 }
 
 enum class UninstallType(val title: Int, val message: Int, val icon: ImageVector) {
-    TEMPORARY(
-        R.string.settings_uninstall_temporary,
-        R.string.settings_uninstall_temporary_message,
-        Icons.Filled.Delete
-    ),
     PERMANENT(
         R.string.settings_uninstall_permanent,
         R.string.settings_uninstall_permanent_message,
-        Icons.Filled.DeleteForever
+        Icons.TwoTone.DeleteForever
     ),
     RESTORE_STOCK_IMAGE(
         R.string.settings_restore_stock_image,
         R.string.settings_restore_stock_image_message,
-        Icons.AutoMirrored.Filled.Undo
+        Icons.AutoMirrored.TwoTone.Undo
     ),
-    NONE(0, 0, Icons.Filled.Delete)
+    NONE(0, 0, Icons.TwoTone.Delete)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -843,14 +1071,14 @@ fun rememberUninstallDialog(onSelected: (UninstallType) -> Unit): DialogHandle {
                             }
                             if (isSelected) {
                                 Icon(
-                                    imageVector = Icons.Default.RadioButtonChecked,
+                                    imageVector = Icons.TwoTone.RadioButtonChecked,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Icons.Default.RadioButtonUnchecked,
+                                    imageVector = Icons.TwoTone.RadioButtonUnchecked,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(24.dp)

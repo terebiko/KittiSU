@@ -145,6 +145,11 @@ int escape_with_root_profile(void)
     struct root_profile *profile = NULL;
     struct user_struct *new_user;
 
+    if (test_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT)) {
+        pr_warn("root escape disabled by profile\n");
+        return -EPERM;
+    }
+
     cred = prepare_creds();
     if (!cred) {
         pr_warn("prepare_creds failed!\n");
@@ -216,6 +221,9 @@ int escape_with_root_profile(void)
     setup_selinux(profile->selinux_domain, cred);
 
     commit_creds(cred);
+
+    if (profile->flags & FLAG_KSU_NO_NEW_PRIVS)
+        set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
 
     disable_seccomp();
 

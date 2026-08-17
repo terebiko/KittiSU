@@ -33,25 +33,27 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.BlurOn
-import androidx.compose.material.icons.filled.Brush
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.Contrast
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Draw
-import androidx.compose.material.icons.filled.FormatColorFill
-import androidx.compose.material.icons.filled.FormatSize
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material.icons.filled.Opacity
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Wallpaper
-import androidx.compose.material.icons.rounded.Animation
-import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.twotone.Android
+import androidx.compose.material.icons.twotone.BlurOn
+import androidx.compose.material.icons.twotone.Brush
+import androidx.compose.material.icons.twotone.Check
+import androidx.compose.material.icons.twotone.ColorLens
+import androidx.compose.material.icons.twotone.Contrast
+import androidx.compose.material.icons.twotone.DarkMode
+import androidx.compose.material.icons.twotone.DesignServices
+import androidx.compose.material.icons.twotone.Draw
+import androidx.compose.material.icons.twotone.FormatColorFill
+import androidx.compose.material.icons.twotone.FormatSize
+import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.LightMode
+import androidx.compose.material.icons.twotone.Opacity
+import androidx.compose.material.icons.twotone.Palette
+import androidx.compose.material.icons.twotone.Translate
+import androidx.compose.material.icons.twotone.VisibilityOff
+import androidx.compose.material.icons.twotone.Wallpaper
+import androidx.compose.material.icons.twotone.Animation
+import androidx.compose.material.icons.twotone.SwapHoriz
+import androidx.compose.material.icons.twotone.Style
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,6 +108,8 @@ import anhiutangerinee.kittisu.ui.theme.ThemeColors
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,6 +120,23 @@ import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
 import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 import java.io.File
 import kotlin.math.roundToInt
+
+private fun PaletteStyle.displayName(): String = when (this) {
+    PaletteStyle.TonalSpot -> "Tonal Spot"
+    PaletteStyle.Neutral -> "Neutral"
+    PaletteStyle.Vibrant -> "Vibrant"
+    PaletteStyle.Expressive -> "Expressive"
+    PaletteStyle.Rainbow -> "Rainbow"
+    PaletteStyle.FruitSalad -> "Fruit Salad"
+    PaletteStyle.Monochrome -> "Monochrome"
+    PaletteStyle.Fidelity -> "Fidelity"
+    PaletteStyle.Content -> "Content"
+}
+
+private fun ColorSpec.SpecVersion.displayName(): String = when (this) {
+    ColorSpec.SpecVersion.SPEC_2021 -> "Spec 2021"
+    ColorSpec.SpecVersion.SPEC_2025 -> "Spec 2025"
+}
 
 // TODO Rename this screen to ThemeSettingsScreen, and drop SELinux config, rewrite dynamic manager
 @SuppressLint(
@@ -366,7 +387,7 @@ fun PredictiveBackAnimationWidget(
     onClick: () -> Unit
 ) {
     SettingsBaseWidget(
-        icon = Icons.Rounded.Animation,
+        icon = Icons.TwoTone.Animation,
         title = stringResource(R.string.predictive_back_animation),
         description = when (uiState.predictiveBackAnimation) {
             MainActivity.PredictiveBackAnimation.None -> stringResource(R.string.predictive_back_animation_none)
@@ -387,7 +408,7 @@ fun PredictiveBackAnimationDirectionWidget(
     onClick: () -> Unit
 ) {
     SettingsBaseWidget(
-        icon = Icons.Rounded.SwapHoriz,
+        icon = Icons.TwoTone.SwapHoriz,
         title = stringResource(R.string.predictive_back_exit_direction),
         description = when (uiState.predictiveBackExitDirection) {
             MainActivity.PredictiveBackExitDirection.FOLLOW_GESTURE -> stringResource(R.string.predictive_back_exit_direction_follow_gesture)
@@ -502,7 +523,7 @@ private fun AppearanceSettings(
         item {
             // 主题模式
             SettingsDropdownWidget(
-                icon = Icons.Default.DarkMode,
+                icon = Icons.TwoTone.DarkMode,
                 title = stringResource(R.string.theme_mode),
                 items = state.themeOptions,
                 selectedIndex = state.themeMode,
@@ -512,31 +533,55 @@ private fun AppearanceSettings(
             )
         }
 
-        // TODO MonetCompat with Android S-, Choose System Seed Color or Custom background color
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            item {
-                // 动态颜色开关
-                SettingsSwitchWidget(
-                    icon = Icons.Filled.ColorLens,
-                    title = stringResource(R.string.dynamic_color_title),
-                    description = stringResource(R.string.dynamic_color_summary),
-                    checked = state.useDynamicColor,
-                    onCheckedChange = handlers::handleDynamicColorChange
-                )
-            }
+        item {
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.ColorLens,
+                title = stringResource(R.string.dynamic_color_title),
+                description = stringResource(R.string.dynamic_color_summary),
+                checked = state.useDynamicColor,
+                onCheckedChange = handlers::handleDynamicColorChange
+            )
         }
 
         item(
-            visible = !state.useDynamicColor || Build.VERSION.SDK_INT < Build.VERSION_CODES.S
+            visible = !state.useDynamicColor
         ) {
-            // TODO ColorPicker seedColor
-            // 主题色选择
             ThemeColorSelection(state = state)
         }
 
         item {
+            SettingsDropdownWidget(
+                icon = Icons.TwoTone.Style,
+                title = stringResource(R.string.dynamic_palette_style),
+                items = PaletteStyle.entries.map { it.displayName() },
+                selectedIndex = PaletteStyle.entries.indexOf(state.dynamicPaletteStyle),
+                onSelectedIndexChange = { index ->
+                    handlers.handleDynamicPaletteStyleChange(
+                        PaletteStyle.entries.getOrElse(index) { PaletteStyle.TonalSpot }
+                    )
+                }
+            )
+        }
+
+        item {
+            SettingsDropdownWidget(
+                icon = Icons.TwoTone.DesignServices,
+                title = stringResource(R.string.dynamic_color_spec),
+                items = ColorSpec.SpecVersion.entries.map { it.displayName() },
+                selectedIndex = ColorSpec.SpecVersion.entries.indexOf(state.dynamicColorSpec),
+                onSelectedIndexChange = { index ->
+                    handlers.handleDynamicColorSpecChange(
+                        ColorSpec.SpecVersion.entries.getOrElse(index) {
+                            ColorSpec.SpecVersion.SPEC_2021
+                        }
+                    )
+                }
+            )
+        }
+
+        item {
             SettingsBaseWidget(
-                icon = Icons.Default.FormatSize,
+                icon = Icons.TwoTone.FormatSize,
                 title = stringResource(R.string.app_dpi_title),
                 description = stringResource(R.string.app_dpi_summary),
                 onClick = {},
@@ -568,19 +613,26 @@ private fun AppearanceSettings(
             }
         }
 
-        expandableItem(
-            expanded = ThemeConfig.customBackgroundUri != null,
-            topContent = {
-                CustomBackgroundSettings(
-                    state = state,
-                    handlers = handlers,
-                    pickImageLauncher = pickImageLauncher,
-                )
-            },
-            bottomContent = {
-                backgroundAdjustmentControls(state, handlers, coroutineScope)
-            }
-        )
+        item {
+            CustomBackgroundSettings(
+                state = state,
+                handlers = handlers,
+                pickImageLauncher = pickImageLauncher,
+            )
+        }
+
+        item(topPadding = 1.dp) {
+            val context = LocalContext.current
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.Contrast,
+                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
+                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
+                checked = ThemeConfig.isHighContrastMode,
+                onCheckedChange = { isChecked ->
+                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
+                }
+            )
+        }
 
         expandableItem(
             expanded = ThemeConfig.isFullScreenBackgroundEnabled,
@@ -608,7 +660,7 @@ private fun CustomizationSettings(
         item {
             // 图标切换
             SettingsSwitchWidget(
-                icon = Icons.Default.Android,
+                icon = Icons.TwoTone.Android,
                 title = stringResource(R.string.icon_switch_title),
                 description = stringResource(R.string.icon_switch_summary),
                 checked = state.useAltIcon,
@@ -619,7 +671,7 @@ private fun CustomizationSettings(
         item {
             // 显示更多模块信息
             SettingsSwitchWidget(
-                icon = Icons.Filled.Info,
+                icon = Icons.TwoTone.Info,
                 title = stringResource(R.string.show_more_module_info),
                 description = stringResource(R.string.show_more_module_info_summary),
                 checked = state.showMoreModuleInfo,
@@ -630,7 +682,7 @@ private fun CustomizationSettings(
         item {
             // 模块横幅背景开关
             SettingsSwitchWidget(
-                icon = Icons.Filled.Wallpaper,
+                icon = Icons.TwoTone.Wallpaper,
                 title = stringResource(R.string.use_module_banner),
                 description = stringResource(R.string.use_module_banner_summary),
                 checked = state.useBanner,
@@ -641,7 +693,7 @@ private fun CustomizationSettings(
         item {
             // 简洁模式开关
             SettingsSwitchWidget(
-                icon = Icons.Filled.Brush,
+                icon = Icons.TwoTone.Brush,
                 title = stringResource(R.string.simple_mode),
                 description = stringResource(R.string.simple_mode_summary),
                 checked = state.isSimpleMode,
@@ -660,7 +712,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // 隐藏内核版本号
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_kernel_kernelsu_version),
             description = stringResource(R.string.hide_kernel_kernelsu_version_summary),
             checked = state.isHideVersion,
@@ -671,7 +723,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // 隐藏模块数量等信息
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_other_info),
             description = stringResource(R.string.hide_other_info_summary),
             checked = state.isHideOtherInfo,
@@ -682,7 +734,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // SuSFS 状态信息
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_susfs_status),
             description = stringResource(R.string.hide_susfs_status_summary),
             checked = state.isHideSusfsStatus,
@@ -693,7 +745,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // Zygisk 实现状态信息
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_zygisk_implement),
             description = stringResource(R.string.hide_zygisk_implement_summary),
             checked = state.isHideZygiskImplement,
@@ -704,7 +756,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // 元模块实现状态信息
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_meta_module_implement),
             description = stringResource(R.string.hide_meta_module_implement_summary),
             checked = state.isHideMetaModuleImplement,
@@ -712,21 +764,10 @@ private fun SegmentedColumnScope.hideOptionsSettings(
         )
     }
 
-    // KPM 状态信息隐藏
-    item {
-        SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
-            title = stringResource(R.string.show_kpm_info),
-            description = stringResource(R.string.show_kpm_info_summary),
-            checked = state.isShowKpmInfo,
-            onCheckedChange = handlers::handleShowKpmInfoChange
-        )
-    }
-
     item {
         // 隐藏链接信息
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_link_card),
             description = stringResource(R.string.hide_link_card_summary),
             checked = state.isHideLinkCard,
@@ -737,7 +778,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
     item {
         // 隐藏标签行
         SettingsSwitchWidget(
-            icon = Icons.Filled.VisibilityOff,
+            icon = Icons.TwoTone.VisibilityOff,
             title = stringResource(R.string.hide_tag_card),
             description = stringResource(R.string.hide_tag_card_summary),
             checked = state.isHideTagRow,
@@ -749,7 +790,7 @@ private fun SegmentedColumnScope.hideOptionsSettings(
 @Composable
 private fun ThemeColorSelection(state: MoreSettingsState) {
     SettingsBaseWidget(
-        icon = Icons.Default.Palette,
+        icon = Icons.TwoTone.Palette,
         title = stringResource(R.string.theme_color),
         description = when (ThemeConfig.currentTheme) {
             is ThemeColors.Green -> stringResource(R.string.color_green)
@@ -890,7 +931,7 @@ private fun DpiSliderControls(
         enabled = state.tempDpi != state.currentDpi
     ) {
         Icon(
-            Icons.Default.Check,
+            Icons.TwoTone.Check,
             contentDescription = null,
             modifier = Modifier.size(16.dp)
         )
@@ -908,7 +949,7 @@ private fun CustomBackgroundSettings(
     // TODO Portrait/Landscape wallpaper split
 
     SettingsSwitchWidget(
-        icon = Icons.Filled.Wallpaper,
+        icon = Icons.TwoTone.Wallpaper,
         title = stringResource(id = R.string.settings_custom_background),
         description = stringResource(id = R.string.settings_custom_background_summary),
         checked = state.isCustomBackgroundEnabled,
@@ -920,30 +961,6 @@ private fun CustomBackgroundSettings(
             }
         },
     )
-}
-
-private fun SegmentedColumnScope.backgroundAdjustmentControls(
-    state: MoreSettingsState,
-    handlers: MoreSettingsHandlers,
-    coroutineScope: CoroutineScope,
-) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        item(
-            topPadding = 1.dp,
-        ) {
-            val context = LocalContext.current
-
-            SettingsSwitchWidget(
-                icon = Icons.Filled.Contrast,
-                title = stringResource(id = R.string.settings_custom_enable_high_contrast),
-                description = stringResource(id = R.string.settings_custom_enable_high_contrast_summary),
-                checked = ThemeConfig.isHighContrastMode,
-                onCheckedChange = { isChecked ->
-                    BackgroundManager.saveEnableHighContrastMode(context, isChecked)
-                }
-            )
-        }
-    }
 }
 
 @Composable
@@ -1019,7 +1036,7 @@ private fun FullScreenBackgroundSettings(
     }
 
     SettingsSwitchWidget(
-        icon = Icons.Filled.Wallpaper,
+        icon = Icons.TwoTone.Wallpaper,
         title = stringResource(id = R.string.full_screen_background),
         description = stringResource(id = R.string.full_screen_background_summary),
         checked = state.isFullScreenBackgroundEnabled,
@@ -1054,7 +1071,7 @@ private fun SegmentedColumnScope.fullScreenBackgroundAdjustmentControls(
             val context = LocalContext.current
 
             SettingsSwitchWidget(
-                icon = Icons.Filled.FormatColorFill,
+                icon = Icons.TwoTone.FormatColorFill,
                 title = stringResource(id = R.string.settings_config_use_custom_background_seed_color),
                 description = stringResource(id = R.string.settings_config_use_custom_background_seed_color_summary),
                 checked = ThemeConfig.isUseBackgroundSeedColor,
@@ -1073,7 +1090,7 @@ private fun AlphaSlider(
     coroutineScope: CoroutineScope
 ) {
     SettingsBaseWidget(
-        icon = Icons.Filled.Opacity,
+        icon = Icons.TwoTone.Opacity,
         title = stringResource(R.string.settings_card_alpha),
         descriptionColumnContent = {
             val alphaSliderValue by animateFloatAsState(
@@ -1121,7 +1138,7 @@ private fun DimSlider(
     coroutineScope: CoroutineScope
 ) {
     SettingsBaseWidget(
-        icon = Icons.Filled.LightMode,
+        icon = Icons.TwoTone.LightMode,
         title = stringResource(R.string.settings_background_dim),
         descriptionColumnContent = {
             val dimSliderValue by animateFloatAsState(
@@ -1180,7 +1197,7 @@ private fun LanguageSetting(state: MoreSettingsState) {
     }
 
     SettingsJumpPageWidget(
-        icon = Icons.Filled.Translate,
+        icon = Icons.TwoTone.Translate,
         title = language,
         description = currentLanguageDisplay,
         onClick = { state.showLanguageDialog = true }

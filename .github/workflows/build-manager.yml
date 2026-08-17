@@ -3,20 +3,65 @@ name: Build Manager
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "dev", "ci", "sync-upstream" ]
-    paths:
-      - '.github/workflows/build-manager.yml'
-      - '.github/workflows/build-lkm.yml'
-      - '.github/workflows/ddk-lkm.yml'
-      - '.github/workflows/ksud.yml'
-      - 'manager/**'
-      - 'kernel/**'
-      - 'userspace/**'
-      - 'scripts/ksubot.py'
+    branches: [ "**" ]
   pull_request:
   workflow_call:
 
 jobs:
+  build-gki-kernel:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - name: Trigger and wait for GKI kernel build
+        env:
+          GH_TOKEN: ${{ secrets.BUILDER_TOKEN }}
+          KITTISU_BRANCH: ${{ github.ref_name }}
+        run: |
+          run_url=$(gh workflow run kernel-custom.yml \
+            --repo thanhhuybynight/GKI_KernelSU_SUSFS \
+            --ref dev \
+            -f kernel_version=5.15 \
+            -f os_patch_level=2024-05 \
+            -f kernelsu_variant=ReSukiSU \
+            -f version=KittiSU-${KITTISU_BRANCH} \
+            -f build_time=N \
+            -f use_kpm='disabled (关闭)' \
+            -f droidspaces=678 \
+            -f artifact_upload_mode='上传全部' \
+            -f droidspaces_ntsync=false \
+            -f use_zram=true \
+            -f use_bbg=true \
+            -f use_rekernel=true \
+            -f cve_2026_43499_patch=false \
+            -f cancel_susfs=false \
+            -f supp_op=false \
+            -f ksu_repository=https://github.com/terebiko/KittiSU \
+            -f ksu_branch="$KITTISU_BRANCH")
+          run_id=${run_url##*/}
+          test -n "$run_id"
+          echo "Remote build: $run_url" >> "$GITHUB_STEP_SUMMARY"
+          if gh run watch "$run_id" \
+              --repo thanhhuybynight/GKI_KernelSU_SUSFS \
+              --interval 30 \
+              --exit-status; then
+            remote_status=0
+          else
+            remote_status=$?
+          fi
+
+          gh api --paginate \
+            "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/runs/$run_id/jobs" \
+            --jq '.jobs[] | [.id, .name] | @tsv' |
+          while IFS=$'\t' read -r job_id job_name; do
+            echo "::group::Remote GKI: $job_name"
+            gh api \
+              "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/jobs/$job_id/logs" || true
+            echo "::endgroup::"
+          done
+
+          exit "$remote_status"
+
   generate-key:
     runs-on: ubuntu-latest
     outputs:
@@ -98,6 +143,38 @@ jobs:
     with:
       target: ${{ matrix.target }}
       os: ${{ matrix.os }}
+
+  build-ksud-linux-host:
+    needs: [build-lkm, build-ksuinit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+
+      - name: Prepare x86_64 and aarch64 patch assets
+        run: |
+          cp aarch64-android*-lkm/*_kernelsu.ko userspace/ksud/bin/aarch64/
+          cp x86_64-android*-lkm/*_kernelsu.ko userspace/ksud/bin/x86_64/
+          mv ksuinit-aarch64/ksuinit userspace/ksud/bin/aarch64/
+          mv ksuinit-x86_64/ksuinit userspace/ksud/bin/x86_64/
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: userspace/ksud
+          cache-targets: false
+
+      - name: Build Linux host ksud
+        run: cargo build --release --manifest-path userspace/ksud/Cargo.toml
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ksud-x86_64-linux-host
+          path: userspace/ksud/target/release/ksud
 
   build-manager:
     needs: [generate-key]
@@ -215,6 +292,9 @@ jobs:
     if: always() && needs.build-manager.result == 'success' && needs.build-ksud.result == 'success'
     needs: [build-manager, build-ksud, generate-key]
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -286,7 +366,6 @@ jobs:
           cp -f "$X86_64_KSUD" target/x86_64-linux-android/release/ksud
 
       - name: Prepare signing inputs
-        if: ${{ github.event_name == 'pull_request' || (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/sync-upstream' || github.ref == 'refs/heads/managerfix')) || github.ref_type == 'tag' }}
         env:
           PR_KEYSTORE: ${{ needs.generate-key.outputs.keystore }}
           PR_KEYSTORE_PASSWORD: ${{ needs.generate-key.outputs.keystore_password }}
@@ -312,7 +391,6 @@ jobs:
           fi
 
       - name: Repack and resign
-        if: ${{ github.event_name == 'pull_request' || (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/sync-upstream' || github.ref == 'refs/heads/managerfix')) || github.ref_type == 'tag' }}
         run: |
           python3 repack_apk_multi.py repack \
             -b ${{ matrix.build_type }} \
@@ -327,22 +405,28 @@ jobs:
             --strip
 
       - name: Delete gradle build
-        uses: GeekyEggo/delete-artifact@v6
-        with:
-          name: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
+        run: |
+          artifact_id=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" \
+            --jq '.artifacts[0].id')
+          test -n "$artifact_id"
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
         
       - name: Upload build artifact
-        if: ${{ github.event_name == 'pull_request' || (github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/ci' || github.ref == 'refs/heads/sync-upstream' || github.ref == 'refs/heads/managerfix')) || github.ref_type == 'tag' }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.determine.outputs.title }}-${{ matrix.build_type }}
           path: dist/*.apk
 
   upload-telegram:
-    needs: repack-manager
-    if: github.event_name != 'pull_request' 
+    needs: [repack-manager, build-gki-kernel]
+    if: github.event_name != 'pull_request' && needs.repack-manager.result == 'success' && needs.build-gki-kernel.result == 'success'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         manager_type: [ "spoofed", "normal" ]
     steps:

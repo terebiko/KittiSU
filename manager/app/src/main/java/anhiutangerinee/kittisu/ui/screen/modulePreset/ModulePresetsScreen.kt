@@ -20,10 +20,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Source
+import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.twotone.CloudOff
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.Source
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -94,10 +94,10 @@ fun ModulePresetsScreen() {
                 navigationIcon = { AppBackButton(onClick = { navigator.pop() }) },
                 actions = {
                     IconButton(onClick = { viewModel.refreshPresets(context) }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.preset_retry))
+                        Icon(Icons.TwoTone.Refresh, contentDescription = stringResource(R.string.preset_retry))
                     }
                     IconButton(onClick = { navigator.push(Route.ModulePresetSources) }) {
-                        Icon(Icons.Filled.Source, contentDescription = stringResource(R.string.preset_sources))
+                        Icon(Icons.TwoTone.Source, contentDescription = stringResource(R.string.preset_sources))
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -111,7 +111,7 @@ fun ModulePresetsScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { navigator.push(Route.ModulePresetEditor(null)) }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.preset_create_local))
+                Icon(Icons.TwoTone.Add, contentDescription = stringResource(R.string.preset_create_local))
             }
         },
         snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) },
@@ -173,7 +173,7 @@ fun ModulePresetsScreen() {
 private fun ErrorBanner(message: String, onRetry: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Icon(Icons.TwoTone.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
             Spacer(Modifier.size(12.dp))
             Text(message, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             TextButton(onClick = onRetry) {
@@ -187,7 +187,7 @@ private fun ErrorBanner(message: String, onRetry: () -> Unit) {
 private fun EmptyState() {
     Box(modifier = Modifier.fillMaxWidth().padding(top = 64.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Filled.Source, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(Icons.TwoTone.Source, contentDescription = null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))
             Text(stringResource(R.string.preset_no_presets), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleMedium)
         }

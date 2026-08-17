@@ -191,7 +191,32 @@ fn link_ksud_to_bin() -> Result<()> {
     Ok(())
 }
 
-pub fn install(libadbroot: Option<PathBuf>) -> Result<()> {
+fn migrate_boot_backups(data_path: &Path) -> Result<()> {
+    let backup_dir = data_path.join(defs::KSU_TEMP_BACKUP_DIR_NAME);
+    if !backup_dir.is_dir() {
+        return Ok(());
+    }
+
+    ensure_dir_exists(defs::KSU_BACKUP_DIR)?;
+    for entry in backup_dir.read_dir()? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if entry.file_type()?.is_file()
+            && name
+                .to_str()
+                .is_some_and(|name| name.starts_with(defs::KSU_BACKUP_FILE_PREFIX))
+        {
+            let target = Path::new(defs::KSU_BACKUP_DIR).join(&name);
+            std::fs::copy(entry.path(), &target)
+                .with_context(|| format!("failed to migrate {}", entry.path().display()))?;
+            std::fs::remove_file(entry.path())?;
+        }
+    }
+    std::fs::remove_dir(&backup_dir).ok();
+    Ok(())
+}
+
+pub fn install(libadbroot: Option<PathBuf>, data_path: Option<PathBuf>) -> Result<()> {
     ensure_dir_exists(defs::ADB_DIR)?;
     let _ = std::fs::remove_file(defs::DAEMON_PATH);
     std::fs::copy(
@@ -208,6 +233,11 @@ pub fn install(libadbroot: Option<PathBuf>) -> Result<()> {
         ensure_dir_exists(defs::LIBRARY_DIR)?;
         let _ = std::fs::remove_file(defs::LIBADBROOT_PATH);
         let _ = std::fs::copy(libadbroot, defs::LIBADBROOT_PATH);
+    }
+    if let Some(data_path) = data_path
+        && let Err(e) = migrate_boot_backups(&data_path)
+    {
+        log::warn!("migrate boot backups failed: {e:#}");
     }
     Ok(())
 }

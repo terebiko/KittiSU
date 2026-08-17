@@ -5,8 +5,6 @@
 
 #ifdef __x86_64__
 
-#include "asm/text-patching.h" // IWYU pragma: keep
-
 #include <linux/cache.h>
 #include "../patch_memory.h"
 #include "klog.h" // IWYU pragma: keep

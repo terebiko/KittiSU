@@ -32,24 +32,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Adb
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LocalPolice
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.SettingsSuggest
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.TaskAlt
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.twotone.Adb
+import androidx.compose.material.icons.twotone.Android
+import androidx.compose.material.icons.twotone.Extension
+import androidx.compose.material.icons.twotone.Group
+import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Link
+import androidx.compose.material.icons.twotone.LocalPolice
+import androidx.compose.material.icons.twotone.Memory
+import androidx.compose.material.icons.twotone.PhoneAndroid
+import androidx.compose.material.icons.twotone.PowerSettingsNew
+import androidx.compose.material.icons.twotone.Security
+import androidx.compose.material.icons.twotone.SettingsSuggest
+import androidx.compose.material.icons.twotone.Storage
+import androidx.compose.material.icons.twotone.Tune
+import androidx.compose.material.icons.twotone.Block
+import androidx.compose.material.icons.twotone.TaskAlt
+import androidx.compose.material.icons.twotone.Warning
 import androidx.compose.material.icons.twotone.Error
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -101,6 +100,8 @@ import anhiutangerinee.kittisu.KernelSUApplication
 import anhiutangerinee.kittisu.KernelVersion
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.update.UpdateChannel
+import anhiutangerinee.kittisu.data.update.checkManagerUpdate
 import anhiutangerinee.kittisu.magica.MagicaService
 import anhiutangerinee.kittisu.ui.component.KsuIsValid
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -119,7 +120,6 @@ import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.theme.getCardColors
 import anhiutangerinee.kittisu.ui.theme.getCardElevation
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
-import anhiutangerinee.kittisu.ui.util.downloader.checkNewVersion
 import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
@@ -344,8 +344,6 @@ fun HomePage(
                         isHideSusfsStatus = viewModel.isHideSusfsStatus,
                         isHideZygiskImplement = viewModel.isHideZygiskImplement,
                         isHideMetaModuleImplement = viewModel.isHideMetaModuleImplement,
-                        showKpmInfo = viewModel.showKpmInfo,
-                        lkmMode = viewModel.systemStatus.lkmMode,
                     )
                 }
 
@@ -364,15 +362,18 @@ fun HomePage(
 @Composable
 fun UpdateCard() {
     val context = LocalContext.current
+    val channel = UpdateChannel.fromPreference(
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getString("update_channel", null)
+    )
     val latestVersionInfo = LatestVersionInfo()
-    val newVersion by produceState(initialValue = latestVersionInfo) {
+    val newVersion by produceState(initialValue = latestVersionInfo, channel) {
         value = withContext(Dispatchers.IO) {
-            checkNewVersion()
+            checkManagerUpdate(channel)
         }
     }
 
     val currentVersionCode = getManagerVersion(context).second
-    val newVersionCode = newVersion.versionCode
     val newVersionUrl = newVersion.downloadUrl
     val changelog = newVersion.changelog
 
@@ -381,7 +382,7 @@ fun UpdateCard() {
     val updateText = stringResource(id = R.string.module_update)
 
     AnimatedVisibility(
-        visible = newVersionCode > currentVersionCode,
+        visible = newVersion.isNewerThan(currentVersionCode, BuildConfig.GIT_COMMIT),
         enter = fadeIn() + expandVertically(
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -392,11 +393,14 @@ fun UpdateCard() {
     ) {
         val updateDialog = rememberConfirmDialog(onConfirm = { uriHandler.openUri(newVersionUrl) })
         WarningCard(
-            message = stringResource(id = R.string.new_version_available).format(newVersionCode),
+            message = stringResource(
+                R.string.manager_update_available,
+                newVersion.versionName.ifBlank { newVersion.versionCode.toString() }
+            ),
             color = MaterialTheme.colorScheme.outlineVariant,
             icon = {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = Icons.TwoTone.Info,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
@@ -477,7 +481,7 @@ private fun TopBar(
                         navigator.push(Route.SuSFSConfig)
                     }) {
                         Icon(
-                            imageVector = Icons.Filled.Tune,
+                            imageVector = Icons.TwoTone.Tune,
                             contentDescription = stringResource(R.string.susfs_config_setting_title)
                         )
                     }
@@ -486,7 +490,7 @@ private fun TopBar(
                 KsuIsValid {
                     IconButton(onClick = { showDropdown = true }) {
                         Icon(
-                            imageVector = Icons.Filled.PowerSettingsNew,
+                            imageVector = Icons.TwoTone.PowerSettingsNew,
                             contentDescription = stringResource(id = R.string.reboot)
                         )
                         DropdownMenuPopup(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
@@ -741,8 +745,6 @@ private fun InfoCard(
     isHideSusfsStatus: Boolean,
     isHideZygiskImplement: Boolean,
     isHideMetaModuleImplement: Boolean,
-    showKpmInfo: Boolean,
-    lkmMode: Boolean?
 ) {
     ElevatedCard(
         colors = getCardColors(MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -796,34 +798,34 @@ private fun InfoCard(
             InfoCardItem(
                 stringResource(R.string.home_kernel),
                 systemInfo.kernelRelease,
-                icon = Icons.Default.Memory,
+                icon = Icons.TwoTone.Memory,
             )
 
             if (!isSimpleMode) {
                 InfoCardItem(
                     stringResource(R.string.home_android_version),
                     systemInfo.androidVersion,
-                    icon = Icons.Default.Android,
+                    icon = Icons.TwoTone.Android,
                 )
             }
 
             InfoCardItem(
                 stringResource(R.string.home_device_model),
                 systemInfo.deviceModel,
-                icon = Icons.Default.PhoneAndroid,
+                icon = Icons.TwoTone.PhoneAndroid,
             )
 
             InfoCardItem(
                 stringResource(R.string.home_manager_version),
                 "${systemInfo.managerVersion.first} (${systemInfo.managerVersion.second.toInt()})",
-                icon = Icons.Default.SettingsSuggest,
+                icon = Icons.TwoTone.SettingsSuggest,
             )
 
             if (!isSimpleMode && ksuIsValid()) {
                 InfoCardItem(
                     stringResource(R.string.home_hook_type),
                     Natives.getHookType(),
-                    icon = Icons.Default.Link
+                    icon = Icons.TwoTone.Link
                 )
             }
 
@@ -855,14 +857,14 @@ private fun InfoCard(
                 InfoCardItem(
                     stringResource(R.string.multi_manager_list),
                     managersText.ifEmpty { stringResource(R.string.no_active_manager) },
-                    icon = Icons.Default.Group,
+                    icon = Icons.TwoTone.Group,
                 )
             }
 
             InfoCardItem(
                 stringResource(R.string.home_selinux_status),
                 systemInfo.selinuxStatus,
-                icon = Icons.Default.Security,
+                icon = Icons.TwoTone.Security,
             )
 
             val seccompDisplay = when (systemInfo.seccompStatus) {
@@ -876,14 +878,14 @@ private fun InfoCard(
             InfoCardItem(
                 stringResource(R.string.home_seccomp_status),
                 seccompDisplay,
-                icon = Icons.Default.LocalPolice,
+                icon = Icons.TwoTone.LocalPolice,
             )
 
             if (!isHideZygiskImplement && !isSimpleMode && systemInfo.zygiskImplement.isNotEmpty() && systemInfo.zygiskImplement != "None") {
                 InfoCardItem(
                     stringResource(R.string.home_zygisk_implement),
                     systemInfo.zygiskImplement,
-                    icon = Icons.Default.Adb,
+                    icon = Icons.TwoTone.Adb,
                 )
             }
 
@@ -891,37 +893,7 @@ private fun InfoCard(
                 InfoCardItem(
                     stringResource(R.string.home_meta_module_implement),
                     systemInfo.metaModuleImplement,
-                    icon = Icons.Default.Extension,
-                )
-            }
-
-            if (lkmMode == false && !isSimpleMode && !showKpmInfo) {
-                val kpmNotSupport =
-                    systemInfo.kpmVersion.isEmpty() || systemInfo.kpmVersion.startsWith("Error")
-                val displayText = when {
-                    kpmNotSupport && Natives.isKPMEnabled() -> {
-                        stringResource(
-                            R.string.kpm_not_supported,
-                            stringResource(R.string.kernel_not_patched)
-                        )
-                    }
-
-                    kpmNotSupport && !Natives.isKPMEnabled() -> {
-                        stringResource(
-                            R.string.kpm_not_supported,
-                            stringResource(R.string.kernel_not_enabled)
-                        )
-                    }
-
-                    else -> {
-                        stringResource(R.string.kpm_supported, systemInfo.kpmVersion)
-                    }
-                }
-
-                InfoCardItem(
-                    stringResource(R.string.home_kpm_version),
-                    displayText,
-                    icon = Icons.Default.Archive
+                    icon = Icons.TwoTone.Extension,
                 )
             }
 
@@ -929,7 +901,7 @@ private fun InfoCard(
                 InfoCardItem(
                     stringResource(R.string.home_susfs_version),
                     systemInfo.susfsVersion,
-                    icon = Icons.Default.Storage
+                    icon = Icons.TwoTone.Storage
                 )
             }
         }

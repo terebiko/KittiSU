@@ -23,12 +23,16 @@ mod android {
     pub const MODULE_DIR: &str = concatcp!(ADB_DIR, "modules/");
     pub const MODULE_UPDATE_DIR: &str = concatcp!(ADB_DIR, "modules_update/");
     pub const METAMODULE_DIR: &str = concatcp!(ADB_DIR, "metamodule/");
+    pub const PREINIT_DIR: &str = "/metadata/ksu/";
+    pub const PREINIT_WATCHDOG_DIR: &str = "/metadata/watchdog/ksu/";
+    pub const MODULES_RC_FILE: &str = "modules.rc";
 
     pub const MODULE_WEB_DIR: &str = "webroot";
     pub const MODULE_ACTION_SH: &str = "action.sh";
     pub const DISABLE_FILE_NAME: &str = "disable";
     pub const UPDATE_FILE_NAME: &str = "update";
     pub const REMOVE_FILE_NAME: &str = "remove";
+    pub const MODULE_INIT_RC_DIR: &str = "initrc";
 
     // Module config system
     pub const MODULE_CONFIG_DIR: &str = concatcp!(WORKING_DIR, "module_configs/");
@@ -46,10 +50,12 @@ mod android {
 
     pub const KSU_BACKUP_DIR: &str = WORKING_DIR;
     pub const KSU_BACKUP_FILE_PREFIX: &str = "ksu_backup_";
+    pub const KSU_TEMP_BACKUP_DIR_NAME: &str = "boot_backup";
     pub const BACKUP_FILENAME: &str = "stock_image.sha1";
     pub const UMOUNT_CONFIG_PATH: &str = concatcp!(WORKING_DIR, ".umount");
 
     pub const DYNAMIC_MANAGER: &str = concatcp!(WORKING_DIR, ".dynamic_manager");
+    pub const SUSFS_CONFIG: &str = concatcp!(WORKING_DIR, ".susfs.json");
 
     #[derive(Serialize)]
     pub struct MountInfo {

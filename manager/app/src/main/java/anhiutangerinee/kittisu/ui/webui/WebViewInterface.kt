@@ -11,9 +11,7 @@ import android.widget.Toast
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import anhiutangerinee.kittisu.ui.util.controlKpmModule
 import anhiutangerinee.kittisu.ui.util.createRootShell
-import anhiutangerinee.kittisu.ui.util.listKpmModules
 import anhiutangerinee.kittisu.ui.util.listModules
 import anhiutangerinee.kittisu.ui.util.withNewRootShell
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
@@ -267,15 +265,6 @@ class WebViewInterface(private val state: WebUIState) {
         state.requestExit()
     }
 
-    @JavascriptInterface
-    fun listAllKpm(): String {
-        return listKpmModules()
-    }
-
-    @JavascriptInterface
-    fun controlKpm(name: String, args: String): Int {
-        return controlKpmModule(name, args)
-    }
 }
 
 fun hideSystemUI(window: Window) =

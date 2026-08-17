@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Error
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -155,7 +155,7 @@ private fun WarningCardInner(
                     icon()
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Error,
+                        imageVector = Icons.TwoTone.Error,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -169,7 +169,7 @@ private fun WarningCardInner(
 
             if (onClose != null) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.TwoTone.Close,
                     contentDescription = stringResource(android.R.string.cancel),
                     modifier = Modifier
                         .clickable {

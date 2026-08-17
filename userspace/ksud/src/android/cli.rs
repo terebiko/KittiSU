@@ -11,6 +11,7 @@ use crate::{
         module::{self, module_config},
         profile, sepolicy, su, sulog, susfs, umount_config, utils,
     },
+    anykernel3::{self, Slot},
     apk_sign, assets,
     boot_patch::{BootPatchArgs, BootRestoreArgs},
     defs,
@@ -26,6 +27,17 @@ struct Args {
 
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
+    /// Flash an AnyKernel3 ZIP
+    #[command(name = "anykernel3")]
+    AnyKernel3 {
+        /// AnyKernel3 ZIP file path
+        zip: PathBuf,
+
+        /// Select A/B slot for flashing
+        #[arg(long, value_enum)]
+        slot: Option<Slot>,
+    },
+
     /// Manage KernelSU modules
     Module {
         #[command(subcommand)]
@@ -69,10 +81,7 @@ enum Commands {
     },
 
     /// Manage susfs component
-    Susfs {
-        #[command(subcommand)]
-        command: Susfs,
-    },
+    Susfs(susfs::cli::SusfsArgs),
 
     /// Manage auto apply user custom umount configs
     UmountConfig {
@@ -96,6 +105,9 @@ enum Commands {
     Install {
         #[arg(long, default_value = None)]
         libadbroot: Option<PathBuf>,
+
+        #[arg(long, default_value = None)]
+        data_path: Option<PathBuf>,
     },
 
     /// Unload KernelSU kernel module (LKM Only)
@@ -137,13 +149,6 @@ enum Commands {
         command: BootInfo,
     },
 
-    /// KPM module manager
-    #[cfg(all(target_arch = "aarch64", target_os = "android"))]
-    Kpm {
-        #[command(subcommand)]
-        command: kpm_cmd::Kpm,
-    },
-
     /// For developers
     Debug {
         #[command(subcommand)]
@@ -157,6 +162,12 @@ enum Commands {
 
     /// Resetprop - Magisk-compatible system property tool
     Resetprop(crate::android::resetprop::Args),
+
+    /// Show or reset bootloop recovery state
+    Recovery {
+        #[arg(long)]
+        reset: bool,
+    },
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -301,6 +312,26 @@ enum Sepolicy {
 
 #[derive(clap::Subcommand, Debug)]
 enum Module {
+    /// Back up installed modules and their state
+    Backup {
+        /// Destination tar archive
+        archive: PathBuf,
+    },
+
+    /// Inspect a module backup
+    InspectBackup {
+        /// Module backup tar archive
+        archive: PathBuf,
+    },
+
+    /// Restore modules into the next-boot update directory
+    Restore {
+        /// Module backup tar archive
+        archive: PathBuf,
+        /// Optional module IDs; restore every module when omitted
+        ids: Vec<String>,
+    },
+
     /// Install module <ZIP>
     Install {
         /// module zip file path
@@ -530,41 +561,7 @@ enum UmountOp {
     List,
 }
 
-#[cfg(all(target_arch = "aarch64", target_os = "android"))]
-mod kpm_cmd {
-    use std::path::PathBuf;
-
-    use clap::Subcommand;
-
-    #[derive(Subcommand, Debug)]
-    pub enum Kpm {
-        /// Load a KPM module: load <path> [args]
-        Load { path: PathBuf, args: Option<String> },
-        /// Unload a KPM module: unload <name>
-        Unload { name: String },
-        /// Get number of loaded modules
-        Num,
-        /// List loaded KPM modules
-        List,
-        /// Get info of a KPM module: info <name>
-        Info { name: String },
-        /// Send control command to a KPM module: control <name> <args>
-        Control { name: String, args: String },
-        /// Print KPM Loader version
-        Version,
-    }
-}
-
-#[derive(clap::Subcommand, Debug)]
-enum Susfs {
-    /// Get SUSFS Status
-    Status,
-    /// Get SUSFS Version
-    Version,
-    /// Get SUSFS enable Features
-    Features,
-}
-
+#[allow(clippy::similar_names)]
 pub fn run() -> Result<()> {
     android_logger::init_once(
         Config::default()
@@ -583,26 +580,30 @@ pub fn run() -> Result<()> {
         return crate::android::resetprop::run_from_args(&all_args);
     }
 
+    if arg0.ends_with("ksu_susfs") {
+        let all_args: Vec<String> = std::env::args().collect();
+        return crate::android::susfs::cli::run_from_args(&all_args);
+    }
+
     let cli = Args::parse();
 
     log::info!("command: {:?}", cli.command);
 
     let result = match cli.command {
+        Commands::AnyKernel3 { zip, slot } => anykernel3::flash(&zip, slot),
+        Commands::Recovery { reset } => {
+            if reset {
+                crate::android::recovery::reset()
+            } else {
+                crate::android::recovery::show()
+            }
+        }
         Commands::PostFsData => init_event::on_post_data_fs(),
         Commands::BootCompleted => {
             init_event::on_boot_completed();
             Ok(())
         }
-        Commands::Susfs { command } => {
-            match command {
-                Susfs::Version => println!("{}", susfs::get_susfs_version()),
-
-                Susfs::Status => println!("{}", susfs::get_susfs_status()),
-
-                Susfs::Features => println!("{}", susfs::get_susfs_features()),
-            }
-            Ok(())
-        }
+        Commands::Susfs(args) => crate::android::susfs::cli::run_main(args),
         Commands::UmountConfig { command } => match command {
             UmountConfigOp::Add { mnt, flags } => umount_config::add_umount(&mnt, flags),
             UmountConfigOp::Del { mnt } => umount_config::del_umount(&mnt),
@@ -614,6 +615,9 @@ pub fn run() -> Result<()> {
         Commands::Module { command } => {
             utils::switch_mnt_ns(1)?;
             match command {
+                Module::Backup { archive } => module::backup::backup(&archive),
+                Module::InspectBackup { archive } => module::backup::inspect(&archive),
+                Module::Restore { archive, ids } => module::backup::restore(&archive, &ids),
                 Module::Install { zip } => module::install_module(&zip),
                 Module::UndoUninstall { id } => module::undo_uninstall_module(&id),
                 Module::Uninstall { id } => module::uninstall_module(&id),
@@ -713,7 +717,10 @@ pub fn run() -> Result<()> {
                 }
             }
         }
-        Commands::Install { libadbroot } => utils::install(libadbroot),
+        Commands::Install {
+            libadbroot,
+            data_path,
+        } => utils::install(libadbroot, data_path),
         Commands::Unload => crate::android::unload::unload(),
         Commands::Uninstall { package_name } => utils::uninstall(&package_name),
         Commands::Sepolicy { command } => match command {
@@ -886,27 +893,6 @@ pub fn run() -> Result<()> {
                 Ok(())
             }
         },
-        #[cfg(all(target_arch = "aarch64", target_os = "android"))]
-        Commands::Kpm { command } => {
-            use kpm_cmd::Kpm;
-
-            use crate::android::kpm;
-            match command {
-                Kpm::Load { path, args } => {
-                    kpm::load_module(path.to_str().unwrap(), args.as_deref())
-                }
-                Kpm::Unload { name } => kpm::unload_module(name),
-                Kpm::Num => kpm::num().map(|_| ()),
-                Kpm::List => kpm::list(),
-                Kpm::Info { name } => kpm::info(name),
-                Kpm::Control { name, args } => {
-                    let ret = kpm::control(name, args)?;
-                    println!("{ret}");
-                    Ok(())
-                }
-                Kpm::Version => kpm::version(),
-            }
-        }
     };
 
     if let Err(e) = &result {

@@ -73,7 +73,11 @@ class SuperUserViewModel : ViewModel() {
     companion object {
         private const val TAG = "SuperUserViewModel"
         private val appsLock = Any()
+        private var allApps: List<AppInfo> = emptyList()
         var apps by mutableStateOf<List<AppInfo>>(emptyList())
+
+        fun getCachedApps(includeManager: Boolean = false): List<AppInfo> =
+            synchronized(appsLock) { if (includeManager) allApps else apps }
 
         @JvmStatic
         fun getAppIconDrawable(context: Context, packageName: String): Drawable? {
@@ -355,7 +359,10 @@ class SuperUserViewModel : ViewModel() {
 
                 appListMutex.withLock {
                     val filteredApps = result.filter { it.packageName != ksuApp.packageName }
-                    apps = filteredApps
+                    synchronized(appsLock) {
+                        allApps = result
+                        apps = filteredApps
+                    }
                     appGroups = groupAppsByUid(filteredApps)
                 }
                 loadingProgress = 1f

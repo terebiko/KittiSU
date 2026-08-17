@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import zako.zako.zako.zakoui.screen.moreSettings.util.LocaleHelper
 
 /**
@@ -33,6 +35,8 @@ class MoreSettingsState(
 
     // 动态颜色开关状态
     var useDynamicColor by mutableStateOf(ThemeConfig.useDynamicColor)
+    var dynamicColorSpec by mutableStateOf(ThemeConfig.dynamicColorSpec)
+    var dynamicPaletteStyle by mutableStateOf(ThemeConfig.dynamicPaletteStyle)
 
     // 语言设置
     var showLanguageDialog by mutableStateOf(false)
@@ -46,7 +50,6 @@ class MoreSettingsState(
     var isSimpleMode by mutableStateOf(prefs.getBoolean("is_simple_mode", false))
     var isHideVersion by mutableStateOf(prefs.getBoolean("is_hide_version", false))
     var isHideOtherInfo by mutableStateOf(prefs.getBoolean("is_hide_other_info", false))
-    var isShowKpmInfo by mutableStateOf(prefs.getBoolean("show_kpm_info", false))
     var isHideZygiskImplement by mutableStateOf(prefs.getBoolean("is_hide_zygisk_Implement", false))
     var isHideMetaModuleImplement by mutableStateOf(prefs.getBoolean("is_hide_meta_module_Implement", false))
     var isHideSusfsStatus by mutableStateOf(prefs.getBoolean("is_hide_susfs_status", false))

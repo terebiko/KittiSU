@@ -66,6 +66,19 @@ class ModuleViewModelTest {
         assertEquals(listOf(1, 2), invalidIndexes)
     }
 
+    @Test
+    fun updateCheck_onlyRunsForNewActiveModuleWithUrl() {
+        val module = ModuleViewModel.Parser.parseModuleInfo(moduleJson("module", "module-dir")).copy(
+            enabled = true,
+            updateJson = "https://example.invalid/update.json",
+            versionCode = 42,
+        )
+
+        assertTrue(ModuleViewModel.shouldCheckUpdate(module, emptySet()))
+        assertFalse(ModuleViewModel.shouldCheckUpdate(module, setOf("module-dir" to 42)))
+        assertFalse(ModuleViewModel.shouldCheckUpdate(module.copy(enabled = false), emptySet()))
+    }
+
     private fun moduleJson(id: String?, dirId: String) = JSONObject().apply {
         if (id != null) put("id", id)
         put("dir_id", dirId)

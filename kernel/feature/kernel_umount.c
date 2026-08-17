@@ -109,20 +109,6 @@ void try_umount(const char *mnt, int flags)
 extern struct work_struct susfs_extra_works;
 #endif
 
-static void do_umount_for_current_task()
-{
-    const struct cred *saved = override_creds(ksu_cred);
-    struct mount_entry *entry;
-    down_read(&mount_list_lock);
-    list_for_each_entry (entry, &mount_list, list) {
-        pr_info("%s: unmounting: %s flags: 0x%x\n", __func__, entry->umountable, entry->flags);
-        try_umount(entry->umountable, entry->flags);
-    }
-    up_read(&mount_list_lock);
-
-    revert_creds(saved);
-}
-
 int ksu_handle_umount(uid_t old_uid, uid_t new_uid)
 {
     const struct cred *saved;

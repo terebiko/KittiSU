@@ -1,3 +1,6 @@
+// derive_new generates `Self { field: field }` initializers
+#![allow(clippy::redundant_field_names)]
+
 use std::{path::Path, vec};
 
 use anyhow::{Context, Result, bail};

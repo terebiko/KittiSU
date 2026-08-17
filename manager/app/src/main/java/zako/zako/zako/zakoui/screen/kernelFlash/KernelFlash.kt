@@ -24,11 +24,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.automirrored.twotone.ArrowBack
+import androidx.compose.material.icons.twotone.CheckCircle
+import androidx.compose.material.icons.twotone.Error
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.Save
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,8 +93,6 @@ private object KernelFlashStateHolder {
     var currentState: HorizonKernelState? = null
     var currentUri: Uri? = null
     var currentSlot: String? = null
-    var currentKpmPatchEnabled: Boolean = false
-    var currentKpmUndoPatch: Boolean = false
     var isFlashing = false
 }
 
@@ -105,9 +103,7 @@ private object KernelFlashStateHolder {
 @Composable
 fun KernelFlashScreen(
     kernelUri: Uri,
-    selectedSlot: String? = null,
-    kpmPatchEnabled: Boolean = false,
-    kpmUndoPatch: Boolean = false
+    selectedSlot: String? = null
 ) {
     val context = LocalContext.current
 
@@ -126,17 +122,13 @@ fun KernelFlashScreen(
     val horizonKernelState = remember {
         if (KernelFlashStateHolder.currentState != null &&
             KernelFlashStateHolder.currentUri == kernelUri &&
-            KernelFlashStateHolder.currentSlot == selectedSlot &&
-            KernelFlashStateHolder.currentKpmPatchEnabled == kpmPatchEnabled &&
-            KernelFlashStateHolder.currentKpmUndoPatch == kpmUndoPatch) {
+            KernelFlashStateHolder.currentSlot == selectedSlot) {
             KernelFlashStateHolder.currentState!!
         } else {
             HorizonKernelState().also {
                 KernelFlashStateHolder.currentState = it
                 KernelFlashStateHolder.currentUri = kernelUri
                 KernelFlashStateHolder.currentSlot = selectedSlot
-                KernelFlashStateHolder.currentKpmPatchEnabled = kpmPatchEnabled
-                KernelFlashStateHolder.currentKpmUndoPatch = kpmUndoPatch
                 KernelFlashStateHolder.isFlashing = false
             }
         }
@@ -172,9 +164,7 @@ fun KernelFlashScreen(
                 val worker = HorizonKernelWorker(
                     context = context,
                     state = horizonKernelState,
-                    slot = selectedSlot,
-                    kpmPatchEnabled = kpmPatchEnabled,
-                    kpmUndoPatch = kpmUndoPatch
+                    slot = selectedSlot
                 )
                 worker.uri = kernelUri
                 worker.setOnFlashCompleteListener(onFlashComplete)
@@ -218,8 +208,6 @@ fun KernelFlashScreen(
                 KernelFlashStateHolder.currentState = null
                 KernelFlashStateHolder.currentUri = null
                 KernelFlashStateHolder.currentSlot = null
-                KernelFlashStateHolder.currentKpmPatchEnabled = false
-                KernelFlashStateHolder.currentKpmUndoPatch = false
                 KernelFlashStateHolder.isFlashing = false
             }
             navigator.pop()
@@ -232,8 +220,6 @@ fun KernelFlashScreen(
                 KernelFlashStateHolder.currentState = null
                 KernelFlashStateHolder.currentUri = null
                 KernelFlashStateHolder.currentSlot = null
-                KernelFlashStateHolder.currentKpmPatchEnabled = false
-                KernelFlashStateHolder.currentKpmUndoPatch = false
                 KernelFlashStateHolder.isFlashing = false
             }
         }
@@ -275,7 +261,7 @@ fun KernelFlashScreen(
                     },
                     icon = {
                         Icon(
-                            Icons.Filled.Refresh,
+                            Icons.TwoTone.Refresh,
                             contentDescription = stringResource(id = R.string.reboot)
                         )
                     },
@@ -302,7 +288,7 @@ fun KernelFlashScreen(
                 .padding(innerPadding)
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
-            FlashProgressIndicator(flashState, kpmPatchEnabled, kpmUndoPatch)
+            FlashProgressIndicator(flashState)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -327,9 +313,7 @@ fun KernelFlashScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun FlashProgressIndicator(
-    flashState: FlashState,
-    kpmPatchEnabled: Boolean = false,
-    kpmUndoPatch: Boolean = false
+    flashState: FlashState
 ) {
     val progressColor = when {
         flashState.error.isNotEmpty() -> MaterialTheme.colorScheme.error
@@ -374,30 +358,19 @@ private fun FlashProgressIndicator(
                 when {
                     flashState.error.isNotEmpty() -> {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = Icons.TwoTone.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error
                         )
                     }
                     flashState.isCompleted -> {
                         Icon(
-                            imageVector = Icons.Default.CheckCircle,
+                            imageVector = Icons.TwoTone.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }
-            }
-
-            // KPM状态显示
-            if (kpmPatchEnabled || kpmUndoPatch) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (kpmUndoPatch) stringResource(R.string.kpm_undo_patch_mode)
-                    else stringResource(R.string.kpm_patch_mode),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -428,7 +401,7 @@ private fun FlashProgressIndicator(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Error,
+                        imageVector = Icons.TwoTone.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(16.dp)
@@ -493,7 +466,7 @@ private fun TopBar(
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.TwoTone.ArrowBack,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -506,7 +479,7 @@ private fun TopBar(
         actions = {
             IconButton(onClick = onSave) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    imageVector = Icons.TwoTone.Save,
                     contentDescription = stringResource(id = R.string.save_log),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

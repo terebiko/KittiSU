@@ -30,10 +30,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.twotone.Error
+import androidx.compose.material.icons.twotone.Refresh
+import androidx.compose.material.icons.twotone.Save
+import androidx.compose.material.icons.twotone.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -225,7 +225,7 @@ fun FlashScreen(flashIt: FlashIt) {
         AlertDialog(
             onDismissRequest = { dismiss() },
             icon = {
-                Icon(Icons.Outlined.Info, contentDescription = null)
+                Icon(Icons.TwoTone.Info, contentDescription = null)
             },
             title = {
                 Row(modifier = Modifier
@@ -573,7 +573,7 @@ fun FlashScreen(flashIt: FlashIt) {
                     },
                     icon = {
                         Icon(
-                            Icons.Filled.Refresh,
+                            Icons.TwoTone.Refresh,
                             contentDescription = stringResource(id = R.string.reboot)
                         )
                     },
@@ -822,7 +822,7 @@ fun ModuleInstallProgressBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Error,
+                            imageVector = Icons.TwoTone.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp)
@@ -926,7 +926,7 @@ private fun TopBar(
         actions = {
             IconButton(onClick = onSave) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    imageVector = Icons.TwoTone.Save,
                     contentDescription = stringResource(id = R.string.save_log),
                 )
             }
@@ -970,7 +970,13 @@ suspend fun getModuleIdFromUri(context: Context, uri: Uri): String? {
 
 @Parcelize
 sealed class FlashIt : Parcelable {
-    data class FlashBoot(val boot: Uri? = null, val lkm: LkmSelection, val ota: Boolean, val partition: String? = null) : FlashIt()
+    data class FlashBoot(
+        val boot: Uri? = null,
+        val lkm: LkmSelection,
+        val ota: Boolean,
+        val partition: String? = null,
+        val backup: Boolean = false,
+    ) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
     data class FlashModules(
         val uris: List<Uri>,
@@ -1047,6 +1053,7 @@ fun flashIt(
             flashIt.lkm,
             flashIt.ota,
             flashIt.partition,
+            flashIt.backup,
             onFinish,
             onStdout,
             onStderr

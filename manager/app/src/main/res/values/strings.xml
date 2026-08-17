@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">KittiSU</string>
     <string name="home">Home</string>
     <string name="learn_more">Learn more</string>
     <string name="home_not_installed">Not installed</string>
@@ -157,6 +156,12 @@
     <string name="module_changelog_failed">Fetch changelog failed: %s</string>
     <string name="settings_check_update">Update notifications</string>
     <string name="settings_check_update_summary">Auto-check for module and manager updates</string>
+    <string name="update_channel">Manager update channel</string>
+    <string name="update_channel_summary">Stable and beta use GitHub Releases; nightly uses the latest dev Actions artifact.</string>
+    <string name="update_channel_stable">Stable</string>
+    <string name="update_channel_beta">Beta</string>
+    <string name="update_channel_nightly">Nightly</string>
+    <string name="manager_update_available">Manager update available: %1$s</string>
     <string name="grant_root_failed">Failed to grant root!</string>
     <string name="home_pr_build_warning">This is a PR debug build. Do NOT use it in production!</string>
     <string name="home_pr_kernel_warning">The kernel was built with PR signature support. This is not a production kernel!</string>
@@ -168,6 +173,8 @@
     <string name="install_inactive_slot_warning">Your device will be **FORCED** to boot to the current inactive slot after a reboot!\nOnly use this option after OTA is done.\nContinue?</string>
     <string name="install_next">Next</string>
     <string name="install_select_partition">Select partition</string>
+    <string name="install_force_backup">Back up stock image</string>
+    <string name="install_force_backup_summary">Save the selected image so it can be restored before an OTA or uninstall.</string>
     <string name="install_upload_lkm_file">Use local LKM file</string>
     <string name="install_only_support_ko_file">Only .ko files are supported</string>
     <string name="select_file_tip">%1$s partition image is recommended</string>
@@ -238,7 +245,7 @@
     <string name="hide_kernel_kernelsu_version">Hide kernel version</string>
     <string name="hide_kernel_kernelsu_version_summary">Hide kernel version</string>
     <string name="hide_other_info">Hide other info</string>
-    <string name="hide_other_info_summary">Hides Red dot about the number of super users, modules and KPM modules on the navigation bar page</string>
+    <string name="hide_other_info_summary">Hides badges for superuser and module counts on the navigation bar</string>
     <string name="hide_susfs_status">Hide SuSFS status</string>
     <string name="hide_susfs_status_summary">Hide SuSFS status information on the home page</string>
     <string name="hide_zygisk_implement">Hide Zygisk status</string>
@@ -255,6 +262,8 @@
     <string name="theme_dark">Dark</string>
     <string name="dynamic_color_title">Dynamic colours</string>
     <string name="dynamic_color_summary">Dynamic colours using system themes</string>
+    <string name="dynamic_palette_style">Palette style</string>
+    <string name="dynamic_color_spec">Colour specification</string>
     <string name="choose_theme_color">Choose a theme colour</string>
     <string name="color_default">Blue</string>
     <string name="color_green">Green</string>
@@ -271,36 +280,8 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="failed_reboot">Reboot Failed</string>
-    <string name="kpm_title">KPM</string>
-    <string name="kpm_empty">No installed KernelPatch Modules at this time</string>
-    <string name="kpm_version">Version</string>
-    <string name="kpm_author">Author</string>
-    <string name="kpm_uninstall">Uninstall</string>
-    <string name="kpm_uninstall_success">Uninstalled successfully</string>
-    <string name="kpm_uninstall_failed">Failed to uninstall</string>
-    <string name="kpm_install_success">KPM loaded successfuly</string>
-    <string name="kpm_install_failed">Failed to load KPM</string>
-    <string name="kpm_args">Parameters</string>
-    <string name="kpm_control">Execute</string>
-    <string name="home_kpm_version">KPM Version</string>
-    <string name="close_notice">Close</string>
-    <string name="kernel_module_notice">The following kernel module functions were developed by KernelPatch and modified to include the kernel module functions of SukiSU Ultra</string>
-    <string name="kpm_control_success">Success</string>
-    <string name="kpm_control_failed">Failed</string>
-    <string name="kpm_not_supported">Unsupported (%s)</string>
-    <string name="kpm_supported">Supported (%s)</string>
-    <string name="kernel_not_patched">Kernel not patched</string>
-    <string name="kernel_not_enabled">Kernel not configured</string>
     <string name="custom_settings">Custom settings</string>
-    <string name="kpm_install_mode">KPM Install</string>
-    <string name="kpm_install_mode_load">Load</string>
-    <string name="kpm_install_mode_embed">Embed</string>
-    <string name="kpm_install_mode_description">Please select: %1\$s Module Installation Mode \n\nLoad: Temporarily load the module \nEmbedded: Permanently install into the system</string>
-    <string name="snackbar_failed_to_check_module_file">Unable to check if module file exists</string>
     <string name="theme_color">Theme Color</string>
-    <string name="invalid_file_type">Incorrect file type! Please select .kpm file</string>
-    <string name="confirm_uninstall_title_with_filename">Uninstall</string>
-    <string name="confirm_uninstall_content">The following KPM will be uninstalled: %s</string>
     <string name="horizon_flash_complete">Flash Complete</string>
     <string name="horizon_preparing">Preparing…</string>
     <string name="horizon_cleaning_files">Cleaning files…</string>
@@ -353,8 +334,6 @@
     <string name="icon_switch_title">Alternate icon</string>
     <string name="icon_switch_summary">Change the launcher icon to KernelSU\'s icon</string>
     <string name="icon_switched">Icon switched</string>
-    <string name="show_kpm_info">Hide KPM Function</string>
-    <string name="show_kpm_info_summary">Hide KPM information and Function in home and bottom bar</string>
     <string name="module_webui_alert">Message from Module %s</string>
     <string name="no_such_module">Module %s does not exist</string>
     <string name="module_unavailable">Module %s is disabled, or pending removal</string>
@@ -581,6 +560,14 @@
     <string name="invalid_sign_config">Invalid Manager configuration</string>
     <string name="dynamic_manager_disabled_success">Dynamic Manager disabled</string>
     <string name="dynamic_manager_clear_failed">Failed to clear dynamic Manager</string>
+    <string name="dynamic_manager_settings_summary">Trust an installed KernelSU manager without rebuilding the kernel</string>
+    <string name="dynamic_manager_current_status">Current dynamic manager</string>
+    <string name="dynamic_manager_clear_config">Clear dynamic manager</string>
+    <string name="dynamic_manager_clear_config_summary">Only the built-in KittiSU manager remains trusted</string>
+    <string name="dynamic_manager_clear_confirm_message">Remove the dynamically trusted manager?</string>
+    <string name="dynamic_manager_grant_confirm_title">Trust this manager?</string>
+    <string name="dynamic_manager_grant_confirm_message">The selected app will receive full KernelSU manager privileges. Continue only if you trust its source and signature.</string>
+    <string name="manage_managers">Installed KernelSU managers</string>
     <string name="dynamic_managerature">Dynamic</string>
     <string name="signature_index">Signature %1$d</string>
     <string name="unknown_signature">Unknown</string>
@@ -618,30 +605,6 @@ Important Note:\n
 - Enabling this will sometimes make developers hard to identify the cause when they are debugging with some permission or SELinux issue, so users are advised to disable this when doing
 </string>
     <string name="home_hook_type">Hook type</string>
-    <string name="kpm_patch_options">KPM Patch</string>
-    <string name="kpm_patch_description">For adding additional KPM features</string>
-    <string name="enable_kpm_patch">KPM Patch</string>
-    <string name="kpm_patch_switch_description">Apply KPM patch to kernel image before flashing</string>
-    <string name="enable_kpm_undo_patch">KPM Undo Patch</string>
-    <string name="kpm_undo_patch_switch_description">Undo previously applied KPM patch</string>
-    <string name="kpm_patch_enabled">KPM patch enabled</string>
-    <string name="kpm_undo_patch_enabled">KPM undo patch enabled</string>
-    <string name="kpm_patch_mode">KPM Patch Mode</string>
-    <string name="kpm_undo_patch_mode">KPM Undo Patch Mode</string>
-    <string name="kpm_preparing_tools">Preparing KPM tools</string>
-    <string name="kpm_applying_patch">Applying KPM patch</string>
-    <string name="kpm_undoing_patch">Undoing KPM patch</string>
-    <string name="kpm_found_image_file">Found Image file: %s</string>
-    <string name="kpm_patch_success">KPM patch applied successfully</string>
-    <string name="kpm_undo_patch_success">KPM patch undone successfully</string>
-    <string name="kpm_file_repacked">File repacked successfully</string>
-    <string name="kpm_extract_zip_failed">Failed to extract zip file</string>
-    <string name="kpm_image_file_not_found">Image file not found</string>
-    <string name="kpm_patch_failed">KPM patch failed</string>
-    <string name="kpm_undo_patch_failed">KPM undo patch failed</string>
-    <string name="kpm_patch_operation_failed">KPM patch operation failed: %s</string>
-    <string name="kpm_follow_kernel_file">Follow Kernel</string>
-    <string name="kpm_follow_kernel_description">Use kernel as-is without any KPM modifications</string>
     <string name="confirm_installation">Confirm Installation</string>
     <string name="confirm_multiple_installation">Confirm Installation (%d files)</string>
     <string name="install_confirm">Install</string>
@@ -685,6 +648,15 @@ Important Note:\n
     <string name="umount_path_added">Umount path added</string>
     <string name="umount_path_removed">Umount path removed</string>
     <string name="operation_failed">Operation failed</string>
+    <string name="module_backup">Back up modules</string>
+    <string name="module_restore">Restore modules</string>
+    <string name="module_restore_complete">Modules restored. Reboot to apply.</string>
+    <string name="module_restore_select">Select modules to restore</string>
+    <string name="boot_recovery">Boot recovery</string>
+    <string name="boot_recovery_empty">No incomplete boot is recorded.</string>
+    <string name="boot_recovery_summary">Incomplete boot attempts: %1$d</string>
+    <string name="boot_recovery_details">Incomplete boot attempts: %1$d\n\nAffected modules:\n%2$s</string>
+    <string name="boot_recovery_reset">Clear state</string>
     <string name="changes_take_effect_immediately">All changes will take effect immediately.</string>
     <string name="group_contains_apps">Contains %d apps</string>
     <string name="meta_module_disabled">module not mounted, because metamodule disabled</string>
@@ -717,6 +689,8 @@ Important Note:\n
     <string name="module_shortcut_created">Shortcut created on desktop.</string>
     <string name="module_shortcut_updated">Shortcut updated.</string>
     <string name="module_shortcut_delete">Delete shortcut</string>
+    <string name="module_shortcut_copy_url">Copy secure module URL</string>
+    <string name="module_shortcut_url_copied">Secure module URL copied</string>
     <string name="module_shortcut_permission_tip_xiaomi">Please enable \"Create desktop shortcuts\" permission for this app in Xiaomi settings.</string>
     <string name="module_shortcut_permission_tip_oppo">Please enable \"Desktop shortcut\" permission for this app in OPPO settings.</string>
     <string name="module_shortcut_permission_tip_default">If shortcut creation fails, please enable desktop shortcut permission for this app in system settings.</string>

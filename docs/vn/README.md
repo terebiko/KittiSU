@@ -25,10 +25,9 @@
 2. Hệ thống module dựa trên [metamodules](https://kernelsu.org/guide/metamodule.html): Kiến trúc plug-in cho các sửa đổi không cần thay đổi hệ thống
 3. [App Profile](https://kernelsu.org/guide/app-profile.html): Đóng quyền root vào lồng
 4. Hỗ trợ non-GKI và GKI 1.0
-5. Hỗ trợ KPM
-6. Giao diện manager với branding KittiSU tùy chỉnh
-7. Công cụ quản lý SuSFS tích hợp sẵn
-8. Hỗ trợ đa quản lý — hoạt động với các backend [Official KernelSU](https://github.com/tiann/KernelSU) / [RKSU](https://github.com/rsuntk/KernelSU) / [MKSU](https://github.com/5ec1cff/KernelSU) / [SukiSU](https://github.com/SukiSU-Ultra/SukiSU-Ultra)
+5. Giao diện manager với branding KittiSU tùy chỉnh
+6. Công cụ quản lý SuSFS tích hợp sẵn
+7. Hỗ trợ đa quản lý — hoạt động với các backend [Official KernelSU](https://github.com/tiann/KernelSU) / [RKSU](https://github.com/rsuntk/KernelSU) / [MKSU](https://github.com/5ec1cff/KernelSU) / [SukiSU](https://github.com/SukiSU-Ultra/SukiSU-Ultra)
 
 
 ## Trạng thái tương thích
@@ -60,20 +59,6 @@ export ANDROID_HOME=$HOME/Android/Sdk
 ```
 
 APK sẽ nằm tại `manager/app/build/outputs/apk/release/`.
-
-## Hỗ trợ KPM
-
-- Dựa trên KernelPatch, đã loại bỏ các tính năng trùng lặp — chỉ giữ lại hỗ trợ KPM.
-- Đang phát triển: Mở rộng khả năng tương thích APatch bằng cách tích hợp thêm các hàm.
-
-**Repository mã nguồn mở**: [https://github.com/ShirkNeko/SukiSU_KernelPatch_patch](https://github.com/ShirkNeko/SukiSU_KernelPatch_patch)
-
-**KPM template**: [https://github.com/udochina/KPM-Build-Anywhere](https://github.com/udochina/KPM-Build-Anywhere)
-
-> [!Note]
-> 1. Yêu cầu `CONFIG_KPM=y`
-> 2. Thiết bị non-GKI yêu cầu `CONFIG_KALLSYMS=y` và `CONFIG_KALLSYMS_ALL=y`
-> 3. Đối với kernel dưới `4.19`, cần backport `set_memory.h` từ `4.19`.
 
 ## Tài trợ
 

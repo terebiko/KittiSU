@@ -17,9 +17,13 @@ import anhiutangerinee.kittisu.ui.theme.ThemeColors
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.saveAndApplyCustomBackground
 import anhiutangerinee.kittisu.ui.theme.saveCustomBackground
+import anhiutangerinee.kittisu.ui.theme.saveDynamicColorSpec
 import anhiutangerinee.kittisu.ui.theme.saveDynamicColorState
+import anhiutangerinee.kittisu.ui.theme.saveDynamicPaletteStyle
 import anhiutangerinee.kittisu.ui.theme.saveThemeColors
 import anhiutangerinee.kittisu.ui.theme.saveThemeMode
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
 import zako.zako.zako.zakoui.screen.moreSettings.util.toggleLauncherIcon
 
@@ -140,6 +144,16 @@ class MoreSettingsHandlers(
         ThemeConfig.updateTheme(dynamicColor = enabled)
     }
 
+    fun handleDynamicColorSpecChange(spec: ColorSpec.SpecVersion) {
+        state.dynamicColorSpec = spec
+        activity.saveDynamicColorSpec(spec)
+    }
+
+    fun handleDynamicPaletteStyleChange(style: PaletteStyle) {
+        state.dynamicPaletteStyle = style
+        activity.saveDynamicPaletteStyle(style)
+    }
+
     /**
      * 获取DPI大小友好名称
      */
@@ -185,7 +199,6 @@ class MoreSettingsHandlers(
         CardConfig.cardAlpha = 0.55f
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, true)
-        BackgroundManager.saveEnableHighContrastMode(activity, false)
         CardConfig.cardElevation = 0.dp
         CardConfig.isCustomBackgroundEnabled = true
         CardConfig.save(activity)
@@ -215,7 +228,6 @@ class MoreSettingsHandlers(
 
         BackgroundManager.saveEnableBlur(activity, false)
         BackgroundManager.saveUseBackgroundSeedColor(activity, false)
-        BackgroundManager.saveEnableHighContrastMode(activity, false)
 
         activity.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit {
             putBoolean("prevent_background_refresh", false)
@@ -340,17 +352,6 @@ class MoreSettingsHandlers(
         state.isHideOtherInfo = newValue
         activity.settingsStateFlow.value = activity.settingsStateFlow.value.copy(
             isHideOtherInfo = newValue
-        )
-    }
-
-    /**
-     * 处理显示KPM信息变更
-     */
-    fun handleShowKpmInfoChange(newValue: Boolean) {
-        prefs.edit { putBoolean("show_kpm_info", newValue) }
-        state.isShowKpmInfo = newValue
-        activity.settingsStateFlow.value = activity.settingsStateFlow.value.copy(
-            showKpmInfo = newValue
         )
     }
 

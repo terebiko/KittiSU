@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.twotone.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -32,6 +32,7 @@ fun SettingsJumpPageWidget(
     leadingContent: (@Composable () -> Unit)? = null,
     foreContent: @Composable BoxScope.() -> Unit = {},
     descriptionColumnContent: @Composable ColumnScope.() -> Unit = {},
+    trailingIcon: ImageVector = Icons.TwoTone.ChevronRight,
 ) {
     SettingsBaseWidget(
         icon = icon,
@@ -50,7 +51,7 @@ fun SettingsJumpPageWidget(
         descriptionColumnContent = descriptionColumnContent
     ) {
         Icon(
-            imageVector = Icons.Filled.ChevronRight,
+            imageVector = trailingIcon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(24.dp)

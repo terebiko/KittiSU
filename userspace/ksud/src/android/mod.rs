@@ -3,18 +3,17 @@ mod debug;
 mod dynamic_manager;
 mod feature;
 mod init_event;
-#[cfg(all(target_arch = "aarch64", target_os = "android"))]
-mod kpm;
 mod ksucalls;
 mod late_load;
 mod module;
 mod profile;
-mod resetprop;
+mod recovery;
+pub(crate) mod resetprop;
 mod restorecon;
 mod sepolicy;
 mod su;
 mod sulog;
-mod susfs;
+pub mod susfs;
 #[allow(nonstandard_style, unused, unsafe_op_in_unsafe_fn)]
 mod uapi;
 mod umount_config;

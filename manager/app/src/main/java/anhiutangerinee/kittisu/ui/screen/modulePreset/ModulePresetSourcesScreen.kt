@@ -12,8 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,7 +92,7 @@ fun ModulePresetSourcesScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAdd = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.preset_add_source))
+                Icon(Icons.TwoTone.Add, contentDescription = stringResource(R.string.preset_add_source))
             }
         },
         snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) },
@@ -174,7 +174,7 @@ private fun SourceRow(source: PresetSource, deleteTitle: String, onDelete: () ->
             } else {
                 IconButton(onClick = onDelete) {
                     Icon(
-                        imageVector = Icons.Filled.Delete,
+                        imageVector = Icons.TwoTone.Delete,
                         contentDescription = stringResource(R.string.preset_delete_source),
                         tint = MaterialTheme.colorScheme.error
                     )

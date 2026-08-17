@@ -26,10 +26,6 @@
 #endif
 #include "feature/dynamic_manager.h"
 #include "policy/app_profile.h"
-#ifdef CONFIG_KPM
-#include "kpm/kpm.h"
-#endif
-
 #ifdef CONFIG_KSU_TOOLKIT_SUPPORT
 #include <linux/utsname.h> // utsname() and uts_sem
 #include "manager/manager_identity.h" // for change_manager_appid
@@ -57,6 +53,14 @@ static int do_grant_root(void __user *arg)
     return ret;
 }
 
+static int do_disable_escape_to_root(void __user *arg)
+{
+    if (!is_manager() && ksu_get_uid_t(current_euid()) != 0)
+        return -EPERM;
+    set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
+    return 0;
+}
+
 #ifdef CONFIG_KSU_TOOLKIT_SUPPORT
 static uint32_t ksuver_override = 0;
 static uint32_t ksuflags_override = 0;
@@ -64,7 +68,7 @@ static uint32_t ksuflags_override = 0;
 
 static int do_get_info(void __user *arg)
 {
-    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0, .uapi_version = KERNEL_SU_UAPI_VERSION };
 
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;
@@ -94,6 +98,23 @@ static int do_get_info(void __user *arg)
     }
 
     return 0;
+}
+
+static int do_get_info_legacy(void __user *arg)
+{
+    struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
+#ifdef MODULE
+    cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+#endif
+    if (is_manager())
+        cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
+    if (ksu_late_loaded)
+        cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
+#ifdef EXPECTED_PR_BUILD_SIZE
+    cmd.flags |= KSU_GET_INFO_FLAG_PR_BUILD;
+#endif
+    cmd.features = KSU_FEATURE_MAX;
+    return copy_to_user(arg, &cmd, sizeof(cmd)) ? -EFAULT : 0;
 }
 
 static int do_report_event(void __user *arg)
@@ -873,21 +894,6 @@ static int do_get_hook_type(void __user *arg)
     return 0;
 }
 
-// 102. ENABLE_KPM - Check if KPM is enabled
-static int do_enable_kpm(void __user *arg)
-{
-    struct ksu_enable_kpm_cmd cmd;
-
-    cmd.enabled = IS_ENABLED(CONFIG_KPM);
-
-    if (copy_to_user(arg, &cmd, sizeof(cmd))) {
-        pr_err("enable_kpm: copy_to_user failed\n");
-        return -EFAULT;
-    }
-
-    return 0;
-}
-
 static int do_dynamic_manager(void __user *arg)
 {
 #ifdef CONFIG_KSU_DISABLE_MANAGER
@@ -1167,6 +1173,18 @@ int ksu_try_handle_toolkit_cmd(int magic2, unsigned int cmd, void __user **arg)
 // IOCTL handlers mapping table
 // clang-format off
 static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
+    {
+        .cmd = KSU_IOCTL_GET_INFO_LEGACY,
+        .name = "GET_INFO_LEGACY",
+        .handler = do_get_info_legacy,
+        .perm_check = always_allow
+    },
+    {
+        .cmd = KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT,
+        .name = "DISABLE_ESCAPE_TO_ROOT",
+        .handler = do_disable_escape_to_root,
+        .perm_check = allowed_for_su
+    },
     { 
         .cmd = KSU_IOCTL_GRANT_ROOT, 
         .name = "GRANT_ROOT", 
@@ -1313,12 +1331,6 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
         .perm_check = manager_or_root 
     },
     { 
-        .cmd = KSU_IOCTL_ENABLE_KPM, 
-        .name = "GET_ENABLE_KPM", 
-        .handler = do_enable_kpm, 
-        .perm_check = manager_or_root 
-    },
-    { 
         .cmd = KSU_IOCTL_DYNAMIC_MANAGER,
         .name = "SET_DYNAMIC_MANAGER",
         .handler = do_dynamic_manager,
@@ -1336,14 +1348,6 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
         .handler = do_get_kernel_patch_implement, 
         .perm_check = manager_or_root 
     },
-#ifdef CONFIG_KPM
-    { 
-        .cmd = KSU_IOCTL_KPM, 
-        .name = "KPM_OPERATION", 
-        .handler = do_kpm, 
-        .perm_check = manager_or_root 
-    },
-#endif
     { 
         .cmd = 0, 
         .name = NULL, 

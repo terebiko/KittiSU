@@ -35,12 +35,6 @@ kernelsu-objs += supercall/dispatch.o
 kernelsu-objs += supercall/perm.o
 kernelsu-objs += supercall/supercall.o
 
-ifdef CONFIG_KPM
-kernelsu-objs += kpm/kpm.o
-kernelsu-objs += kpm/compact.o
-kernelsu-objs += kpm/super_access.o
-endif
-
 ifdef CONFIG_ARM64
 kernelsu-objs += compat/apatch_conflict.o
 endif
@@ -101,6 +95,9 @@ $(info -- $(REPO_NAME) version name: $(KSU_VERSION_FULL))
 
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 ccflags-y += -DKSU_VERSION_FULL=\"$(KSU_VERSION_FULL)\"
+ifeq ($(CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER),y)
+ccflags-y += -DCONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=1
+endif
 
 $(info -- Supported Unofficial Manager: MKSU, RKSU, KOWSU, SukiSU-Ultra, KittiSU, WildKsu, yukisu, Kaminarich/KamiSU, KernelSU-pershoot, VorteX, AgnesSU )
 
@@ -191,12 +188,9 @@ else
   endif
 endif
 
-# Check if KPM is enabled
+# Check if KPM is enabled (stub for builder compatibility)
 ifdef CONFIG_KPM
-  $(info -- KPM is enabled)
-  $(info -- WARNING, This feature is unstable!!! You are WARNED!!!)
-else
-  $(info -- KPM is disabled)
+  $(info -- CONFIG_KPM is set but KPM is removed from KittiSU; doing nothing.)
 endif
 
 ifndef CONFIG_KSU_TRACEPOINT_HOOK

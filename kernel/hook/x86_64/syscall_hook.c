@@ -4,6 +4,7 @@
 
 #include <linux/kallsyms.h>
 #include <linux/mutex.h>
+#include <linux/nospec.h>
 #include <asm/cacheflush.h>
 #include "infra/symbol_resolver.h"
 #include "../patch_memory.h"
@@ -12,6 +13,10 @@
 
 sys_call_ptr_t *ksu_syscall_table = NULL;
 int ksu_dispatcher_nr = -1;
+
+#ifndef __NR_syscalls
+#define __NR_syscalls (__NR_syscall_max + 1)
+#endif
 
 // Hook registration table — read with READ_ONCE from tracepoint/dispatcher
 // context, written with WRITE_ONCE from init/exit context.
@@ -198,17 +203,91 @@ bool ksu_has_syscall_hook(int nr)
     return READ_ONCE(syscall_hooks[nr]) != NULL;
 }
 
-void __init ksu_syscall_hook_init(void)
+#ifdef CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER
+static void *x64_dispatch_patch;
+static u8 x64_dispatch_original[14];
+
+static long ksu_x64_sys_call(const struct pt_regs *regs, unsigned int nr)
+{
+    return ksu_syscall_table[nr](regs);
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+static void *do_syscall_64_patch;
+static u8 do_syscall_64_original[14];
+static long (*ksu_syscall_enter_from_user_mode)(struct pt_regs *regs, long syscall);
+static void (*ksu_syscall_exit_to_user_mode)(struct pt_regs *regs);
+
+static __always_inline bool ksu_do_syscall_x64(struct pt_regs *regs, int nr)
+{
+    unsigned int index = nr;
+
+    if (likely(index < NR_syscalls)) {
+        index = array_index_nospec(index, NR_syscalls);
+        regs->ax = ksu_syscall_table[index](regs);
+        return true;
+    }
+    return false;
+}
+
+static void __nocfi ksu_do_syscall_64(struct pt_regs *regs, int nr)
+{
+    nr = ksu_syscall_enter_from_user_mode(regs, nr);
+    nr = syscall_get_nr(current, regs);
+
+    if (!ksu_do_syscall_x64(regs, nr) && nr != -1)
+        regs->ax = -ENOSYS;
+
+    ksu_syscall_exit_to_user_mode(regs);
+}
+#endif
+
+static void patch_dispatcher(const char *symbol, void **patch_addr, void *target, u8 original[14])
+{
+    static const u8 endbr64[] = { 0xf3, 0x0f, 0x1e, 0xfa };
+    u8 jump[14] = { 0xff, 0x25, 0, 0, 0, 0 };
+    int ret;
+
+    *patch_addr = (void *)find_kernel_symbol_exact(symbol);
+    if (!*patch_addr)
+        return;
+
+    if (!memcmp(*patch_addr, endbr64, sizeof(endbr64)))
+        *patch_addr = (u8 *)*patch_addr + sizeof(endbr64);
+
+    memcpy(jump + 6, &target, sizeof(target));
+    memcpy(original, *patch_addr, sizeof(jump));
+    ret = ksu_patch_text(*patch_addr, jump, sizeof(jump), KSU_PATCH_TEXT_FLUSH_ICACHE);
+    if (ret) {
+        pr_err("failed to patch %s: %d\n", symbol, ret);
+        *patch_addr = NULL;
+    } else {
+        pr_info("patched x86_64 dispatcher %s\n", symbol);
+    }
+}
+#endif
+
+void __init __nocfi ksu_syscall_hook_init(void)
 {
     int ni_slot;
 
     memset(syscall_hooks, 0, sizeof(syscall_hooks));
 
     ksu_syscall_table = (sys_call_ptr_t *)ksu_resolve_symbol_for_functable_hook("sys_call_table");
-    pr_info("sys_call_table=0x%lx", (unsigned long)ksu_syscall_table);
+    pr_info("sys_call_table=0x%lx\n", (unsigned long)ksu_syscall_table);
 
     if (!ksu_syscall_table)
         return;
+
+#ifdef CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER
+    patch_dispatcher("x64_sys_call", &x64_dispatch_patch, ksu_x64_sys_call, x64_dispatch_original);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+    ksu_syscall_enter_from_user_mode = (void *)find_kernel_symbol_exact("syscall_enter_from_user_mode");
+    ksu_syscall_exit_to_user_mode = (void *)find_kernel_symbol_exact("syscall_exit_to_user_mode");
+    if (ksu_syscall_enter_from_user_mode && ksu_syscall_exit_to_user_mode)
+        patch_dispatcher("do_syscall_64", &do_syscall_64_patch, ksu_do_syscall_64, do_syscall_64_original);
+#endif
+#endif
 
     // Find one ni_syscall slot for the dispatcher
     if (ksu_find_ni_syscall_slots(&ni_slot, 1) < 1) {
@@ -224,6 +303,17 @@ void __init ksu_syscall_hook_init(void)
 void __exit ksu_syscall_hook_exit(void)
 {
     int i;
+
+#ifdef CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER
+    if (x64_dispatch_patch && ksu_patch_text(x64_dispatch_patch, x64_dispatch_original, sizeof(x64_dispatch_original),
+                                             KSU_PATCH_TEXT_FLUSH_ICACHE))
+        pr_err("failed to restore x64_sys_call\n");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
+    if (do_syscall_64_patch && ksu_patch_text(do_syscall_64_patch, do_syscall_64_original,
+                                              sizeof(do_syscall_64_original), KSU_PATCH_TEXT_FLUSH_ICACHE))
+        pr_err("failed to restore do_syscall_64\n");
+#endif
+#endif
 
     if (!ksu_syscall_table)
         goto clear_state;

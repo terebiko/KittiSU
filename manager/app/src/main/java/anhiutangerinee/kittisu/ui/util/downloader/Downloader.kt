@@ -8,15 +8,10 @@ import android.widget.Toast
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
-import anhiutangerinee.kittisu.ui.activity.util.isNetworkAvailable
-import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import okhttp3.Request
-import org.json.JSONObject
-import java.io.IOException
 
 /**
  * @author weishu
@@ -117,45 +112,4 @@ fun download(
             )
         )
     }
-}
-
-fun checkNewVersion(): LatestVersionInfo {
-    if (!isNetworkAvailable(ksuApp)) return LatestVersionInfo()
-    val url = "https://api.github.com/repos/anotheranhiutangerine/KittiSU/releases/latest"
-    // default null value if failed
-    val defaultValue = LatestVersionInfo()
-    runCatching {
-        ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute()
-            .use { response ->
-                if (!response.isSuccessful) {
-                    return defaultValue
-                }
-                val body = response.body?.string() ?: throw IOException("Empty body")
-                val json = JSONObject(body)
-                val changelog = json.optString("body")
-
-                val assets = json.getJSONArray("assets")
-                for (i in 0 until assets.length()) {
-                    val asset = assets.getJSONObject(i)
-                    val name = asset.getString("name")
-                    if (!name.endsWith(".apk")) {
-                        continue
-                    }
-
-                    val regex = Regex("v(.+?)_(\\d+)-")
-                    val matchResult = regex.find(name) ?: continue
-                    matchResult.groupValues[1]
-                    val versionCode = matchResult.groupValues[2].toInt()
-                    val downloadUrl = asset.getString("browser_download_url")
-
-                    return LatestVersionInfo(
-                        versionCode,
-                        downloadUrl,
-                        changelog
-                    )
-                }
-
-            }
-    }
-    return defaultValue
 }

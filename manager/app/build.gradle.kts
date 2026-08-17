@@ -2,6 +2,7 @@
 
 plugins {
     alias(libs.plugins.agp.app)
+    alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.lsplugin.apksign)
@@ -18,6 +19,11 @@ val androidSourceCompatibility: JavaVersion by rootProject.extra
 val androidTargetCompatibility: JavaVersion by rootProject.extra
 val managerVersionCode: Int by rootProject.extra
 val managerVersionName: String by rootProject.extra
+val managerCommit = providers.gradleProperty("commit").orElse(
+    providers.exec { commandLine("git", "rev-parse", "HEAD") }.standardOutput.asText.map { it.trim() }
+).get()
+val managerPackageName = providers.gradleProperty("KSU_PACKAGE_NAME").orElse("anhiutangerinee.kittisu")
+val managerName = providers.gradleProperty("KSU_NAME").orElse("KittiSU")
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -81,6 +87,7 @@ android {
         buildConfig = true
         compose = true
         prefab = true
+        resValues = true
     }
 
     packaging {
@@ -122,9 +129,12 @@ android {
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
         versionName = managerVersionName
+        applicationId = managerPackageName.get()
+        resValue("string", "app_name", managerName.get())
 
         val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
+        buildConfigField("String", "GIT_COMMIT", "\"$managerCommit\"")
 
         externalNativeBuild {
             cmake {
@@ -157,11 +167,21 @@ android {
         sourceCompatibility = androidSourceCompatibility
         targetCompatibility = androidTargetCompatibility
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+}
+
+baselineProfile {
+    mergeIntoMain = true
+    saveInSrc = true
+    automaticGenerationDuringBuild = false
 }
 
 base {
     archivesName.set(
-        "KittiSU_${managerVersionName}_${managerVersionCode}"
+        "${managerName.get().replace(" ", "_")}_${managerVersionName}_${managerVersionCode}"
     )
 }
 
@@ -179,6 +199,8 @@ aboutLibraries {
 }
 
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.gson)
     implementation(libs.androidx.activity.compose)
 
@@ -214,7 +236,10 @@ dependencies {
     implementation(libs.com.github.topjohnwu.libsu.service)
     implementation(libs.com.github.topjohnwu.libsu.io)
 
-    implementation(libs.m3color)
+    implementation(libs.material.kolor)
+    implementation(libs.material.components)
+    implementation(libs.monet.compat)
+    implementation(libs.androidx.palette.ktx)
     implementation(libs.capsule)
 
     implementation(libs.dev.rikka.rikkax.parcelablelist)
@@ -237,4 +262,5 @@ dependencies {
     implementation(libs.accompanist.drawablepainter)
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }

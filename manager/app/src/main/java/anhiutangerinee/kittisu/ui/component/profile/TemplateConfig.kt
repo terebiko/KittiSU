@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReadMore
-import androidx.compose.material.icons.automirrored.rounded.Article
+import androidx.compose.material.icons.automirrored.twotone.ReadMore
+import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -45,14 +45,14 @@ fun TemplateConfig(
 //    val noTemplates = profileTemplates.isEmpty()
 
     SettingsDropdownWidget(
-        icon = Icons.AutoMirrored.Rounded.Article,
+        icon = Icons.AutoMirrored.TwoTone.Article,
         title = stringResource(R.string.profile_template),
         items = profileTemplates,
         selectedIndex = profileTemplates.indexOf(template) + 1,
         afterContent = { index ->
             if (index == 0) return@SettingsDropdownWidget
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ReadMore,
+                imageVector = Icons.AutoMirrored.TwoTone.ReadMore,
                 contentDescription = null,
                 modifier = Modifier
                     .size(35.dp)

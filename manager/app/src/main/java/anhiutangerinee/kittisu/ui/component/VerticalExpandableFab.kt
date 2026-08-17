@@ -16,14 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOff
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.twotone.Add
+import androidx.compose.material.icons.twotone.Block
+import androidx.compose.material.icons.twotone.Check
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Folder
+import androidx.compose.material.icons.twotone.FolderOff
+import androidx.compose.material.icons.twotone.KeyboardArrowDown
+import androidx.compose.material.icons.twotone.KeyboardArrowUp
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -72,8 +72,8 @@ fun VerticalExpandableFab(
     buttonSpacing: Dp = FabAnimationConfig.BUTTON_SPACING,
     animationDurationMs: Int = FabAnimationConfig.ANIMATION_DURATION,
     staggerDelayMs: Int = FabAnimationConfig.STAGGER_DELAY,
-    mainButtonIcon: ImageVector = Icons.Filled.Add,
-    mainButtonExpandedIcon: ImageVector = Icons.Filled.Close,
+    mainButtonIcon: ImageVector = Icons.TwoTone.Add,
+    mainButtonExpandedIcon: ImageVector = Icons.TwoTone.Close,
     onMainButtonClick: (() -> Unit)? = null,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -225,7 +225,7 @@ fun VerticalExpandableFab(
                 ),
                 modifier = Modifier
                     .size(24.dp)
-                    .rotate(if (mainButtonIcon == Icons.Filled.Add) rotationAngle else 0f)
+                    .rotate(if (mainButtonIcon == Icons.TwoTone.Add) rotationAngle else 0f)
             )
         }
     }
@@ -237,12 +237,12 @@ object FabMenuPresets {
         onScrollToBottom: () -> Unit
     ) = listOf(
         FabMenuItem(
-            icon = Icons.Filled.KeyboardArrowDown,
+            icon = Icons.TwoTone.KeyboardArrowDown,
             labelRes = R.string.scroll_to_bottom,
             onClick = onScrollToBottom
         ),
         FabMenuItem(
-            icon = Icons.Filled.KeyboardArrowUp,
+            icon = Icons.TwoTone.KeyboardArrowUp,
             labelRes = R.string.scroll_to_top,
             onClick = onScrollToTop
         )
@@ -257,30 +257,30 @@ object FabMenuPresets {
         onDisableUnmount: () -> Unit
     ) = listOf(
         FabMenuItem(
-            icon = Icons.Filled.Close,
+            icon = Icons.TwoTone.Close,
             labelRes = R.string.cancel,
             color = Color.Gray,
             onClick = onCancel
         ),
         FabMenuItem(
-            icon = Icons.Filled.Block,
+            icon = Icons.TwoTone.Block,
             labelRes = R.string.deny_authorization,
             color = MaterialTheme.colorScheme.error,
             onClick = onDeny
         ),
         FabMenuItem(
-            icon = Icons.Filled.Check,
+            icon = Icons.TwoTone.Check,
             labelRes = R.string.grant_authorization,
             color = MaterialTheme.colorScheme.primary,
             onClick = onAllow
         ),
         FabMenuItem(
-            icon = Icons.Filled.FolderOff,
+            icon = Icons.TwoTone.FolderOff,
             labelRes = R.string.unmount_modules,
             onClick = onUnmountModules
         ),
         FabMenuItem(
-            icon = Icons.Filled.Folder,
+            icon = Icons.TwoTone.Folder,
             labelRes = R.string.disable_unmount,
             onClick = onDisableUnmount
         )

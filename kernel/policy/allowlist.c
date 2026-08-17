@@ -64,6 +64,8 @@ static void __init init_default_profiles()
     memcpy(&default_root_profile.capabilities.effective, &full_cap,
            sizeof(default_root_profile.capabilities.effective));
     default_root_profile.namespaces = KSU_NS_INHERITED;
+    /* New root profiles cannot escape again through su/GRANT_ROOT. */
+    default_root_profile.flags = FLAG_KSU_NO_NEW_PRIVS;
     strcpy(default_root_profile.selinux_domain, KSU_DEFAULT_SELINUX_DOMAIN);
 
     // This means that we will umount modules by default!
@@ -455,6 +457,7 @@ void do_persistent_allow_list(void *unused)
     fp = filp_open(KERNEL_SU_ALLOWLIST, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (IS_ERR(fp)) {
         pr_err("save_allow_list create file failed: %ld\n", PTR_ERR(fp));
+        revert_creds(saved);
         return;
     }
 

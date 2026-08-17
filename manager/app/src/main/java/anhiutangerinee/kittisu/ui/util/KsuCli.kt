@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.util.Properties
 
@@ -104,13 +105,73 @@ fun execKsud(args: String, newShell: Boolean = false): Boolean {
     }
 }
 
-suspend fun isOfficialSignature(): Boolean = withContext(Dispatchers.IO) {
-    val shell = getRootShell()
-    val out = shell.newJob()
-        .add("${getKsuDaemonPath()} debug get-sign ${ksuApp.packageResourcePath}")
-        .to(ArrayList<String>(), null).exec().out
-    out.firstOrNull()?.trim()
-        .orEmpty() == "size: 0x377, hash: d3469712b6214462764a1d8d3e5cbe1d6819a0b629791b9f4101867821f1df64"
+fun backupModules(path: String): Boolean {
+    val quoted = path.shellQuote()
+    return execKsud("module backup $quoted", true) &&
+        ShellUtils.fastCmdResult(getRootShell(), "chmod 0644 $quoted")
+}
+
+fun inspectModuleBackup(path: String): List<String>? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} module inspect-backup ${path.shellQuote()}")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONArray(output.joinToString("\n"))
+        List(json.length()) { json.getString(it) }
+    }.getOrNull()
+}
+
+fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): Boolean {
+    val ids = moduleIds.joinToString(" ") { it.shellQuote() }
+    return execKsud("module restore ${path.shellQuote()} $ids", true)
+}
+
+data class BootRecoveryState(val failures: Int, val modules: List<String>)
+
+fun getBootRecoveryState(): BootRecoveryState? {
+    val output = mutableListOf<String>()
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} recovery")
+        .to(output, null)
+        .exec()
+    if (!result.isSuccess) return null
+    return runCatching {
+        val json = JSONObject(output.joinToString("\n"))
+        val modules = json.getJSONArray("modules")
+        BootRecoveryState(
+            json.getInt("failures"),
+            List(modules.length()) { modules.getString(it) },
+        )
+    }.getOrNull()
+}
+
+fun resetBootRecovery(): Boolean = execKsud("recovery --reset", true)
+
+fun setDynamicManagerApk(apkPath: String): Boolean =
+    execKsud("kernel dynamic-manager set-apk ${apkPath.shellQuote()}", true)
+
+fun clearDynamicManager(): Boolean =
+    execKsud("kernel dynamic-manager clear", true)
+
+suspend fun getDynamicManagerConfig(): Natives.DynamicManagerConfig? = withContext(Dispatchers.IO) {
+    val result = getRootShell().newJob()
+        .add("${getKsuDaemonPath()} kernel dynamic-manager get")
+        .to(ArrayList<String>(), null).exec()
+    if (!result.isSuccess) return@withContext null
+    parseDynamicManagerConfig(result.out.joinToString("\n"))
+}
+
+internal fun parseDynamicManagerConfig(output: String): Natives.DynamicManagerConfig? {
+    val match = Regex("""size:\s*(\d+),\s*hash:\s*([0-9a-fA-F]{64})""")
+        .matchEntire(output.trim())
+        ?: return null
+    return Natives.DynamicManagerConfig(
+        match.groupValues[1].toIntOrNull() ?: return null,
+        match.groupValues[2],
+    )
 }
 
 suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.IO) {
@@ -131,7 +192,11 @@ suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatc
 fun install() {
     val start = SystemClock.elapsedRealtime()
     val libadbroot = File(ksuApp.applicationInfo.nativeLibraryDir, "libadbroot.so").absolutePath
-    val result = execKsud("install --libadbroot $libadbroot", true)
+    val dataPath = ksuApp.applicationInfo.deviceProtectedDataDir
+    val result = execKsud(
+        "install --libadbroot ${libadbroot.shellQuote()} --data-path ${dataPath.shellQuote()}",
+        true
+    )
     Log.w(TAG, "install result: $result, cost: ${SystemClock.elapsedRealtime() - start}ms")
 }
 
@@ -207,6 +272,21 @@ private fun flashWithIO(
     }
 }
 
+fun flashAnyKernel(
+    zipFile: File,
+    slot: String?,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit
+): Boolean {
+    val command = buildString {
+        append(getKsuDaemonPath()).append(" anykernel3 ").append(zipFile.absolutePath.shellQuote())
+        slot?.let { append(" --slot ").append(it.shellQuote()) }
+    }
+    val result = flashWithIO(command, onStdout, onStderr)
+    Log.i(TAG, "AnyKernel3 flash result: ${result.isSuccess}, code: ${result.code}")
+    return result.isSuccess
+}
+
 fun flashModule(
     uri: Uri,
     onFinish: (Boolean, Int) -> Unit,
@@ -246,7 +326,7 @@ fun runModuleAction(
     }
 
     val result = withNewRootShell(true) {
-        newJob().add("${getKsuDaemonPath()} module action $moduleId")
+        newJob().add("${getKsuDaemonPath()} module action ${moduleId.shellQuote()}")
             .to(stdoutCallback, stderrCallback).exec()
     }
 
@@ -289,6 +369,7 @@ fun installBoot(
     lkm: LkmSelection,
     ota: Boolean,
     partition: String?,
+    backup: Boolean,
     onFinish: (Boolean, Int) -> Unit,
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit,
@@ -317,6 +398,14 @@ fun installBoot(
 
     if (ota) {
         cmd += " -u"
+    }
+
+    if (backup) {
+        val backupDir = File(
+            ksuApp.applicationInfo.deviceProtectedDataDir,
+            "boot_backup"
+        ).absolutePath
+        cmd += " --backup --backup-dir ${backupDir.shellQuote()}"
     }
 
     var lkmFile: File? = null
@@ -481,8 +570,7 @@ fun getAppProfileTemplate(id: String): String {
 
 fun setAppProfileTemplate(id: String, template: String): Boolean {
     val shell = getRootShell()
-    val escapedTemplate = template.replace("\"", "\\\"")
-    val cmd = """${getKsuDaemonPath()} profile set-template "$id" "$escapedTemplate'""""
+    val cmd = "${getKsuDaemonPath()} profile set-template ${id.shellQuote()} ${template.shellQuote()}"
     return shell.newJob().add(cmd)
         .to(ArrayList(), null).exec().isSuccess
 }
@@ -492,30 +580,7 @@ fun deleteAppProfileTemplate(id: String): Boolean {
     return shell.newJob().add("${getKsuDaemonPath()} profile delete-template '${id}'")
         .to(ArrayList(), null).exec().isSuccess
 }
-// KPM控制
 internal fun String.shellQuote(): String = "'${replace("'", "'\\''")}'"
-
-fun loadKpmModule(path: String, args: String? = null): String {
-    val shell = getRootShell()
-    val cmd = buildString {
-        append(getKsuDaemonPath()).append(" kpm load ").append(path.shellQuote())
-        args?.let { append(' ').append(it.shellQuote()) }
-    }
-    return ShellUtils.fastCmd(shell, cmd)
-}
-
-fun unloadKpmModule(name: String): String {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm unload ${name.shellQuote()}"
-    return ShellUtils.fastCmd(shell, cmd)
-}
-
-fun getKpmModuleCount(): Int {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm num"
-    val result = ShellUtils.fastCmd(shell, cmd)
-    return result.trim().toIntOrNull() ?: 0
-}
 
 fun runCmd(shell: Shell, cmd: String): String {
     return shell.newJob()
@@ -523,42 +588,6 @@ fun runCmd(shell: Shell, cmd: String): String {
         .to(mutableListOf<String>(), null)
         .exec().out
         .joinToString("\n")
-}
-
-fun listKpmModules(): String {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm list"
-    return try {
-        runCmd(shell, cmd).trim()
-    } catch (e: Exception) {
-        Log.e(TAG, "Failed to list KPM modules", e)
-        ""
-    }
-}
-
-fun getKpmModuleInfo(name: String): String {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm info ${name.shellQuote()}"
-    return try {
-        runCmd(shell, cmd).trim()
-    } catch (e: Exception) {
-        Log.e(TAG, "Failed to get KPM module info: $name", e)
-        ""
-    }
-}
-
-fun controlKpmModule(name: String, args: String? = null): Int {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm control ${name.shellQuote()} ${(args ?: "").shellQuote()}"
-    val result = runCmd(shell, cmd)
-    return result.trim().toIntOrNull() ?: -1
-}
-
-fun getKpmVersion(): String {
-    val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kpm version"
-    val result = ShellUtils.fastCmd(shell, cmd)
-    return result.trim()
 }
 
 fun forceStopApp(packageName: String) {

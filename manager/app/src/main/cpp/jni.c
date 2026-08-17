@@ -20,6 +20,10 @@ NativeBridgeNP(getVersion, jint) {
     return legacy_get_info().version;
 }
 
+NativeBridgeNP(getUapiVersion, jint) {
+	return (jint)get_info().uapi_version;
+}
+
 // get VERSION FULL
 NativeBridgeNP(getFullVersion, jstring) {
 	char buff[255] = { 0 };
@@ -333,11 +337,6 @@ NativeBridge(getUserName, jstring, jint uid) {
         return GetEnvironment()->NewStringUTF(env, pw->pw_name);
     }
     return NULL;
-}
-
-// Check if KPM is enabled
-NativeBridgeNP(isKPMEnabled, jboolean) {
-	return is_KPM_enable();
 }
 
 // Get HOOK type

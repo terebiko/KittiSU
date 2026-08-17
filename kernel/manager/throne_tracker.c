@@ -344,11 +344,13 @@ void do_track_throne(void *data)
         uid = strsep(&tmp, delim);
         if (!uid || !package) {
             pr_err("update_uid: package or uid is NULL!\n");
+            kfree(data);
             break;
         }
 
         if (kstrtou32(uid, 10, &res)) {
             pr_err("update_uid: uid parse err\n");
+            kfree(data);
             break;
         }
         data->uid = res;
@@ -423,6 +425,10 @@ out:
 void track_throne(unsigned int flags)
 {
     struct track_throne_struct *tts = kzalloc(sizeof(struct track_throne_struct), GFP_KERNEL);
+    if (!tts) {
+        pr_err("Failed to allocate throne tracking work\n");
+        return;
+    }
     tts->flags = flags;
 
     if (flags & TRACK_THRONE_FROM_RENAMEAT) {

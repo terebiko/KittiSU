@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -65,7 +66,6 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
-import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -96,7 +96,9 @@ import anhiutangerinee.kittisu.ui.component.ZipFileDetector
 import anhiutangerinee.kittisu.ui.component.ZipFileInfo
 import anhiutangerinee.kittisu.ui.component.ZipType
 import anhiutangerinee.kittisu.ui.navigation.HandleDeepLink
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.navigation.ModuleDeepLink
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.navigation.rememberNavigator
 import anhiutangerinee.kittisu.ui.screen.AppProfileScreen
@@ -109,6 +111,7 @@ import anhiutangerinee.kittisu.ui.screen.InstallScreen
 import anhiutangerinee.kittisu.ui.screen.SulogScreen
 import anhiutangerinee.kittisu.ui.screen.TemplateEditorScreen
 import anhiutangerinee.kittisu.ui.screen.UmountManagerScreen
+import anhiutangerinee.kittisu.ui.screen.DynamicManagerScreen
 import anhiutangerinee.kittisu.ui.screen.about.AboutScreen
 import anhiutangerinee.kittisu.ui.screen.about.OpenSourceLicenseScreen
 import anhiutangerinee.kittisu.ui.screen.moduleRepo.ModuleRepoScreen
@@ -117,7 +120,7 @@ import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetDetailScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetEditorScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetSourcesScreen
 import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetsScreen
-import anhiutangerinee.kittisu.ui.susfs.SuSFSConfigScreen
+import anhiutangerinee.kittisu.ui.screen.susfs.SuSFSConfigScreen
 import anhiutangerinee.kittisu.ui.theme.KernelSUTheme
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.backgroundImagePainter
@@ -192,7 +195,6 @@ class MainActivity : ComponentActivity() {
 
     data class SettingsState(
         val isHideOtherInfo: Boolean = false,
-        val showKpmInfo: Boolean = false,
         val dpi: Int = 0,
         val predictiveBackAnimation: PredictiveBackAnimation = PredictiveBackAnimation.Scale,
         val predictiveBackExitDirection: PredictiveBackExitDirection = PredictiveBackExitDirection.FOLLOW_GESTURE
@@ -522,12 +524,14 @@ class MainActivity : ComponentActivity() {
                                 PredictiveBackAnimation.MIUIX -> MiuixPredictiveBackAnimation()
                             }
                         }
+                        val currentPredictiveBackAnimationHandler =
+                            rememberUpdatedState(predictiveBackAnimationHandler)
 
                         var gestureState: NavigationEventState<SceneInfo<NavKey>>? = null
                         val navigationScope = rememberCoroutineScope()
                         val onBack: (() -> Unit) -> Unit = { callBack ->
                             navigationScope.launch {
-                                predictiveBackAnimationHandler.onBackPressed(
+                                currentPredictiveBackAnimationHandler.value.onBackPressed(
                                     transitionState = gestureState?.transitionState,
                                     currentPageKey = navigator.current()
                                 )
@@ -556,14 +560,14 @@ class MainActivity : ComponentActivity() {
                                     rememberViewModelStoreNavEntryDecorator(),
                                     NavEntryDecorator(
                                         onPop = { key ->
-                                            predictiveBackAnimationHandler.onPagePop(
+                                            currentPredictiveBackAnimationHandler.value.onPagePop(
                                                 contentPageKey = key,
                                                 animationScope = navigationScope
                                             )
                                         }
                                     ) { content ->
                                         val snackBarHostState = remember { SnackbarHostState() }
-                                        with(predictiveBackAnimationHandler) {
+                                        with(currentPredictiveBackAnimationHandler.value) {
                                             Box(
                                                 modifier = Modifier
                                                     .predictiveBackAnimationDecorator(
@@ -649,12 +653,11 @@ class MainActivity : ComponentActivity() {
                                     entry<Route.MoreSettings> { MoreSettingsScreen() }
                                     entry<Route.SuSFSConfig> { SuSFSConfigScreen() }
                                     entry<Route.UmountManager> { UmountManagerScreen() }
+                                    entry<Route.DynamicManager> { DynamicManagerScreen() }
                                     entry<Route.KernelFlash> { key ->
                                         KernelFlashScreen(
                                             key.kernelUri,
-                                            key.selectedSlot,
-                                            key.kpmPatchEnabled,
-                                            key.kpmUndoPatch
+                                            key.selectedSlot
                                         )
                                     }
                                 },
@@ -697,17 +700,17 @@ class MainActivity : ComponentActivity() {
                             contentAlignment = Alignment.TopStart,
                             sizeTransform = null,
                             predictivePopTransitionSpec = { swipeEdge ->
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onPredictivePopTransitionSpec(swipeEdge = swipeEdge)
                                 }
                             },
                             popTransitionSpec = {
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onPopTransitionSpec()
                                 }
                             },
                             transitionSpec = {
-                                with(predictiveBackAnimationHandler) {
+                                with(currentPredictiveBackAnimationHandler.value) {
                                     onTransitionSpec()
                                 }
                             }
@@ -814,7 +817,6 @@ fun rememberMaterial3BlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
 fun MainScreen() {
     // 页面隐藏处理
     val activity = LocalActivity.current as MainActivity
-    val settings by activity.settingsStateFlow.collectAsState()
 
     var savedPages by rememberSaveable<MutableState<List<BottomBarDestination>>> {
         mutableStateOf(emptyList())
@@ -822,7 +824,7 @@ fun MainScreen() {
 
     val pages by produceState(initialValue = savedPages) {
         value = withContext(Dispatchers.IO) {
-            savedPages = BottomBarDestination.getPages(settings)
+            savedPages = BottomBarDestination.getPages()
             return@withContext savedPages
         }
     }
@@ -981,28 +983,15 @@ fun MainScreen() {
 private fun ShortcutIntentHandler(
     intentState: MutableStateFlow<Int>
 ) {
-    val navigator = LocalNavigator.current
     val activity = LocalActivity.current ?: return
     val context = LocalContext.current
     val intentStateValue by intentState.collectAsState()
     LaunchedEffect(intentStateValue) {
         val intent = activity.intent
-        val type = intent?.getStringExtra("shortcut_type") ?: return@LaunchedEffect
-        when (type) {
-            "module_action" -> {
-                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
-                navigator.push(Route.ExecuteModuleAction(moduleId))
-            }
-
-            "module_webui" -> {
-                val moduleId = intent.getStringExtra("module_id") ?: return@LaunchedEffect
-                val moduleName = intent.getStringExtra("module_name") ?: moduleId
-
+        when (val link = DeepLinkResolver.parseModuleDeepLink(context, intent?.data)) {
+            is ModuleDeepLink.WebUi -> {
                 val webIntent = Intent(context, WebUIActivity::class.java)
-                    .setData("kernelsu://webui/$moduleId".toUri())
-                    .putExtra("id", moduleId)
-                    .putExtra("name", moduleName)
-                    .putExtra("from_webui_shortcut", true)
+                    .putExtra("id", link.moduleId)
                     .addFlags(
                         Intent.FLAG_ACTIVITY_NEW_TASK or
                                 Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -1010,7 +999,7 @@ private fun ShortcutIntentHandler(
                 context.startActivity(webIntent)
             }
 
-            else -> return@LaunchedEffect
+            else -> Unit
         }
     }
 }

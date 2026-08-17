@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Save
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -49,7 +49,9 @@ import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
+import anhiutangerinee.kittisu.ui.navigation.DeepLinkResolver
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.navigation.ModuleDeepLink
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
@@ -89,8 +91,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
     }
 
     val fromShortcut = remember(activity) {
-        val intent = activity?.intent
-        intent?.getStringExtra("shortcut_type") == "module_action"
+        DeepLinkResolver.parseModuleDeepLink(context, activity?.intent?.data) is ModuleDeepLink.Action
     }
 
     LaunchedEffect(Unit) {
@@ -158,7 +159,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
                 val navigator = LocalNavigator.current
                 ExtendedFloatingActionButton(
                     text = { Text(text = stringResource(R.string.close)) },
-                    icon = { Icon(Icons.Filled.Close, contentDescription = null) },
+                    icon = { Icon(Icons.TwoTone.Close, contentDescription = null) },
                     onClick = {
                         navigator.pop()
                     }
@@ -225,7 +226,7 @@ private fun TopBar(
                 enabled = !isActionRunning
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    imageVector = Icons.TwoTone.Save,
                     contentDescription = stringResource(id = R.string.save_log),
                 )
             }

@@ -72,7 +72,7 @@ class ModulePresetViewModelTest {
             )
         )
 
-        val plan = vm.buildInstallPlan(loaded, skipInstalled = true) { installed.contains(it) }
+        val plan = vm.buildInstallPlan(loaded, skipInstalled = true) { installed.contains(it) }.getOrThrow()
 
         assertEquals(2, plan.modules.size)
         val byId = plan.modules.associateBy { it.presetModule.moduleId }
@@ -96,7 +96,7 @@ class ModulePresetViewModelTest {
             )
         )
 
-        val plan = vm.buildInstallPlan(loaded, skipInstalled = false) { installed.contains(it) }
+        val plan = vm.buildInstallPlan(loaded, skipInstalled = false) { installed.contains(it) }.getOrThrow()
 
         assertEquals(2, plan.modules.size)
         assertTrue("none should be skipped when skipInstalled=false", plan.modules.none { it.skip })
@@ -117,7 +117,7 @@ class ModulePresetViewModelTest {
                 )
             )
         )
-        val plan = vm.buildInstallPlan(loaded)
+        val plan = vm.buildInstallPlan(loaded).getOrThrow()
         assertTrue(plan.requiresReboot)
     }
 
@@ -131,7 +131,7 @@ class ModulePresetViewModelTest {
                 modules = listOf(module(id = "a"))
             )
         )
-        val plan = vm.buildInstallPlan(loaded)
+        val plan = vm.buildInstallPlan(loaded).getOrThrow()
         assertTrue(plan.requiresReboot)
     }
 
@@ -144,7 +144,7 @@ class ModulePresetViewModelTest {
                 modules = listOf(module(id = "a"), module(id = "b"))
             )
         )
-        val plan = vm.buildInstallPlan(loaded)
+        val plan = vm.buildInstallPlan(loaded).getOrThrow()
         assertFalse(plan.requiresReboot)
     }
 
