@@ -5,6 +5,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   build-manager:
     uses: ./.github/workflows/build-manager.yml
