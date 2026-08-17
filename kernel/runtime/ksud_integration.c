@@ -642,8 +642,7 @@ void ksu_handle_initrc(struct file *file)
     // `/init.rc` or `/system/etc/init/init.rc`
 
     load_module_rc();
-    pr_info("read init.rc, comm: %s, rc_count: %zu\n", current->comm,
-            ksu_rc_len + module_rc_len);
+    pr_info("read init.rc, comm: %s, rc_count: %zu\n", current->comm, ksu_rc_len + module_rc_len);
 
     // Now we need to proxy the read and modify the result!
     // But, we can not modify the file_operations directly, because it's in read-only memory.

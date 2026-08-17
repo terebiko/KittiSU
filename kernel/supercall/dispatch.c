@@ -68,8 +68,7 @@ static uint32_t ksuflags_override = 0;
 
 static int do_get_info(void __user *arg)
 {
-    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0,
-        .uapi_version = KERNEL_SU_UAPI_VERSION };
+    struct ksu_get_info_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0, .uapi_version = KERNEL_SU_UAPI_VERSION };
 
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;

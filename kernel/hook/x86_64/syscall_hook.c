@@ -305,14 +305,12 @@ void __exit ksu_syscall_hook_exit(void)
     int i;
 
 #ifdef CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER
-    if (x64_dispatch_patch &&
-        ksu_patch_text(x64_dispatch_patch, x64_dispatch_original, sizeof(x64_dispatch_original),
-                       KSU_PATCH_TEXT_FLUSH_ICACHE))
+    if (x64_dispatch_patch && ksu_patch_text(x64_dispatch_patch, x64_dispatch_original, sizeof(x64_dispatch_original),
+                                             KSU_PATCH_TEXT_FLUSH_ICACHE))
         pr_err("failed to restore x64_sys_call\n");
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 16, 0)
-    if (do_syscall_64_patch &&
-        ksu_patch_text(do_syscall_64_patch, do_syscall_64_original, sizeof(do_syscall_64_original),
-                       KSU_PATCH_TEXT_FLUSH_ICACHE))
+    if (do_syscall_64_patch && ksu_patch_text(do_syscall_64_patch, do_syscall_64_original,
+                                              sizeof(do_syscall_64_original), KSU_PATCH_TEXT_FLUSH_ICACHE))
         pr_err("failed to restore do_syscall_64\n");
 #endif
 #endif

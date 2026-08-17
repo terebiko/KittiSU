@@ -527,10 +527,16 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
 
         let is_replace_kernel = kernel.is_some();
 
-        ensure!(!ramdisk || !is_replace_kernel, "--ramdisk cannot be combined with --kernel");
+        ensure!(
+            !ramdisk || !is_replace_kernel,
+            "--ramdisk cannot be combined with --kernel"
+        );
 
         #[cfg(target_os = "android")]
-        ensure!(!ramdisk || !flash, "--ramdisk cannot be combined with --flash");
+        ensure!(
+            !ramdisk || !flash,
+            "--ramdisk cannot be combined with --flash"
+        );
 
         #[cfg(not(target_os = "android"))]
         ensure!(

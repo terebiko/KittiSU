@@ -1,6 +1,6 @@
+pub mod backup;
 pub mod metamodule;
 pub mod module_config;
-pub mod backup;
 
 #[cfg(unix)]
 use std::os::unix::{prelude::PermissionsExt, process::CommandExt};
@@ -449,7 +449,11 @@ pub fn regenerate_modules_rc() -> Result<()> {
     let temporary = target.with_extension("tmp");
 
     let mut output = File::create(&temporary)?;
-    append_init_rc(&Path::new(defs::ADB_DIR).join("initrc.d"), true, &mut output)?;
+    append_init_rc(
+        &Path::new(defs::ADB_DIR).join("initrc.d"),
+        true,
+        &mut output,
+    )?;
 
     let mut modules = BTreeMap::new();
     for root in [defs::MODULE_DIR, defs::MODULE_UPDATE_DIR] {

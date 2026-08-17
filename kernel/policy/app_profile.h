@@ -4,8 +4,7 @@
 #include "uapi/app_profile.h"
 #include <asm/thread_info.h>
 
-#define TIF_KSU_DISABLE_ESCAPE_WITH_ROOT \
-    (BITS_PER_LONG == 64 ? 63 : 31)
+#define TIF_KSU_DISABLE_ESCAPE_WITH_ROOT (BITS_PER_LONG == 64 ? 63 : 31)
 
 // Escalate current process to root with the appropriate profile
 int escape_with_root_profile(void);
