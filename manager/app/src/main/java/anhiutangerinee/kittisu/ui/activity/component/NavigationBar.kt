@@ -39,7 +39,6 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.util.LocalHandlePageChange
 import anhiutangerinee.kittisu.ui.util.LocalSelectedPage
-import anhiutangerinee.kittisu.ui.util.getKpmModuleCount
 import anhiutangerinee.kittisu.ui.util.getModuleCount
 import anhiutangerinee.kittisu.ui.util.getSuperuserCount
 import kotlinx.coroutines.Dispatchers
@@ -66,7 +65,6 @@ fun NavigationBar(
     // 收集计数数据
     var superuserCountSaved by rememberSaveable { mutableIntStateOf(0) }
     var moduleCountSaved by rememberSaveable { mutableIntStateOf(0) }
-    var kpmModuleCountSaved by rememberSaveable { mutableIntStateOf(0) }
 
     val superuserCount by produceState(initialValue = superuserCountSaved) {
         withContext(Dispatchers.IO) {
@@ -80,13 +78,6 @@ fun NavigationBar(
             moduleCountSaved = value
         }
     }
-    val kpmModuleCount by produceState(initialValue = kpmModuleCountSaved) {
-        withContext(Dispatchers.IO) {
-            value = getKpmModuleCount()
-            kpmModuleCountSaved = value
-        }
-    }
-
     WideNavigationRail(
         modifier = Modifier
             .windowInsetsPadding(
@@ -112,7 +103,6 @@ fun NavigationBar(
                 onClick = {
                     handlePageChange(index)
                 },
-                kpmModuleCount = kpmModuleCount,
                 superuserCount = superuserCount,
                 moduleCount = moduleCount,
                 isHideOtherInfo = isHideOtherInfo,
@@ -126,7 +116,6 @@ private fun NavigationRailItem(
     isSelected: Boolean,
     destination: BottomBarDestination,
     onClick: () -> Unit,
-    kpmModuleCount: Int,
     superuserCount: Int,
     moduleCount: Int,
     isHideOtherInfo: Boolean
@@ -142,7 +131,6 @@ private fun NavigationRailItem(
                         dest = destination,
                         superUser = superuserCount,
                         module = moduleCount,
-                        kpm = kpmModuleCount,
                         isHideOtherInfo = isHideOtherInfo,
                     )
                 }
@@ -163,11 +151,9 @@ private fun DestinationBadge(
     dest: BottomBarDestination,
     superUser: Int,
     module: Int,
-    kpm: Int,
     isHideOtherInfo: Boolean,
 ) {
     val count = when (dest) {
-        BottomBarDestination.Kpm -> kpm
         BottomBarDestination.SuperUser -> superUser
         BottomBarDestination.Module -> module
         else -> 0

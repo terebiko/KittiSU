@@ -25,10 +25,9 @@
 2. Module system based on [metamodules](https://kernelsu.org/guide/metamodule.html): Pluggable infrastructure for systemless modifications
 3. [App Profile](https://kernelsu.org/guide/app-profile.html): Lock up the root power in a cage
 4. Support non-GKI and GKI 1.0
-5. KPM Support
-6. Custom manager theme with KittiSU branding
-7. Built-in SuSFS management tool
-8. Multi-manager support — works with [Official KernelSU](https://github.com/tiann/KernelSU) / [RKSU](https://github.com/rsuntk/KernelSU) / [MKSU](https://github.com/5ec1cff/KernelSU) / [SukiSU](https://github.com/SukiSU-Ultra/SukiSU-Ultra) backends
+5. Custom manager theme with KittiSU branding
+6. Built-in SuSFS management tool
+7. Multi-manager support — works with [Official KernelSU](https://github.com/tiann/KernelSU) / [RKSU](https://github.com/rsuntk/KernelSU) / [MKSU](https://github.com/5ec1cff/KernelSU) / [SukiSU](https://github.com/SukiSU-Ultra/SukiSU-Ultra) backends
 
 
 ## Compatibility Status
@@ -66,20 +65,6 @@ export ANDROID_HOME=$HOME/Android/Sdk
 ```
 
 The APK will be at `manager/app/build/outputs/apk/release/`.
-
-## KPM Support
-
-- Based on KernelPatch, with redundant features removed — only KPM support retained.
-- WIP: Expanding APatch compatibility by integrating additional functions.
-
-**Open-source repository**: [https://github.com/ShirkNeko/SukiSU_KernelPatch_patch](https://github.com/ShirkNeko/SukiSU_KernelPatch_patch)
-
-**KPM template**: [https://github.com/udochina/KPM-Build-Anywhere](https://github.com/udochina/KPM-Build-Anywhere)
-
-> [!Note]
-> 1. Requires `CONFIG_KPM=y`
-> 2. Non-GKI devices require `CONFIG_KALLSYMS=y` and `CONFIG_KALLSYMS_ALL=y`
-> 3. For kernels below `4.19`, backporting `set_memory.h` from `4.19` is required.
 
 ## Sponsor
 

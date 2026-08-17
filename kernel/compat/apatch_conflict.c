@@ -16,7 +16,6 @@ static struct kp_symbol_region symbol_region = { 0, 0 };
 // yep, read logs is an bad idea, but unless that,
 // we should try to find the KP syscall callback/inline hook callback from __NR_supercall
 // and search 64KiB memorys
-// https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/kpimg.lds#L80
 // https://github.com/bmax121/KernelPatch/blob/ece212d25a56dc308c8b230505cb664688abf2f1/kernel/base/symbol.c#L58
 
 static bool try_dump_kp_symbol_addr()

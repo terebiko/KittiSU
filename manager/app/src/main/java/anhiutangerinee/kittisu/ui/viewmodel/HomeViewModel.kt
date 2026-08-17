@@ -15,8 +15,6 @@ import anhiutangerinee.kittisu.getKernelVersion
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.data.susfs.SuSFSConfigHelper
 import anhiutangerinee.kittisu.ui.util.getDynamicManagerConfig
-import anhiutangerinee.kittisu.ui.util.getKpmModuleCount
-import anhiutangerinee.kittisu.ui.util.getKpmVersion
 import anhiutangerinee.kittisu.ui.util.getMetaModuleImplement
 import anhiutangerinee.kittisu.ui.util.getModuleCount
 import anhiutangerinee.kittisu.ui.util.getSELinuxStatus
@@ -39,7 +37,6 @@ class HomeViewModel : ViewModel() {
         val lkmMode: Boolean? = null,
         val kernelVersion: KernelVersion = getKernelVersion(),
         val isRootAvailable: Boolean = false,
-        val isKpmConfigured: Boolean = false,
         val requireNewKernel: Boolean = false,
         val isSELinuxPermissive: Boolean = false,
         val isOfficialSignature: Boolean = true,
@@ -53,14 +50,12 @@ class HomeViewModel : ViewModel() {
         val deviceModel: String = "",
         val managerVersion: Pair<String, Long> = Pair("", 0L),
         val selinuxStatus: String = "",
-        val kpmVersion: String = "",
         val susfsEnabled: Boolean = false,
         val susfsVersionSupported: Boolean = false,
         val susfsVersion: String = "",
         val susfsFeatures: String = "",
         val superuserCount: Int = 0,
         val moduleCount: Int = 0,
-        val kpmModuleCount: Int = 0,
         val managersList: Natives.ManagersList? = null,
         val isDynamicSignEnabled: Boolean = false,
         val zygiskImplement: String = "",
@@ -89,9 +84,6 @@ class HomeViewModel : ViewModel() {
         private set
     var isHideLinkCard by mutableStateOf(false)
         private set
-    var showKpmInfo by mutableStateOf(false)
-        private set
-
     var isCoreDataLoaded by mutableStateOf(false)
         private set
     var isExtendedDataLoaded by mutableStateOf(false)
@@ -111,7 +103,6 @@ class HomeViewModel : ViewModel() {
             isHideLinkCard = settingsPrefs.getBoolean("is_hide_link_card", false)
             isHideZygiskImplement = settingsPrefs.getBoolean("is_hide_zygisk_Implement", false)
             isHideMetaModuleImplement = settingsPrefs.getBoolean("is_hide_meta_module_Implement", false)
-            showKpmInfo = settingsPrefs.getBoolean("show_kpm_info", false)
         }
     }
 
@@ -145,12 +136,6 @@ class HomeViewModel : ViewModel() {
                     false
                 }
 
-                val isKpmConfigured = try {
-                    Natives.isKPMEnabled()
-                } catch (_: Exception) {
-                    false
-                }
-
                 val requireNewKernel = try {
                     isManager && Natives.requireNewKernel()
                 } catch (_: Exception) {
@@ -172,7 +157,6 @@ class HomeViewModel : ViewModel() {
                     lkmMode = lkmMode,
                     kernelVersion = kernelVersion,
                     isRootAvailable = isRootAvailable,
-                    isKpmConfigured = isKpmConfigured,
                     requireNewKernel = requireNewKernel,
                     isSELinuxPermissive = isSELinuxPermissive,
                     isOfficialSignature = isOfficialSignature,
@@ -206,12 +190,10 @@ class HomeViewModel : ViewModel() {
                 if (!isSimpleMode) {
                     val moduleInfo = loadModuleInfo()
                     systemInfo = systemInfo.copy(
-                        kpmVersion = moduleInfo.first,
-                        superuserCount = moduleInfo.second,
-                        moduleCount = moduleInfo.third,
-                        kpmModuleCount = moduleInfo.fourth,
-                        zygiskImplement = moduleInfo.fifth,
-                        metaModuleImplement = moduleInfo.sixth
+                        superuserCount = moduleInfo.first,
+                        moduleCount = moduleInfo.second,
+                        zygiskImplement = moduleInfo.third,
+                        metaModuleImplement = moduleInfo.fourth
                     )
                 }
 
@@ -314,14 +296,8 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    private suspend fun loadModuleInfo(): Tuple6<String, Int, Int, Int, String, String> {
+    private suspend fun loadModuleInfo(): Tuple4<Int, Int, String, String> {
         return withContext(Dispatchers.IO) {
-            val kpmVersion = try {
-                getKpmVersion()
-            } catch (_: Exception) {
-                "Unknown"
-            }
-
             val superuserCount = try {
                 getSuperuserCount()
             } catch (_: Exception) {
@@ -330,12 +306,6 @@ class HomeViewModel : ViewModel() {
 
             val moduleCount = try {
                 getModuleCount()
-            } catch (_: Exception) {
-                0
-            }
-
-            val kpmModuleCount = try {
-                getKpmModuleCount()
             } catch (_: Exception) {
                 0
             }
@@ -352,7 +322,7 @@ class HomeViewModel : ViewModel() {
                 "None"
             }
 
-            Tuple6(kpmVersion, superuserCount, moduleCount, kpmModuleCount, zygiskImplement, metaModuleImplement)
+            Tuple4(superuserCount, moduleCount, zygiskImplement, metaModuleImplement)
         }
     }
 
@@ -464,6 +434,13 @@ class HomeViewModel : ViewModel() {
         val third: T3,
         val fourth: T4,
         val fifth: T5
+    )
+
+    data class Tuple4<T1, T2, T3, T4>(
+        val first: T1,
+        val second: T2,
+        val third: T3,
+        val fourth: T4
     )
 
     override fun onCleared() {

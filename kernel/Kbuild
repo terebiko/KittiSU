@@ -35,12 +35,6 @@ kernelsu-objs += supercall/dispatch.o
 kernelsu-objs += supercall/perm.o
 kernelsu-objs += supercall/supercall.o
 
-ifdef CONFIG_KPM
-kernelsu-objs += kpm/kpm.o
-kernelsu-objs += kpm/compact.o
-kernelsu-objs += kpm/super_access.o
-endif
-
 ifdef CONFIG_ARM64
 kernelsu-objs += compat/apatch_conflict.o
 endif
@@ -194,12 +188,9 @@ else
   endif
 endif
 
-# Check if KPM is enabled
+# Check if KPM is enabled (stub for builder compatibility)
 ifdef CONFIG_KPM
-  $(info -- KPM is enabled)
-  $(info -- WARNING, This feature is unstable!!! You are WARNED!!!)
-else
-  $(info -- KPM is disabled)
+  $(info -- CONFIG_KPM is set but KPM is removed from KittiSU; doing nothing.)
 endif
 
 ifndef CONFIG_KSU_TRACEPOINT_HOOK

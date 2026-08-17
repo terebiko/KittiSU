@@ -79,15 +79,11 @@ config KSU_X86_PATCH_SYSCALL_DISPATCHER
 	  This is intended for x86_64 LKM builds.
 
 config KPM
-    bool "Enable SukiSU KPM"
-    depends on KSU && 64BIT
-    select KALLSYMS
-    select KALLSYMS_ALL
-    default n
-    help
-	  Enabling this option will activate the KPM feature of SukiSU.
-	  This option is suitable for scenarios where you need to force KPM to be enabled.
-	  but it may affect system stability.
+	bool "Enable SukiSU KPM (stub / deprecated)"
+	depends on KSU
+	default n
+	help
+	  Deprecated stub for builder compatibility. KPM is removed from KittiSU.
 
 choice
 	prompt "KernelSU Hooking Method"

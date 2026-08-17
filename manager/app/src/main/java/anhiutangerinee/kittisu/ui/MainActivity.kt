@@ -195,7 +195,6 @@ class MainActivity : ComponentActivity() {
 
     data class SettingsState(
         val isHideOtherInfo: Boolean = false,
-        val showKpmInfo: Boolean = false,
         val dpi: Int = 0,
         val predictiveBackAnimation: PredictiveBackAnimation = PredictiveBackAnimation.Scale,
         val predictiveBackExitDirection: PredictiveBackExitDirection = PredictiveBackExitDirection.FOLLOW_GESTURE
@@ -658,9 +657,7 @@ class MainActivity : ComponentActivity() {
                                     entry<Route.KernelFlash> { key ->
                                         KernelFlashScreen(
                                             key.kernelUri,
-                                            key.selectedSlot,
-                                            key.kpmPatchEnabled,
-                                            key.kpmUndoPatch
+                                            key.selectedSlot
                                         )
                                     }
                                 },
@@ -820,7 +817,6 @@ fun rememberMaterial3BlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
 fun MainScreen() {
     // 页面隐藏处理
     val activity = LocalActivity.current as MainActivity
-    val settings by activity.settingsStateFlow.collectAsState()
 
     var savedPages by rememberSaveable<MutableState<List<BottomBarDestination>>> {
         mutableStateOf(emptyList())
@@ -828,7 +824,7 @@ fun MainScreen() {
 
     val pages by produceState(initialValue = savedPages) {
         value = withContext(Dispatchers.IO) {
-            savedPages = BottomBarDestination.getPages(settings)
+            savedPages = BottomBarDestination.getPages()
             return@withContext savedPages
         }
     }
