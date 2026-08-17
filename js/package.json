@@ -4,9 +4,6 @@
   "description": "Library for KernelSU's module WebUI",
   "main": "index.js",
   "types": "index.d.ts",
-  "scripts": {
-    "test": "npm run test"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tiann/KernelSU.git"

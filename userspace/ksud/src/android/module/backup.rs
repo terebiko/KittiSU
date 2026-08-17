@@ -123,8 +123,18 @@ pub fn restore(archive: &Path, selected: &[String]) -> Result<()> {
     ])?;
     ensure!(output.status.success(), "extract module backup failed");
 
+    fn real_dir(path: &Path) -> Result<std::fs::Metadata> {
+        let meta = std::fs::symlink_metadata(path)?;
+        ensure!(
+            meta.file_type().is_dir(),
+            "unsafe archive entry: {} is not a directory",
+            path.display()
+        );
+        Ok(meta)
+    }
+
     let modules = staging.path().join("modules");
-    ensure!(modules.is_dir(), "backup contains no modules");
+    real_dir(&modules)?;
     std::fs::create_dir_all(defs::MODULE_UPDATE_DIR)?;
     for entry in std::fs::read_dir(modules)? {
         let entry = entry?;
@@ -133,6 +143,7 @@ pub fn restore(archive: &Path, selected: &[String]) -> Result<()> {
         if !selected.is_empty() && !selected.contains(&id) {
             continue;
         }
+        real_dir(&entry.path())?;
         ensure!(
             entry.path().join("module.prop").is_file(),
             "invalid module: {id}"
@@ -153,13 +164,14 @@ pub fn restore(archive: &Path, selected: &[String]) -> Result<()> {
     }
 
     let configs = staging.path().join("module_configs");
-    if configs.is_dir() {
+    if std::fs::symlink_metadata(&configs).is_ok_and(|meta| meta.file_type().is_dir()) {
         std::fs::create_dir_all(defs::MODULE_CONFIG_DIR)?;
         for entry in std::fs::read_dir(configs)? {
             let entry = entry?;
             let id = entry.file_name().to_string_lossy().into_owned();
             if selected.is_empty() || selected.contains(&id) {
                 super::validate_module_id(&id)?;
+                real_dir(&entry.path())?;
                 let target = PathBuf::from(defs::MODULE_CONFIG_DIR).join(id);
                 if target.exists() {
                     std::fs::remove_dir_all(&target)?;
