@@ -291,17 +291,6 @@ pub fn save_config(
     Ok(())
 }
 
-/// Get a single config value
-#[allow(dead_code)]
-pub fn get_config_value(
-    module_id: &str,
-    key: &str,
-    config_type: ConfigType,
-) -> Result<Option<String>> {
-    let config = load_config(module_id, config_type)?;
-    Ok(config.get(key).cloned())
-}
-
 /// Set a single config value
 pub fn set_config_value(
     module_id: &str,
