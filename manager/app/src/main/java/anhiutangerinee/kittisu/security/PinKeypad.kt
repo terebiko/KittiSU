@@ -27,12 +27,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Material You numeric keypad for PIN entry, styled after the system lock screen:
- * round tonal keys, dot progress indicator, delete and confirm actions.
+ * Material You numeric keypad for PIN entry, mirroring the SystemUI bouncer
+ * (NumPadKey): round tonal keys with klondike letter hints, dot progress
+ * indicator, delete action and per-key haptic feedback.
  */
 @Composable
 fun PinKeypad(
@@ -42,6 +45,7 @@ fun PinKeypad(
     onSubmit: (String) -> Unit,
 ) {
     var pin by remember { mutableStateOf("") }
+    val haptic = LocalHapticFeedback.current
 
     fun append(digit: Char) {
         if (pin.length < maxLength) pin += digit
@@ -78,13 +82,26 @@ fun PinKeypad(
                 rowKeys.forEach { digit ->
                     PinKey(
                         enabled = enabled,
-                        onClick = { append(digit) },
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                            append(digit)
+                        },
                         content = {
-                            Text(
-                                text = digit.toString(),
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.Center,
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = digit.toString(),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    textAlign = TextAlign.Center,
+                                )
+                                // AOSP "klondike" letter hints (NumPadKey).
+                                KLONDIKE[digit]?.let { letters ->
+                                    Text(
+                                        text = letters,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         },
                     )
                 }
@@ -97,7 +114,10 @@ fun PinKeypad(
             Box(modifier = Modifier.size(76.dp))
             PinKey(
                 enabled = enabled,
-                onClick = { append('0') },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                    append('0')
+                },
                 content = {
                     Text(
                         text = "0",
@@ -108,7 +128,10 @@ fun PinKeypad(
             )
             PinKey(
                 enabled = enabled && pin.isNotEmpty(),
-                onClick = { pin = pin.dropLast(1) },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                    pin = pin.dropLast(1)
+                },
                 content = {
                     Icon(
                         imageVector = Icons.AutoMirrored.TwoTone.Backspace,
@@ -149,3 +172,15 @@ private fun PinKey(
         content()
     }
 }
+
+/** AOSP lockscreen_num_pad_klondike: letter hints shown under each digit. */
+private val KLONDIKE = mapOf(
+    '2' to "ABC",
+    '3' to "DEF",
+    '4' to "GHI",
+    '5' to "JKL",
+    '6' to "MNO",
+    '7' to "PQRS",
+    '8' to "TUV",
+    '9' to "WXYZ",
+)

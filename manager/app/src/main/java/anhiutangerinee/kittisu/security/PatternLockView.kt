@@ -6,21 +6,29 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
- * Minimal 3x3 pattern input. Reports the selected dot indices (row-major, 0..8)
- * in order via [onPatternCompleted].
+ * 3x3 pattern input mirroring AOSP LockPatternView behaviour:
+ * - gap-filling: dragging across the middle dot auto-selects it (detectAndAddHit heuristic)
+ * - haptic feedback on every added cell
+ * - trailing segment follows the finger while drawing
+ * Reports the selected dot indices (row-major, 0..8) via [onPatternCompleted].
  */
 @Composable
 fun PatternLockView(
@@ -30,6 +38,8 @@ fun PatternLockView(
     onPatternCompleted: (List<Int>) -> Unit,
 ) {
     val activeDots = remember { mutableStateListOf<Int>() }
+    var dragPosition by remember { mutableStateOf<Offset?>(null) }
+    val haptic = LocalHapticFeedback.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val outlineColor = MaterialTheme.colorScheme.outline
     val lineColor = if (errorColor == Color.Unspecified) primaryColor else errorColor
@@ -42,13 +52,30 @@ fun PatternLockView(
         )
     }
 
-    fun dotIndexAt(position: Offset, side: Float): Int? {
-        if (side <= 0f) return null
-        val cell = side / 3f
-        val col = (position.x / cell).toInt().coerceIn(0, 2)
-        val row = (position.y / cell).toInt().coerceIn(0, 2)
-        val center = dotCenter(row * 3 + col, side)
-        return if ((position - center).getDistance() <= cell * 0.75f) row * 3 + col else null
+    fun addCellHit(cell: Int) {
+        if (activeDots.isNotEmpty()) {
+            // AOSP detectAndAddHit gap-filling: a straight jump of two cells
+            // auto-selects the intermediate cell.
+            val last = activeDots.last()
+            val dRow = cell / 3 - last / 3
+            val dCol = cell % 3 - last % 3
+            val fillRow = last / 3 +
+                if (kotlin.math.abs(dRow) == 2 && kotlin.math.abs(dCol) != 1) {
+                    if (dRow > 0) 1 else -1
+                } else 0
+            val fillCol = last % 3 +
+                if (kotlin.math.abs(dCol) == 2 && kotlin.math.abs(dRow) != 1) {
+                    if (dCol > 0) 1 else -1
+                } else 0
+            val gapCell = fillRow * 3 + fillCol
+            if (gapCell != cell && gapCell !in activeDots) {
+                activeDots.add(gapCell)
+            }
+        }
+        if (cell !in activeDots) {
+            activeDots.add(cell)
+            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+        }
     }
 
     Canvas(
@@ -61,40 +88,55 @@ fun PatternLockView(
                 detectDragGestures(
                     onDragStart = { offset ->
                         activeDots.clear()
-                        dotIndexAt(offset, size.width.toFloat())?.let(activeDots::add)
+                        dotIndexAt(offset, size.width.toFloat())?.let(::addCellHit)
                     },
                     onDrag = { change, _ ->
-                        dotIndexAt(change.position, size.width.toFloat())?.let { index ->
-                            if (index !in activeDots) activeDots.add(index)
-                        }
+                        change.consume()
+                        dragPosition = change.position
+                        dotIndexAt(change.position, size.width.toFloat())?.let(::addCellHit)
                     },
                     onDragEnd = {
+                        // Always report so callers can flag too-short patterns.
                         if (activeDots.isNotEmpty()) onPatternCompleted(activeDots.toList())
                         activeDots.clear()
+                        dragPosition = null
                     },
-                    onDragCancel = { activeDots.clear() },
+                    onDragCancel = { activeDots.clear(); dragPosition = null },
                 )
             },
     ) {
         val side = size.width
         val dotRadius = side / 18f
 
-        // Connection lines between active dots.
+        // Connection lines between active dots...
         for (i in 0 until maxOf(0, activeDots.size - 1)) {
             drawLine(
                 color = lineColor,
                 start = dotCenter(activeDots[i], side),
                 end = dotCenter(activeDots[i + 1], side),
-                strokeWidth = 6.dp.toPx(),
+                strokeWidth = LINE_WIDTH.toPx(),
                 cap = StrokeCap.Round,
             )
+        }
+        // ...and the trailing segment following the finger (AOSP behaviour).
+        val lastDot = activeDots.lastOrNull()
+        if (lastDot != null) {
+            dragPosition?.let { position ->
+                drawLine(
+                    color = lineColor,
+                    start = dotCenter(lastDot, side),
+                    end = position,
+                    strokeWidth = LINE_WIDTH.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
         }
 
         for (index in 0 until 9) {
             val center = dotCenter(index, side)
             val isActive = index in activeDots
             if (isActive) {
-                drawCircle(color = lineColor, radius = dotRadius, center = center)
+                drawCircle(color = lineColor, radius = dotRadius * 1.15f, center = center)
             } else {
                 drawCircle(
                     color = outlineColor,
@@ -106,3 +148,5 @@ fun PatternLockView(
         }
     }
 }
+
+private val LINE_WIDTH = 6.dp
