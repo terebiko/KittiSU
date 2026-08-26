@@ -4,6 +4,7 @@
 #include <linux/cred.h>
 #include <linux/sched.h>
 #include "manager_identity.h"
+#include "feature/dynamic_manager.h"
 #include "ksu.h"
 #include "uapi/supercall.h"
 #include "compat/kernel_compat.h"
@@ -20,6 +21,28 @@ struct ksu_manager_node {
 static LIST_HEAD(ksu_manager_appid_list);
 static DEFINE_SPINLOCK(ksu_manager_list_write_lock);
 
+static bool ksu_manager_node_authorized(const struct ksu_manager_node *node)
+{
+    return node->signature_index != KSU_SIGNATURE_INDEX_DYNAMIC_MANAGER || ksu_is_dynamic_manager_enabled();
+}
+
+static bool ksu_manager_appid_registered(u16 appid)
+{
+    struct ksu_manager_node *pos;
+    bool found = false;
+
+    rcu_read_lock();
+    list_for_each_entry_rcu (pos, &ksu_manager_appid_list, list) {
+        if (pos->appid == appid) {
+            found = true;
+            break;
+        }
+    }
+    rcu_read_unlock();
+
+    return found;
+}
+
 bool ksu_is_manager_appid(u16 appid)
 {
     bool found = false;
@@ -27,7 +50,7 @@ bool ksu_is_manager_appid(u16 appid)
 
     rcu_read_lock();
     list_for_each_entry_rcu (pos, &ksu_manager_appid_list, list) {
-        if (pos->appid == appid) {
+        if (pos->appid == appid && ksu_manager_node_authorized(pos)) {
             found = true;
             break;
         }
@@ -54,21 +77,20 @@ void ksu_register_manager(u32 uid, u8 signature_index)
     struct ksu_manager_node *node;
     u16 appid;
 
-    if (ksu_is_manager_uid(uid))
+    appid = uid % PER_USER_RANGE;
+    if (ksu_manager_appid_registered(appid))
         return;
 
     node = kzalloc(sizeof(*node), GFP_ATOMIC);
     if (unlikely(!node))
         return;
 
-    appid = uid % PER_USER_RANGE;
-
     node->appid = appid;
     node->signature_index = signature_index;
 
     spin_lock(&ksu_manager_list_write_lock);
 
-    if (ksu_is_manager_uid(uid)) {
+    if (ksu_manager_appid_registered(appid)) {
         spin_unlock(&ksu_manager_list_write_lock);
         kfree(node);
         return;
@@ -85,79 +107,70 @@ void ksu_register_manager(u32 uid, u8 signature_index)
 
 void ksu_unregister_manager(u32 uid)
 {
-    struct ksu_manager_node *node, *pos, *tmp;
-    bool mark_another_manager = false;
-
-    if (!ksu_is_manager_uid(uid))
-        return;
-
+    struct ksu_manager_node *pos, *tmp;
+    bool removed_last = false;
+    u16 last_alive_appid = KSU_INVALID_APPID;
     u16 appid = uid % PER_USER_RANGE;
-
-    if (ksu_last_manager_appid == appid)
-        mark_another_manager = true;
 
     spin_lock(&ksu_manager_list_write_lock);
 
     list_for_each_entry_safe (pos, tmp, &ksu_manager_appid_list, list) {
         if (pos->appid == appid) {
+            removed_last = pos->appid == ksu_last_manager_appid;
             list_del_rcu(&pos->list);
-            spin_unlock(&ksu_manager_list_write_lock);
             kfree_rcu(pos, rcu);
-            return;
+            continue;
         }
-
-        if (mark_another_manager) {
-            ksu_last_manager_appid = appid;
-            mark_another_manager = false;
-        }
+        last_alive_appid = pos->appid;
     }
 
+    if (removed_last)
+        ksu_last_manager_appid = last_alive_appid;
     spin_unlock(&ksu_manager_list_write_lock);
-
-    if (mark_another_manager)
-        ksu_last_manager_appid = KSU_INVALID_APPID;
-    return;
 }
 
 void ksu_unregister_manager_by_signature_index(u8 signature_index)
 {
-    struct ksu_manager_node *node, *pos, *tmp;
-    bool mark_another_manager = false;
-    u16 last_each_alive_appid = KSU_INVALID_APPID;
+    struct ksu_manager_node *pos, *tmp;
+    bool removed_last = false;
+    u16 last_alive_appid = KSU_INVALID_APPID;
 
     spin_lock(&ksu_manager_list_write_lock);
 
     list_for_each_entry_safe (pos, tmp, &ksu_manager_appid_list, list) {
         if (pos->signature_index == signature_index) {
             if (pos->appid == ksu_last_manager_appid) {
-                mark_another_manager = true;
+                removed_last = true;
             }
 
             list_del_rcu(&pos->list);
-            spin_unlock(&ksu_manager_list_write_lock);
             kfree_rcu(pos, rcu);
-            return;
+            continue;
         }
 
-        last_each_alive_appid = pos->appid;
+        last_alive_appid = pos->appid;
     }
 
+    if (removed_last)
+        ksu_last_manager_appid = last_alive_appid;
     spin_unlock(&ksu_manager_list_write_lock);
-
-    if (mark_another_manager)
-        ksu_last_manager_appid = last_each_alive_appid;
-    return;
 }
 
 bool ksu_has_manager(void)
 {
-    bool empty;
+    bool found = false;
+    struct ksu_manager_node *pos;
 
     rcu_read_lock();
-    empty = list_empty(&ksu_manager_appid_list);
+    list_for_each_entry_rcu (pos, &ksu_manager_appid_list, list) {
+        if (ksu_manager_node_authorized(pos)) {
+            found = true;
+            break;
+        }
+    }
     rcu_read_unlock();
 
-    return !empty;
+    return found;
 }
 
 int ksu_handle_get_managers_cmd(struct ksu_get_managers_cmd __user *arg, struct ksu_get_managers_cmd *cmd)
@@ -168,6 +181,9 @@ int ksu_handle_get_managers_cmd(struct ksu_get_managers_cmd __user *arg, struct 
 
     rcu_read_lock();
     list_for_each_entry_rcu (pos, &ksu_manager_appid_list, list) {
+        if (!ksu_manager_node_authorized(pos))
+            continue;
+
         if (count < max_allowed) {
             struct ksu_manager_entry entry = { .uid = pos->appid, .signature_index = pos->signature_index };
 
@@ -193,7 +209,7 @@ int ksu_get_manager_signature_index_by_appid(u16 appid)
 
     rcu_read_lock();
     list_for_each_entry_rcu (pos, &ksu_manager_appid_list, list) {
-        if (pos->appid == appid) {
+        if (pos->appid == appid && ksu_manager_node_authorized(pos)) {
             rcu_read_unlock();
             return pos->signature_index;
         }

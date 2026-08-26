@@ -137,6 +137,11 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service
+            android:name=".security.ManagerTaskService"
+            android:exported="false"
+            android:stopWithTask="false" />
+
         <receiver
             android:name=".magica.BootCompletedReceiver"
             android:directBootAware="true"

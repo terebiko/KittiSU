@@ -395,6 +395,7 @@ NativeBridge(setDynamicManager, jboolean, jint size, jstring hash) {
 
 NativeBridgeNP(getDynamicManager, jobject) {
 	struct ksu_dynamic_manager_cmd cmd;
+	char hash[65];
 	bool result = get_dynamic_manager(&cmd);
 
 	if (!result) {
@@ -405,8 +406,10 @@ NativeBridgeNP(getDynamicManager, jobject) {
 	jobject obj = CREATE_JAVA_OBJECT("anhiutangerinee/kittisu/Natives$DynamicManagerConfig");
 	jclass cls = GetEnvironment()->FindClass(env, "anhiutangerinee/kittisu/Natives$DynamicManagerConfig");
 
+	memcpy(hash, cmd.hash, sizeof(cmd.hash));
+	hash[sizeof(cmd.hash)] = '\0';
 	SET_INT_FIELD(obj, cls, size, (jint)cmd.size);
-	SET_STRING_FIELD(obj, cls, hash, (const char *)cmd.hash);
+	SET_STRING_FIELD(obj, cls, hash, hash);
 
     LOGD("getDynamicManager: size=0x%x, hash=%.16s...", cmd.size, cmd.hash);
 	return obj;
@@ -416,6 +419,40 @@ NativeBridgeNP(clearDynamicManager, jboolean) {
 	bool result = clear_dynamic_manager();
     LOGD("clearDynamicManager: result=%d", result);
 	return result;
+}
+
+NativeBridgeNP(openDynamicManagerSession, jboolean) {
+	return open_dynamic_manager_session();
+}
+
+NativeBridge(armDynamicManagerSessionTimeout, jboolean, jlong timeout_ms) {
+	if (timeout_ms <= 0 || (uint64_t)timeout_ms > UINT32_MAX)
+		return false;
+	return arm_dynamic_manager_session_timeout((uint32_t)timeout_ms);
+}
+
+NativeBridgeNP(cancelDynamicManagerSessionTimeout, jboolean) {
+	return cancel_dynamic_manager_session_timeout();
+}
+
+NativeBridgeNP(closeDynamicManagerSession, jboolean) {
+	return close_dynamic_manager_session();
+}
+
+NativeBridgeNP(getDynamicManagerSessionStatus, jobject) {
+	struct ksu_dynamic_manager_cmd cmd;
+	if (!get_dynamic_manager_session_status(&cmd))
+		return NULL;
+
+	jobject obj = CREATE_JAVA_OBJECT("anhiutangerinee/kittisu/Natives$DynamicManagerSessionStatus");
+	jclass cls = GetEnvironment()->FindClass(env, "anhiutangerinee/kittisu/Natives$DynamicManagerSessionStatus");
+	SET_BOOLEAN_FIELD(obj, cls, active, (jboolean)cmd.session_active);
+	SET_BOOLEAN_FIELD(obj, cls, timeoutArmed, (jboolean)cmd.timeout_armed);
+	jfieldID timeout_field = GetEnvironment()->GetFieldID(env, cls, "timeoutMs", "J");
+	jfieldID deadline_field = GetEnvironment()->GetFieldID(env, cls, "deadlineMs", "J");
+	GetEnvironment()->SetLongField(env, obj, timeout_field, (jlong)cmd.timeout_ms);
+	GetEnvironment()->SetLongField(env, obj, deadline_field, (jlong)cmd.deadline_ms);
+	return obj;
 }
 
 // Get a list of active managers

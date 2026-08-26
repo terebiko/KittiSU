@@ -44,6 +44,7 @@ import androidx.compose.material.icons.twotone.DeleteForever
 import androidx.compose.material.icons.twotone.Fence
 import androidx.compose.material.icons.twotone.FolderOff
 import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Lock
 import androidx.compose.material.icons.twotone.Policy
 import androidx.compose.material.icons.twotone.RadioButtonChecked
 import androidx.compose.material.icons.twotone.RadioButtonUnchecked
@@ -791,13 +792,23 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
-                            // 更多设置
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.Settings,
                                 title = stringResource(R.string.more_settings),
                                 description = stringResource(R.string.more_settings),
                                 onClick = {
                                     navigator.push(Route.MoreSettings)
+                                }
+                            )
+                        }
+
+                        item {
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Lock,
+                                title = stringResource(R.string.security_settings_title),
+                                description = stringResource(R.string.security_settings_summary),
+                                onClick = {
+                                    navigator.push(Route.SecuritySettings)
                                 }
                             )
                         }

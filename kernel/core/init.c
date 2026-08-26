@@ -277,6 +277,7 @@ void __exit kernelsu_exit(void)
     // Phase 1: Stop all hooks first to prevent new callbacks
     ksu_hook_exit();
     ksu_supercalls_exit();
+    ksu_dynamic_manager_exit();
     if (!ksu_late_loaded)
         ksu_ksud_exit();
 

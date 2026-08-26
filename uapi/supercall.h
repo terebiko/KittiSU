@@ -13,7 +13,7 @@
     static const type name##_RUST = (val);
 
 #define KSU_FULL_VERSION_STRING 255
-static const __u32 KERNEL_SU_UAPI_VERSION = 1;
+static const __u32 KERNEL_SU_UAPI_VERSION = 2;
 
 /* Magic numbers for reboot hook to install fd */
 DEFINE_KSU_UAPI_CONST(__u32, KSU_INSTALL_MAGIC1, 0xDEADBEEF)
@@ -173,11 +173,21 @@ struct ksu_hook_type_cmd {
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SET, 0)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_GET, 1)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_WIPE, 2)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SESSION_OPEN, 3)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SESSION_ARM_TIMEOUT, 4)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SESSION_CANCEL_TIMEOUT, 5)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SESSION_CLOSE, 6)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SESSION_STATUS, 7)
 
 struct ksu_dynamic_manager_cmd {
     __u8 operation;
     unsigned int size;
     __u8 hash[64];
+    __u8 session_active; /* Output: config is currently authorized by a live session */
+    __u8 timeout_armed; /* Output: deadline_ms is active */
+    __u16 reserved;
+    __u32 timeout_ms; /* Input for ARM; output remaining time for STATUS */
+    __aligned_u64 deadline_ms; /* Output: absolute boottime/monotonic deadline, or zero */
 };
 
 struct ksu_manager_entry {

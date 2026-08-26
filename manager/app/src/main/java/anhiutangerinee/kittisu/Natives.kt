@@ -161,6 +161,17 @@ object Natives {
      */
     external fun clearDynamicManager(): Boolean
 
+    external fun openDynamicManagerSession(): Boolean
+
+    external fun armDynamicManagerSessionTimeout(timeoutMs: Long): Boolean
+
+    external fun cancelDynamicManagerSessionTimeout(): Boolean
+
+    external fun closeDynamicManagerSession(): Boolean
+
+    /** Returns null when the kernel does not support dynamic manager sessions. */
+    external fun getDynamicManagerSessionStatus(): DynamicManagerSessionStatus?
+
     /**
      * Get active managers list
      * @return ManagersList object containing active managers, or null if failed or not enabled
@@ -209,6 +220,15 @@ object Natives {
             }
         }
     }
+
+    @Immutable
+    @Keep
+    data class DynamicManagerSessionStatus(
+        val active: Boolean = false,
+        val timeoutArmed: Boolean = false,
+        val timeoutMs: Long = 0,
+        val deadlineMs: Long = 0
+    )
 
     @Immutable
     @Parcelize

@@ -270,6 +270,11 @@ pub fn dynamic_manager_set(size: u32, hash: [u8; 64]) -> anyhow::Result<()> {
         operation: uapi::DYNAMIC_MANAGER_OP_SET_RUST,
         size,
         hash,
+        session_active: 0,
+        timeout_armed: 0,
+        reserved: 0,
+        timeout_ms: 0,
+        deadline_ms: 0,
     };
     ksuctl(uapi::KSU_IOCTL_DYNAMIC_MANAGER_RUST, &raw mut cmd)?;
     Ok(())
@@ -280,6 +285,11 @@ pub fn dynamic_manager_get() -> anyhow::Result<(u32, [u8; 64])> {
         operation: uapi::DYNAMIC_MANAGER_OP_GET_RUST,
         size: 0,
         hash: [0u8; 64],
+        session_active: 0,
+        timeout_armed: 0,
+        reserved: 0,
+        timeout_ms: 0,
+        deadline_ms: 0,
     };
     ksuctl(uapi::KSU_IOCTL_DYNAMIC_MANAGER_RUST, &raw mut cmd)?;
     Ok((cmd.size, cmd.hash))
@@ -290,6 +300,11 @@ pub fn dynamic_manager_clear() -> anyhow::Result<()> {
         operation: uapi::DYNAMIC_MANAGER_OP_WIPE_RUST,
         size: 0,
         hash: [0u8; 64],
+        session_active: 0,
+        timeout_armed: 0,
+        reserved: 0,
+        timeout_ms: 0,
+        deadline_ms: 0,
     };
     ksuctl(uapi::KSU_IOCTL_DYNAMIC_MANAGER_RUST, &raw mut cmd)?;
     Ok(())

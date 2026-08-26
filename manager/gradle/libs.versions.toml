@@ -1,6 +1,7 @@
 [versions]
 accompanist-drawablepainter = "0.37.3"
 agp = "9.2.0"
+androidx-biometric = "1.1.0"
 gson = "2.14.0"
 kotlin = "2.3.21"
 materialKolor = "4.1.1"
@@ -44,6 +45,7 @@ aboutLibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "abo
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanist-drawablepainter" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "androidx-biometric" }
 
 androidx-compose-runtime-tracing = { module = "androidx.compose.runtime:runtime-tracing" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }

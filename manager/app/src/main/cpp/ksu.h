@@ -43,6 +43,12 @@ bool get_dynamic_manager(struct ksu_dynamic_manager_cmd* config);
 
 bool clear_dynamic_manager();
 
+bool open_dynamic_manager_session();
+bool arm_dynamic_manager_session_timeout(uint32_t timeout_ms);
+bool cancel_dynamic_manager_session_timeout();
+bool close_dynamic_manager_session();
+bool get_dynamic_manager_session_status(struct ksu_dynamic_manager_cmd* status);
+
 // Su compat
 bool set_su_enabled(bool enabled);
 bool is_su_enabled();

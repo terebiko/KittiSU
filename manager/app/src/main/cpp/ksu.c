@@ -290,9 +290,11 @@ int get_kernel_patch_implement() {
 bool set_dynamic_manager(unsigned int size, const char *hash)
 {
 	struct ksu_dynamic_manager_cmd cmd = {0};
+	if (!hash || strlen(hash) != sizeof(cmd.hash))
+		return false;
 	cmd.operation = DYNAMIC_MANAGER_OP_SET;
 	cmd.size	  = size;
-	strlcpy((char *) cmd.hash, hash, sizeof(cmd.hash));
+	memcpy(cmd.hash, hash, sizeof(cmd.hash));
 
 	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
 }
@@ -317,6 +319,42 @@ bool clear_dynamic_manager(void)
 	struct ksu_dynamic_manager_cmd cmd = {0};
 	cmd.operation = DYNAMIC_MANAGER_OP_WIPE;
 	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
+}
+
+bool open_dynamic_manager_session(void)
+{
+	struct ksu_dynamic_manager_cmd cmd = { .operation = DYNAMIC_MANAGER_OP_SESSION_OPEN };
+	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
+}
+
+bool arm_dynamic_manager_session_timeout(uint32_t timeout_ms)
+{
+	struct ksu_dynamic_manager_cmd cmd = {
+		.operation = DYNAMIC_MANAGER_OP_SESSION_ARM_TIMEOUT,
+		.timeout_ms = timeout_ms,
+	};
+	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
+}
+
+bool cancel_dynamic_manager_session_timeout(void)
+{
+	struct ksu_dynamic_manager_cmd cmd = { .operation = DYNAMIC_MANAGER_OP_SESSION_CANCEL_TIMEOUT };
+	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
+}
+
+bool close_dynamic_manager_session(void)
+{
+	struct ksu_dynamic_manager_cmd cmd = { .operation = DYNAMIC_MANAGER_OP_SESSION_CLOSE };
+	return ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) == 0;
+}
+
+bool get_dynamic_manager_session_status(struct ksu_dynamic_manager_cmd *status)
+{
+	struct ksu_dynamic_manager_cmd cmd = { .operation = DYNAMIC_MANAGER_OP_SESSION_STATUS };
+	if (!status || ksuctl(KSU_IOCTL_DYNAMIC_MANAGER, &cmd) != 0)
+		return false;
+	*status = cmd;
+	return true;
 }
 
 /**

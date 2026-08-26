@@ -899,10 +899,16 @@ static int do_dynamic_manager(void __user *arg)
 #ifdef CONFIG_KSU_DISABLE_MANAGER
     return -EOPNOTSUPP;
 #else
-    struct ksu_dynamic_manager_cmd cmd;
+    struct ksu_dynamic_manager_cmd cmd = { 0 };
+    const size_t legacy_size = offsetof(struct ksu_dynamic_manager_cmd, session_active);
 
-    if (copy_from_user(&cmd, arg, sizeof(cmd))) {
+    if (copy_from_user(&cmd, arg, legacy_size)) {
         pr_err("dynamic_manager: copy_from_user failed\n");
+        return -EFAULT;
+    }
+
+    if (cmd.operation >= DYNAMIC_MANAGER_OP_SESSION_OPEN && copy_from_user(&cmd, arg, sizeof(cmd))) {
+        pr_err("dynamic_manager: session copy_from_user failed\n");
         return -EFAULT;
     }
 
@@ -910,8 +916,13 @@ static int do_dynamic_manager(void __user *arg)
     if (ret)
         return ret;
 
-    if (cmd.operation == DYNAMIC_MANAGER_OP_GET && copy_to_user(arg, &cmd, sizeof(cmd))) {
+    if (cmd.operation == DYNAMIC_MANAGER_OP_GET && copy_to_user(arg, &cmd, legacy_size)) {
         pr_err("dynamic_manager: copy_to_user failed\n");
+        return -EFAULT;
+    }
+
+    if (cmd.operation == DYNAMIC_MANAGER_OP_SESSION_STATUS && copy_to_user(arg, &cmd, sizeof(cmd))) {
+        pr_err("dynamic_manager: session copy_to_user failed\n");
         return -EFAULT;
     }
 
@@ -1334,7 +1345,7 @@ static const struct ksu_ioctl_cmd_map ksu_ioctl_handlers[] = {
         .cmd = KSU_IOCTL_DYNAMIC_MANAGER,
         .name = "SET_DYNAMIC_MANAGER",
         .handler = do_dynamic_manager,
-        .perm_check = only_root 
+        .perm_check = manager_or_root
     },
     { 
         .cmd = KSU_IOCTL_GET_MANAGERS, 

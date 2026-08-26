@@ -15,24 +15,29 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -61,11 +66,14 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -81,6 +89,13 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.NavigationEventState
 import androidx.navigationevent.compose.rememberNavigationEventState
 import anhiutangerinee.kittisu.Natives
+import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.security.LockScreen
+import anhiutangerinee.kittisu.security.ManagerSecurity
+import anhiutangerinee.kittisu.security.RebootRequiredScreen
+import anhiutangerinee.kittisu.security.SecurityUiState
+import anhiutangerinee.kittisu.security.WorkingOverlay
+import anhiutangerinee.kittisu.security.messageResForKey
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
 import anhiutangerinee.kittisu.ui.activity.component.BottomBar
 import anhiutangerinee.kittisu.ui.activity.component.NavigationBar
@@ -188,7 +203,7 @@ fun rememberScrollConnection(
     }
 }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private lateinit var superUserViewModel: SuperUserViewModel
     private lateinit var homeViewModel: HomeViewModel
     internal val settingsStateFlow = MutableStateFlow(SettingsState())
@@ -302,7 +317,36 @@ class MainActivity : ComponentActivity() {
                 KernelSUTheme {
                     val context = LocalContext.current
 
-                    LaunchedEffect(zipUri) {
+                    LaunchedEffect(Unit) {
+                        ManagerSecurity.initialize()
+                    }
+
+                    val securityState by ManagerSecurity.state.collectAsState()
+
+                    // Hide manager content from recents screenshots while gated.
+                    LaunchedEffect(securityState) {
+                        if (securityState == SecurityUiState.Unlocked) {
+                            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                        } else {
+                            window.setFlags(
+                                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                                android.view.WindowManager.LayoutParams.FLAG_SECURE
+                            )
+                        }
+                    }
+
+                    val securityScope = rememberCoroutineScope()
+                    val showManagerUi = securityState == SecurityUiState.Unconfigured ||
+                        securityState == SecurityUiState.Unlocked
+
+                    if (showManagerUi) {
+                        LaunchedEffect(securityState) {
+                            ManagerSecurity.onEnterForeground()
+                        }
+                    }
+
+                    LaunchedEffect(zipUri, securityState) {
+                        if (!showManagerUi) return@LaunchedEffect
                         if (zipUri.isNullOrEmpty()) return@LaunchedEffect
 
                         lifecycleScope.launch(Dispatchers.IO) {
@@ -455,16 +499,19 @@ class MainActivity : ComponentActivity() {
                         LocalNavigator provides navigator,
                         LocalDensity provides density
                     ) {
-                        HandleDeepLink(
-                            intentState = intentState.collectAsState()
-                        )
+                        Box(Modifier.fillMaxSize()) {
+                        if (showManagerUi) {
+                            HandleDeepLink(
+                                intentState = intentState.collectAsState()
+                            )
 
-                        ShortcutIntentHandler(
-                            intentState = intentState
-                        )
+                            ShortcutIntentHandler(
+                                intentState = intentState
+                            )
+                        }
 
                         InstallConfirmationDialog(
-                            show = showConfirmationDialog.value,
+                            show = showConfirmationDialog.value && showManagerUi,
                             zipFiles = pendingZipFiles.value,
                             onConfirm = { confirmedFiles ->
                                 showConfirmationDialog.value = false
@@ -654,6 +701,9 @@ class MainActivity : ComponentActivity() {
                                     entry<Route.SuSFSConfig> { SuSFSConfigScreen() }
                                     entry<Route.UmountManager> { UmountManagerScreen() }
                                     entry<Route.DynamicManager> { DynamicManagerScreen() }
+                                    entry<Route.SecuritySettings> {
+                                        anhiutangerinee.kittisu.security.SecuritySettingsScreen()
+                                    }
                                     entry<Route.KernelFlash> { key ->
                                         KernelFlashScreen(
                                             key.kernelUri,
@@ -715,6 +765,16 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+
+                        SecurityGateOverlay(
+                            state = securityState,
+                            activity = this@MainActivity,
+                            scope = securityScope,
+                            onDestructiveReset = {
+                                securityScope.launch { ManagerSecurity.beginDestructiveReset() }
+                            },
+                        )
+                        }
                     }
                 }
             }
@@ -754,6 +814,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         try {
             super.onResume()
+            ManagerSecurity.onEnterForeground()
             ThemeUtils.onActivityResume()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -763,6 +824,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         try {
             super.onPause()
+            ManagerSecurity.onEnterBackground()
             ThemeUtils.onActivityPause(this)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -785,8 +847,7 @@ class MainActivity : ComponentActivity() {
  *
  * @param enableBlur Whether the blur effect is globally enabled.
  * @return A LayerBackdrop instance if supported and enabled, null otherwise.
- */
-@Composable
+ */@Composable
 fun rememberMaterial3BlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
     if (!enableBlur || !isRenderEffectSupported()) return null
 
@@ -976,6 +1037,150 @@ fun MainScreen() {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SecurityGateOverlay(
+    state: SecurityUiState,
+    activity: FragmentActivity,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onDestructiveReset: () -> Unit,
+) {
+    when (state) {
+        SecurityUiState.Loading,
+        SecurityUiState.Unconfigured,
+        SecurityUiState.Unlocked -> Unit
+
+        is SecurityUiState.Locked -> {
+            GateSurface {
+                val lastMessage by ManagerSecurity.lastMessageKey.collectAsState()
+                val biometricLauncher = rememberBiometricLauncher(
+                    activity = activity,
+                    enabled = state.biometricEnabled && !state.lockdown,
+                    onSuccess = { scope.launch { ManagerSecurity.unlockWithBiometric() } },
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.weight(1f, fill = false)) {
+                        LockScreen(
+                            method = state.method,
+                            lockdown = state.lockdown,
+                            biometricPrompt = biometricLauncher,
+                            onVerified = { credential ->
+                                scope.launch { ManagerSecurity.verify(credential) }
+                            },
+                            onPatternVerified = { pattern ->
+                                scope.launch { ManagerSecurity.verify(pattern.toCharArray()) }
+                            },
+                            onDestructiveReset = onDestructiveReset,
+                        )
+                    }
+                    lastMessage?.let { key ->
+                        Text(
+                            text = stringResource(id = messageResForKey(key)),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 16.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        is SecurityUiState.Working -> {
+            GateSurface { WorkingOverlay(state.messageKey) }
+        }
+
+        SecurityUiState.Resetting -> {
+            GateSurface {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(16.dp))
+                    Text(stringResource(R.string.security_resetting))
+                }
+            }
+        }
+
+        SecurityUiState.RebootRequired -> {
+            GateSurface { RebootRequiredScreen() }
+        }
+
+        SecurityUiState.Corrupted -> {
+            // Fail closed: security state unreadable -> only the destructive reset remains.
+            GateSurface {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.security_corrupted_title),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.security_corrupted_summary),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(Modifier.height(24.dp))
+                    androidx.compose.material3.TextButton(onClick = onDestructiveReset) {
+                        Text(stringResource(R.string.security_reset_link))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GateSurface(content: @Composable () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(100f)
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun rememberBiometricLauncher(
+    activity: FragmentActivity,
+    enabled: Boolean,
+    onSuccess: () -> Unit,
+): (() -> Unit)? {
+    if (!enabled) return null
+    val context = LocalContext.current
+    val canAuthenticate = remember(enabled) {
+        runCatching {
+            BiometricManager.from(context)
+                .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+        }.getOrDefault(BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) ==
+            BiometricManager.BIOMETRIC_SUCCESS
+    }
+    if (!canAuthenticate) return null
+    return {
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(activity.getString(R.string.security_biometric_unlock))
+            .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            .build()
+        val prompt = BiometricPrompt(
+            activity,
+            ContextCompat.getMainExecutor(activity),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    onSuccess()
+                }
+            },
+        )
+        prompt.authenticate(promptInfo)
     }
 }
 

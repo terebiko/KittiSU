@@ -201,6 +201,7 @@ aboutLibraries {
 dependencies {
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.androidx.biometric)
     implementation(libs.gson)
     implementation(libs.androidx.activity.compose)
 

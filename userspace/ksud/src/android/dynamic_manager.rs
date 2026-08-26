@@ -75,3 +75,31 @@ pub fn set(size: u32, hash: [u8; 64]) -> Result<()> {
     ksucalls::dynamic_manager_set(size, hash)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Config, parse_hash};
+
+    #[test]
+    fn persisted_config_does_not_restore_session_state() {
+        let config: Config = serde_json::from_str(&format!(
+            r#"{{"size":768,"hash":"{}","session_active":true,"timeout_ms":30000}}"#,
+            "a".repeat(64)
+        ))
+        .unwrap();
+
+        let persisted = serde_json::to_string(&config).unwrap();
+
+        assert_eq!(config.size, 768);
+        assert_eq!(config.hash, "a".repeat(64));
+        assert!(!persisted.contains("session"));
+        assert!(!persisted.contains("timeout"));
+    }
+
+    #[test]
+    fn parse_hash_requires_exactly_64_bytes() {
+        assert!(parse_hash(&"a".repeat(64)).is_ok());
+        assert!(parse_hash(&"a".repeat(63)).is_err());
+        assert!(parse_hash(&"a".repeat(65)).is_err());
+    }
+}
