@@ -658,6 +658,7 @@ Important Note:\n
     <string name="security_change_secret">Change password / method</string>
     <string name="security_change_secret_summary">Change the secret or switch between password, PIN and pattern</string>
     <string name="security_choose_method">Choose lock method</string>
+    <string name="security_choose_method_hint">You can change this anytime from Manager lock settings</string>
     <string name="security_method_password">Password</string>
     <string name="security_method_pin">PIN</string>
     <string name="security_method_pattern">Pattern</string>
@@ -679,6 +680,7 @@ Important Note:\n
     <string name="security_biometric_summary">Allow unlocking with fingerprint or face when enabled</string>
     <string name="security_biometric_unlock">Unlock with biometrics</string>
     <string name="security_locked_title">Manager locked</string>
+    <string name="security_locked_hint">Enter your credential to unlock the manager</string>
     <string name="security_cooldown_remaining">Try again in %1$s</string>
     <string name="security_lockdown_section">Lockdown</string>
     <string name="security_lockdown_info_title">What lockdown does</string>

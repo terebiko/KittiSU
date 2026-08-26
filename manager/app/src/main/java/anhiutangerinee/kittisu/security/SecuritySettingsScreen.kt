@@ -2,8 +2,10 @@ package anhiutangerinee.kittisu.security
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -284,36 +286,56 @@ private fun DisableLockDialog(onDismiss: () -> Unit, onConfirmed: () -> Unit) {
     )
 }
 
+@OptIn(
+    androidx.compose.material3.ExperimentalMaterial3Api::class
+)
 @Composable
 private fun MethodChooserDialog(onDismiss: () -> Unit, onSelected: (LockMethod) -> Unit) {
-    val options = listOf(
-        LockMethod.PASSWORD to R.string.security_method_password,
-        LockMethod.PIN to R.string.security_method_pin,
-        LockMethod.PATTERN to R.string.security_method_pattern,
-    )
+    var selected by remember { mutableStateOf<LockMethod?>(null) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.security_choose_method)) },
         text = {
             androidx.compose.foundation.layout.Column {
-                options.forEach { (method, labelRes) ->
-                    SettingsBaseWidget(
-                        icon = when (method) {
-                            LockMethod.PASSWORD -> Icons.TwoTone.Password
-                            LockMethod.PIN -> Icons.TwoTone.Pin
-                            LockMethod.PATTERN -> Icons.TwoTone.Pattern
-                        },
-                        title = stringResource(labelRes),
-                        onClick = { onSelected(method) },
-                    ) {}
+                androidx.compose.material3.SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf(
+                        LockMethod.PASSWORD to R.string.security_method_password,
+                        LockMethod.PIN to R.string.security_method_pin,
+                        LockMethod.PATTERN to R.string.security_method_pattern,
+                    ).forEachIndexed { index, (method, labelRes) ->
+                        androidx.compose.material3.SegmentedButton(
+                            selected = selected == method,
+                            onClick = {
+                                selected = method
+                                onSelected(method)
+                            },
+                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = 3,
+                            ),
+                            label = {
+                                Text(
+                                    stringResource(labelRes),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                )
+                            },
+                        )
+                    }
                 }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.security_choose_method_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = {},
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text(stringResource(android.R.string.cancel))
-            }
+            TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) }
         },
     )
 }

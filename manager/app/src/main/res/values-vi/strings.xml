@@ -542,6 +542,7 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="security_change_secret">Đổi mật khẩu / phương thức</string>
     <string name="security_change_secret_summary">Đổi bí mật hoặc chuyển giữa mật khẩu, mã PIN và hình mẫu vẽ</string>
     <string name="security_choose_method">Chọn phương thức khoá</string>
+    <string name="security_choose_method_hint">Bạn có thể đổi bất cứ lúc nào trong cài đặt Khoá manager</string>
     <string name="security_method_password">Mật khẩu</string>
     <string name="security_method_pin">Mã PIN</string>
     <string name="security_method_pattern">Hình mẫu vẽ</string>
@@ -563,6 +564,7 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="security_biometric_summary">Cho phép mở khoá bằng vân tay hoặc khuôn mặt khi bật</string>
     <string name="security_biometric_unlock">Mở khoá bằng sinh trắc học</string>
     <string name="security_locked_title">Manager đang bị khoá</string>
+    <string name="security_locked_hint">Nhập bí mật của bạn để mở khoá manager</string>
     <string name="security_cooldown_remaining">Thử lại sau %1$s</string>
     <string name="security_lockdown_section">Lockdown</string>
     <string name="security_lockdown_info_title">Lockdown làm gì</string>
