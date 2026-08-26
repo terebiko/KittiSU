@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +68,8 @@ fun LockScreen(
 ) {
     var errorKey by remember { mutableStateOf<Int?>(null) }
     var showResetDialogs by remember { mutableStateOf(false) }
+    // Surface verification feedback (wrong secret / cooldown / restore failure).
+    val remoteError by ManagerSecurity.lastMessageKey.collectAsState()
 
     Column(
         modifier = Modifier
@@ -165,8 +168,7 @@ fun LockScreen(
                                 errorKey = null
                                 onVerified(password.toCharArray())
                             },
-                        )
-                    }
+                        )                    }
                 }
             }
 
@@ -174,6 +176,14 @@ fun LockScreen(
                 Spacer(Modifier.height(10.dp))
                 Text(
                     text = stringResource(key),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            remoteError?.let { key ->
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = stringResource(id = messageResForKey(key)),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -277,7 +287,10 @@ private fun PasswordField(modifier: Modifier, enabled: Boolean, onSubmit: (Strin
         Spacer(Modifier.width(10.dp))
         Button(
             shape = RoundedCornerShape(16.dp),
-            onClick = { onSubmit(value) },
+            onClick = {
+                onSubmit(value)
+                value = "" // never reuse stale input on retry
+            },
             enabled = enabled && value.isNotEmpty(),
         ) {
             Text(stringResource(android.R.string.ok))
@@ -351,6 +364,8 @@ fun messageResForKey(key: String): Int = when (key) {
     "security_restore_failed" -> R.string.security_restore_failed
     "security_reset_failed" -> R.string.security_reset_failed
     "security_wrong_secret" -> R.string.security_wrong_secret
+    "security_cooldown_active" -> R.string.security_cooldown_active
+    "security_biometric_failed" -> R.string.security_biometric_failed
     else -> R.string.operation_failed
 }
 

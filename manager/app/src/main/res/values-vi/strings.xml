@@ -575,6 +575,8 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="security_restoring">Đang khôi phục quyền và module…</string>
     <string name="security_restore_failed">Khôi phục chưa hoàn tất — vui lòng mở khoá thử lại</string>
     <string name="security_wrong_secret">Bí mật không đúng</string>
+    <string name="security_cooldown_active">Quá nhiều lần sai — hãy đợi đồng hồ đếm ngược</string>
+    <string name="security_biometric_failed">Xác thực sinh trắc học thất bại</string>
     <string name="security_corrupted_title">Không đọc được trạng thái bảo mật</string>
     <string name="security_corrupted_summary">Dữ liệu khoá không thể đọc. Để an toàn, manager vẫn khoá; bạn có thể thực hiện xoá khoá (phá huỷ).</string>
     <string name="security_reset_link">Quên mật khẩu? Xoá khoá manager</string>

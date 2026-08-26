@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Backspace
+import androidx.compose.material.icons.twotone.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,7 +35,8 @@ import androidx.compose.ui.unit.dp
 /**
  * Material You numeric keypad for PIN entry, mirroring the SystemUI bouncer
  * (NumPadKey): round tonal keys with klondike letter hints, dot progress
- * indicator, delete action and per-key haptic feedback.
+ * indicator, delete + explicit confirm actions and per-key haptics.
+ * The buffer clears after every submit so retries never reuse stale input.
  */
 @Composable
 fun PinKeypad(
@@ -47,8 +48,17 @@ fun PinKeypad(
     var pin by remember { mutableStateOf("") }
     val haptic = LocalHapticFeedback.current
 
+    fun submit(current: String) {
+        if (current.isEmpty()) return
+        onSubmit(current)
+        pin = ""
+    }
+
     fun append(digit: Char) {
-        if (pin.length < maxLength) pin += digit
+        if (pin.length >= maxLength) return
+        pin += digit
+        // Auto-confirm fixed-length PINs, like the system bouncer auto confirm.
+        if (pin.length == maxLength) submit(pin)
     }
 
     Column(
@@ -110,8 +120,21 @@ fun PinKeypad(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            // Invisible spacer keeps the 0 key centered like the system keypad.
-            Box(modifier = Modifier.size(76.dp))
+            PinKey(
+                enabled = enabled && pin.isNotEmpty(),
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                    submit(pin)
+                },
+                content = {
+                    Icon(
+                        imageVector = Icons.TwoTone.CheckCircle,
+                        contentDescription = null,
+                        tint = if (pin.isNotEmpty()) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+            )
             PinKey(
                 enabled = enabled,
                 onClick = {

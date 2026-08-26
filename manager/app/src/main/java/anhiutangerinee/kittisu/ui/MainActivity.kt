@@ -1058,36 +1058,26 @@ private fun SecurityGateOverlay(
 
         is SecurityUiState.Locked -> {
             GateSurface {
-                val lastMessage by ManagerSecurity.lastMessageKey.collectAsState()
                 val biometricLauncher = rememberBiometricLauncher(
                     activity = activity,
                     enabled = state.biometricEnabled && !state.lockdown,
                     onSuccess = { scope.launch { ManagerSecurity.unlockWithBiometric() } },
+                    onError = {
+                        scope.launch { ManagerSecurity.noteMessage("security_biometric_failed") }
+                    },
                 )
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.weight(1f, fill = false)) {
-                        LockScreen(
-                            method = state.method,
-                            lockdown = state.lockdown,
-                            biometricPrompt = biometricLauncher,
-                            onVerified = { credential ->
-                                scope.launch { ManagerSecurity.verify(credential) }
-                            },
-                            onPatternVerified = { pattern ->
-                                scope.launch { ManagerSecurity.verify(pattern.toCharArray()) }
-                            },
-                            onDestructiveReset = onDestructiveReset,
-                        )
-                    }
-                    lastMessage?.let { key ->
-                        Text(
-                            text = stringResource(id = messageResForKey(key)),
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(bottom = 16.dp),
-                        )
-                    }
-                }
+                LockScreen(
+                    method = state.method,
+                    lockdown = state.lockdown,
+                    biometricPrompt = biometricLauncher,
+                    onVerified = { credential ->
+                        scope.launch { ManagerSecurity.verify(credential) }
+                    },
+                    onPatternVerified = { pattern ->
+                        scope.launch { ManagerSecurity.verify(pattern.toCharArray()) }
+                    },
+                    onDestructiveReset = onDestructiveReset,
+                )
             }
         }
 
@@ -1159,6 +1149,7 @@ private fun rememberBiometricLauncher(
     activity: FragmentActivity,
     enabled: Boolean,
     onSuccess: () -> Unit,
+    onError: () -> Unit,
 ): (() -> Unit)? {
     if (!enabled) return null
     val context = LocalContext.current
@@ -1173,6 +1164,7 @@ private fun rememberBiometricLauncher(
     return {
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(activity.getString(R.string.security_biometric_unlock))
+            .setNegativeButtonText(activity.getString(android.R.string.cancel))
             .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
             .build()
         val prompt = BiometricPrompt(
@@ -1182,9 +1174,18 @@ private fun rememberBiometricLauncher(
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     onSuccess()
                 }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
+                        errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON
+                    ) {
+                        onError()
+                    }
+                }
             },
         )
-        prompt.authenticate(promptInfo)
+        runCatching { prompt.authenticate(promptInfo) }
+            .onFailure { onError() }
     }
 }
 

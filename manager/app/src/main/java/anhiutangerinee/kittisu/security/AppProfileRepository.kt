@@ -43,8 +43,12 @@ object AppProfileRepository {
             }
             result.filter { it.packageName != ksuApp.packageName }
         } finally {
+            // libsu requires bind/unbind on the main thread; stopping from an IO
+            // thread crashes the process (RootService.checkThread).
             runCatching {
-                RootService.stop(Intent(ksuApp, KsuService::class.java))
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    RootService.stop(Intent(ksuApp, KsuService::class.java))
+                }
             }
         }
     }

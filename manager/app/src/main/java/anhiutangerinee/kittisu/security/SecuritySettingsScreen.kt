@@ -33,10 +33,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -69,14 +69,19 @@ fun SecuritySettingsScreen() {
     val scope = rememberCoroutineScope()
     val store = remember { RootSecurityStore() }
 
-    val currentConfig by produceState<LockConfig?>(initialValue = null) {
-        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    // Mutable local mirror; refreshed after every mutation so the UI reacts instantly.
+    var currentConfig by remember { mutableStateOf<LockConfig?>(null) }
+
+    suspend fun refreshConfig() {
+        currentConfig = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             when (val read = store.readConfig()) {
                 is StoreRead.Valid -> read.value
                 else -> null
             }
         }
     }
+
+    LaunchedEffect(Unit) { refreshConfig() }
     var showMethodChooser by remember { mutableStateOf(false) }
     var setupMethod by remember { mutableStateOf<LockMethod?>(null) }
     var initialEnable by remember { mutableStateOf(false) }
@@ -144,6 +149,7 @@ fun SecuritySettingsScreen() {
                                         ManagerSecurity.updateConfig {
                                             it.copy(relockTimeoutMillis = minutes * 60_000L)
                                         }
+                                        refreshConfig()
                                     }
                                 }
                             }
@@ -153,6 +159,7 @@ fun SecuritySettingsScreen() {
                                         ManagerSecurity.updateConfig {
                                             it.copy(maxFailedAttempts = attempts)
                                         }
+                                        refreshConfig()
                                     }
                                 }
                             }
@@ -167,6 +174,7 @@ fun SecuritySettingsScreen() {
                                             ManagerSecurity.updateConfig {
                                                 it.copy(biometricEnabled = enabled)
                                             }
+                                            refreshConfig()
                                         }
                                     },
                                 )
@@ -229,6 +237,7 @@ fun SecuritySettingsScreen() {
                             it.copy(method = method, encodedCredential = encoded)
                         }
                     }
+                    refreshConfig()
                     setupMethod = null
                 }
             },
@@ -239,7 +248,10 @@ fun SecuritySettingsScreen() {
         DisableLockDialog(
             onDismiss = { showDisableDialog = false },
             onConfirmed = {
-                scope.launch { ManagerSecurity.disableLock() }
+                scope.launch {
+                    ManagerSecurity.disableLock()
+                    refreshConfig()
+                }
                 showDisableDialog = false
             },
         )

@@ -172,7 +172,10 @@ object ManagerSecurity {
     suspend fun verify(credential: CharArray): Boolean {
         val currentConfig = config ?: return false
 
-        if (cooldownRemainingMs() > 0) return false
+        if (cooldownRemainingMs() > 0) {
+            _lastMessageKey.value = "security_cooldown_active"
+            return false
+        }
 
         // PBKDF2 takes hundreds of ms; never run it on the caller (main) thread.
         val verified = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
@@ -218,9 +221,11 @@ object ManagerSecurity {
 
     /** Called after a successful BiometricPrompt result. */
     suspend fun unlockWithBiometric(): Boolean {
-        if (_state.value != SecurityUiState.Unlocked &&
-            _state.value is SecurityUiState.Locked && cooldownRemainingMs() <= 0
-        ) {
+        if (_state.value is SecurityUiState.Locked) {
+            if (cooldownRemainingMs() > 0) {
+                _lastMessageKey.value = "security_cooldown_active"
+                return false
+            }
             return completeUnlock()
         }
         return false
@@ -267,6 +272,11 @@ object ManagerSecurity {
     /** Called from ManagerTaskService.onTaskRemoved(). */
     fun onTaskRemoved() {
         closeDynamicSession()
+    }
+
+    /** Publishes a UI feedback message key (e.g. biometric errors). */
+    fun noteMessage(key: String) {
+        _lastMessageKey.value = key
     }
 
     /** Non-recording credential check used by admin actions in Settings. */

@@ -691,6 +691,8 @@ Important Note:\n
     <string name="security_restoring">Restoring permissions and modules…</string>
     <string name="security_restore_failed">Restore incomplete — please try unlocking again</string>
     <string name="security_wrong_secret">Wrong secret</string>
+    <string name="security_cooldown_active">Too many attempts — wait for the timer</string>
+    <string name="security_biometric_failed">Biometric authentication failed</string>
     <string name="security_corrupted_title">Security state unreadable</string>
     <string name="security_corrupted_summary">The lock storage could not be read. For safety the manager stays locked; you may perform a destructive reset.</string>
     <string name="security_reset_link">Forgot password? Reset manager lock</string>
