@@ -8,60 +8,6 @@ on:
   workflow_call:
 
 jobs:
-  build-gki-kernel:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 70
-    steps:
-      - name: Trigger and wait for GKI kernel build
-        env:
-          GH_TOKEN: ${{ secrets.BUILDER_TOKEN }}
-          KITTISU_BRANCH: ${{ github.ref_name }}
-        run: |
-          run_url=$(gh workflow run kernel-custom.yml \
-            --repo thanhhuybynight/GKI_KernelSU_SUSFS \
-            --ref dev \
-            -f kernel_version=5.15 \
-            -f os_patch_level=2024-05 \
-            -f kernelsu_variant=ReSukiSU \
-            -f version=KittiSU-${KITTISU_BRANCH} \
-            -f build_time=N \
-            -f use_kpm='disabled (关闭)' \
-            -f droidspaces=678 \
-            -f artifact_upload_mode='上传全部' \
-            -f droidspaces_ntsync=false \
-            -f use_zram=true \
-            -f use_bbg=true \
-            -f use_rekernel=true \
-            -f cve_2026_43499_patch=false \
-            -f cancel_susfs=false \
-            -f supp_op=false \
-            -f ksu_repository=https://github.com/terebiko/KittiSU \
-            -f ksu_branch="$KITTISU_BRANCH")
-          run_id=${run_url##*/}
-          test -n "$run_id"
-          echo "Remote build: $run_url" >> "$GITHUB_STEP_SUMMARY"
-          if gh run watch "$run_id" \
-              --repo thanhhuybynight/GKI_KernelSU_SUSFS \
-              --interval 30 \
-              --exit-status; then
-            remote_status=0
-          else
-            remote_status=$?
-          fi
-
-          gh api --paginate \
-            "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/runs/$run_id/jobs" \
-            --jq '.jobs[] | [.id, .name] | @tsv' |
-          while IFS=$'\t' read -r job_id job_name; do
-            echo "::group::Remote GKI: $job_name"
-            gh api \
-              "repos/thanhhuybynight/GKI_KernelSU_SUSFS/actions/jobs/$job_id/logs" || true
-            echo "::endgroup::"
-          done
-
-          exit "$remote_status"
-
   generate-key:
     runs-on: ubuntu-latest
     outputs:
@@ -422,8 +368,8 @@ jobs:
           path: dist/*.apk
 
   upload-telegram:
-    needs: [repack-manager, build-gki-kernel]
-    if: github.event_name != 'pull_request' && needs.repack-manager.result == 'success' && needs.build-gki-kernel.result == 'success'
+    needs: [repack-manager]
+    if: github.event_name != 'pull_request' && needs.repack-manager.result == 'success'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
