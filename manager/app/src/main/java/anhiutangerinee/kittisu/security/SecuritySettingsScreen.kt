@@ -25,6 +25,9 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -297,7 +300,7 @@ private fun MethodChooserDialog(onDismiss: () -> Unit, onSelected: (LockMethod) 
         title = { Text(stringResource(R.string.security_choose_method)) },
         text = {
             androidx.compose.foundation.layout.Column {
-                androidx.compose.material3.SingleChoiceSegmentedButtonRow(
+                SingleChoiceSegmentedButtonRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
@@ -305,13 +308,13 @@ private fun MethodChooserDialog(onDismiss: () -> Unit, onSelected: (LockMethod) 
                         LockMethod.PIN to R.string.security_method_pin,
                         LockMethod.PATTERN to R.string.security_method_pattern,
                     ).forEachIndexed { index, (method, labelRes) ->
-                        androidx.compose.material3.SegmentedButton(
+                        SegmentedButton(
                             selected = selected == method,
                             onClick = {
                                 selected = method
                                 onSelected(method)
                             },
-                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(
+                            shape = SegmentedButtonDefaults.itemShape(
                                 index = index,
                                 count = 3,
                             ),
