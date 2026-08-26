@@ -82,6 +82,15 @@ object ManagerSecurity {
             }
 
             is OperationRead.State -> when (read.state) {
+                OperationState.IDLE -> {
+                    // Migrate the invalid terminal marker written by older builds.
+                    if (!store.deleteOperation()) {
+                        Log.e(TAG, "failed to clear legacy idle operation")
+                        _state.value = SecurityUiState.Corrupted
+                        return
+                    }
+                }
+
                 OperationState.REBOOT_REQUIRED -> {
                     val document = readOperationDocument(store)
                     val rebooted = BootIdReader.currentBootId().let { current ->

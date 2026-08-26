@@ -50,6 +50,14 @@ class RootSecurityStore internal constructor(
         return write(SecurityDocument.OPERATION, json)
     }
 
+    internal fun deleteOperation(): Boolean {
+        val directory = LOCK_STORE_DIRECTORY.shellQuote()
+        val operation = "$LOCK_STORE_DIRECTORY/${SecurityDocument.OPERATION.fileName}".shellQuote()
+        val command =
+            "( if [ -L $directory ]; then exit $CORRUPT_EXIT_CODE; fi; rm -f $operation )"
+        return runCatching { executor.execute(command).code == 0 }.getOrDefault(false)
+    }
+
     /** Removes every security document; used exclusively by the destructive reset. */
     fun deleteAll(): Boolean {
         val directory = LOCK_STORE_DIRECTORY.shellQuote()

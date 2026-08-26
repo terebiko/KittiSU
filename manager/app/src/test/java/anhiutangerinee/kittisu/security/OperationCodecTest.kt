@@ -40,10 +40,10 @@ class OperationCodecTest {
     }
 
     @Test
-    fun idleDocument_roundtrips() {
-        val idle = """{"version":1,"state":"LOCKDOWN_EXITING"}"""
+    fun decode_acceptsLegacyIdleDocument() {
+        val idle = """{"version":1,"state":"IDLE"}"""
         val decoded = OperationCodec.decode(idle)
-        assertEquals(OperationState.LOCKDOWN_EXITING, decoded.state)
+        assertEquals(OperationState.IDLE, decoded.state)
         assertTrue(decoded.apps.isEmpty() && decoded.enabledModules.isEmpty())
     }
 }

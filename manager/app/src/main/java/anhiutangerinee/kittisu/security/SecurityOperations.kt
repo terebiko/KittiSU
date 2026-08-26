@@ -4,6 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 enum class OperationState {
+    IDLE,
     LOCKDOWN_ENTERING,
     LOCKDOWN_ACTIVE,
     LOCKDOWN_EXITING,

@@ -1,6 +1,7 @@
 package anhiutangerinee.kittisu.security
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,6 +62,22 @@ class RootSecurityStoreTest {
         assertTrue(store.writeOperation("""{"version":1,"pending":false}"""))
         assertTrue(commands.single().contains("/operation.json"))
         assertTrue(storeReturning(RootCommandResult(0, """{"version":2}""")).readOperation() is StoreRead.Corrupt)
+    }
+
+    @Test
+    fun deleteOperation_removesOnlyOperationDocument() {
+        val commands = mutableListOf<String>()
+        val store = RootSecurityStore { command ->
+            commands += command
+            RootCommandResult(0)
+        }
+
+        assertTrue(store.deleteOperation())
+
+        val command = commands.single()
+        assertTrue(command.contains("rm -f '/data/adb/ksu/.kittisu_manager_lock/operation.json'"))
+        assertFalse(command.contains("config.json"))
+        assertFalse(command.contains("runtime.json"))
     }
 
     private fun storeReturning(result: RootCommandResult) = RootSecurityStore { result }

@@ -121,9 +121,9 @@ object LockdownController {
         }
         ModuleSecurityRepository.saveFeatures()
 
-        if (allOk) {
-            store.writeOperation(OperationCodec.encode(OperationDocument(OperationState.LOCKDOWN_EXITING)))
-            store.writeOperation("""{"version":1,"state":"IDLE"}""")
+        if (allOk && !store.deleteOperation()) {
+            Log.e(TAG, "failed to clear completed lockdown operation")
+            return@withContext false
         }
         allOk
     }
