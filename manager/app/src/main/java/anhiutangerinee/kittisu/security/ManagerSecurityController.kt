@@ -279,7 +279,7 @@ object ManagerSecurity {
 
     suspend fun configureLock(newConfig: LockConfig): Boolean = onIo {
         if (!store.writeConfig(newConfig)) return@onIo false
-        if (!store.writeRuntime(LockRuntime())) return false
+        if (!store.writeRuntime(LockRuntime())) return@onIo false
         config = newConfig
         runtime = LockRuntime()
         cooldownDeadlineElapsedRealtime = 0
@@ -341,7 +341,7 @@ object ManagerSecurity {
     }
 
     private suspend fun recordFailure() = onIo {
-        val current = config ?: return
+        val current = config ?: return@onIo
         val attempts = runtime.failedAttempts + 1
         val cooldown = CooldownPolicy.next(attempts, current.maxFailedAttempts, runtime.cooldownLevel)
         var updated = runtime.copy(failedAttempts = attempts)

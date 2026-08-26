@@ -551,6 +551,7 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="security_secret_empty">Bí mật không được để trống</string>
     <string name="security_pin_too_short">Mã PIN cần ít nhất 6 chữ số</string>
     <string name="security_password_too_short">Mật khẩu cần ít nhất 8 ký tự</string>
+    <string name="security_password_label">Mật khẩu</string>
     <string name="security_pattern_too_short">Hình mẫu cần kết nối ít nhất 4 điểm</string>
     <string name="security_relock_timeout">Thời gian tự khoá lại</string>
     <string name="security_timeout_immediately">Ngay lập tức</string>

@@ -1,6 +1,7 @@
 package anhiutangerinee.kittisu.security
 
 import android.util.Log
+import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ui.util.clearDynamicManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

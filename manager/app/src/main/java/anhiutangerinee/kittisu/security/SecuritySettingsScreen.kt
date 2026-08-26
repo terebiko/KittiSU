@@ -54,7 +54,10 @@ private val RELOCK_OPTIONS_MINUTES = listOf(0, 1, 5, 15)
 private const val DEFAULT_MAX_ATTEMPTS = 5
 private const val DEFAULT_RELOCK_MINUTES = 1
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class
+)
 @Composable
 fun SecuritySettingsScreen() {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())

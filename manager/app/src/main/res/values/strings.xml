@@ -667,6 +667,7 @@ Important Note:\n
     <string name="security_secret_empty">The secret must not be empty</string>
     <string name="security_pin_too_short">PIN needs at least 6 digits</string>
     <string name="security_password_too_short">Password needs at least 8 characters</string>
+    <string name="security_password_label">Password</string>
     <string name="security_pattern_too_short">Pattern needs at least 4 dots</string>
     <string name="security_relock_timeout">Auto re-lock timeout</string>
     <string name="security_timeout_immediately">Immediately</string>

@@ -41,7 +41,7 @@ object LockdownController {
             apps = previouslySnapshottedApps.values + grantedApps.map {
                 GrantedAppSnapshot(it.packageName, it.uid)
             },
-            enabledModules = previouslyEnabledModules + enabledModules,
+            enabledModules = (previouslyEnabledModules + enabledModules).toList(),
         )
         if (!store.writeOperation(OperationCodec.encode(snapshot))) {
             Log.e(TAG, "failed to persist lockdown snapshot")

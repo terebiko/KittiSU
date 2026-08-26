@@ -12,8 +12,8 @@ import com.resukisu.zako.IKsuInterface
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.ipc.RootService
 import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCoroutine
 import kotlinx.coroutines.withContext
 
 data class InstalledApp(

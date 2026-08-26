@@ -67,7 +67,7 @@ fun SecretSetupDialog(
                         ),
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    Spacer(Modifier.width(0.dp))
+                    Spacer(Modifier.height(4.dp))
                     PatternLockView(
                         modifier = Modifier.fillMaxWidth(0.7f),
                         onPatternCompleted = { dots ->
