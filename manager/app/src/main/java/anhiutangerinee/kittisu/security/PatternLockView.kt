@@ -52,6 +52,15 @@ fun PatternLockView(
         )
     }
 
+    fun dotIndexAt(position: Offset, side: Float): Int? {
+        if (side <= 0f) return null
+        val cell = side / 3f
+        val col = (position.x / cell).toInt().coerceIn(0, 2)
+        val row = (position.y / cell).toInt().coerceIn(0, 2)
+        val center = dotCenter(row * 3 + col, side)
+        return if ((position - center).getDistance() <= cell * 0.75f) row * 3 + col else null
+    }
+
     fun addCellHit(cell: Int) {
         if (activeDots.isNotEmpty()) {
             // AOSP detectAndAddHit gap-filling: a straight jump of two cells
