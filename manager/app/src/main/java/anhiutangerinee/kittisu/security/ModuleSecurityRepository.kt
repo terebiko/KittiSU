@@ -2,7 +2,7 @@ package anhiutangerinee.kittisu.security
 
 import android.util.Log
 import anhiutangerinee.kittisu.ui.util.execKsud
-import anhiutangerinee.kittisu.ui.util.listModules
+import anhiutangerinee.kittisu.ui.util.listModules as listModulesJson
 import anhiutangerinee.kittisu.ui.util.toggleModule
 import anhiutangerinee.kittisu.ui.util.uninstallModule
 
@@ -17,7 +17,7 @@ object ModuleSecurityRepository {
     private const val TAG = "ModuleSecurity"
 
     fun listModules(): List<ModuleState> = runCatching {
-        val array = org.json.JSONArray(listModules())
+        val array = org.json.JSONArray(listModulesJson())
         List(array.length()) { i ->
             val obj = array.getJSONObject(i)
             ModuleState(
