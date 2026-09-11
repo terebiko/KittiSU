@@ -13,7 +13,11 @@
     static const type name##_RUST = (val);
 
 #define KSU_FULL_VERSION_STRING 255
-static const __u32 KERNEL_SU_UAPI_VERSION = 1;
+
+// 2: allowlist v4 root profile flags
+// 3: scoped su-session driver fd (not yet ported; full driver fd still used)
+// 4: add KSU_GET_INFO_FLAG_BUNDLED
+static const __u32 KERNEL_SU_UAPI_VERSION = 4;
 
 /* Magic numbers for reboot hook to install fd */
 DEFINE_KSU_UAPI_CONST(__u32, KSU_INSTALL_MAGIC1, 0xDEADBEEF)
@@ -31,6 +35,7 @@ DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_LKM, (1U << 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_MANAGER, (1U << 1))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_LATE_LOAD, (1U << 2))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_PR_BUILD, (1U << 3))
+DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_BUNDLED, (1U << 4))
 
 struct ksu_get_info_cmd {
     __u32 version; /* Output: KERNEL_SU_VERSION */
@@ -173,6 +178,7 @@ struct ksu_hook_type_cmd {
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SET, 0)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_GET, 1)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_WIPE, 2)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SET_SYNCHRONOUS, 3)
 
 struct ksu_dynamic_manager_cmd {
     __u8 operation;

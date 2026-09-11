@@ -152,6 +152,12 @@ bool allow_shell = true;
 bool allow_shell = false;
 #endif
 
+#ifdef MODULE
+bool ksu_bundled = false;
+module_param_named(bundled, ksu_bundled, bool, 0);
+MODULE_PARM_DESC(bundled, "LKM was bundled/embedded via boot-patch capsule");
+#endif
+
 char ksu_block_modules[256];
 module_param_string(block_modules, ksu_block_modules, sizeof(ksu_block_modules), 0);
 MODULE_PARM_DESC(block_modules, "Comma-separated preset module names to acknowledge without loading");
