@@ -62,11 +62,17 @@ jobs:
         
     - name: Setup cargo-ndk
       run: cargo install cargo-ndk --locked
-        
+
+    - name: Assemble LKM bootstrap
+      run: |
+        clang --target=aarch64-linux-gnu -c -nostdlib \
+          -o userspace/ksud/.lkm_image_bootstrap.o \
+          userspace/ksud/src/lkm_image_bootstrap.S
+
     - name: Build ksud
       run: |
         cd userspace/ksud/
-        cargo ndk b -t ${{ inputs.target }} -r -Z build-std=std,core,panic_abort -Z build-std-features="optimize_for_size" -Z trim-paths
+        cargo ndk b -P 26 -t ${{ inputs.target }} -r -Z build-std-features="optimize_for_size" -Z trim-paths
 
     - name: Upload ksud artifact
       uses: actions/upload-artifact@v7

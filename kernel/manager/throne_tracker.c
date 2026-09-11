@@ -431,7 +431,7 @@ void track_throne(unsigned int flags)
     }
     tts->flags = flags;
 
-    if (flags & TRACK_THRONE_FROM_RENAMEAT) {
+    if (flags & (TRACK_THRONE_FROM_RENAMEAT | TRACK_THRONE_FORCE_SYNCHRONOUS)) {
         // after renameat hook, packages.list.tmp -> packages.list
         // don't async for it, or it will always have an race
         // for example,

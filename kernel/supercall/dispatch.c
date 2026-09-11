@@ -72,6 +72,9 @@ static int do_get_info(void __user *arg)
 
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+    if (ksu_bundled) {
+        cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
+    }
 #endif
 #ifdef EXPECTED_PR_BUILD_SIZE
     cmd.flags |= KSU_GET_INFO_FLAG_PR_BUILD;
@@ -105,6 +108,9 @@ static int do_get_info_legacy(void __user *arg)
     struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
 #ifdef MODULE
     cmd.flags |= KSU_GET_INFO_FLAG_LKM;
+    if (ksu_bundled) {
+        cmd.flags |= KSU_GET_INFO_FLAG_BUNDLED;
+    }
 #endif
     if (is_manager())
         cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;

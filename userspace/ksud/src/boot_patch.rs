@@ -17,6 +17,20 @@ use regex_lite::Regex;
 
 use crate::assets;
 
+const KSU_BLOCK_MODULES_CONFIG: &str = "ksu_block_modules";
+const KSU_BLOCK_MODULES_MAX_LEN: usize = 255;
+
+fn valid_block_modules(modules: &str) -> bool {
+    modules.len() <= KSU_BLOCK_MODULES_MAX_LEN
+        && (modules.is_empty()
+            || modules.split(',').all(|name| {
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|ch| ch.is_ascii_alphanumeric() || ch == b'_' || ch == b'-')
+            }))
+}
+
 #[cfg(target_os = "android")]
 mod android {
     use std::{
@@ -309,14 +323,19 @@ rm -f /data/adb/post-fs-data.d/post_ota.sh
 #[cfg(target_os = "android")]
 pub use android::*;
 
-#[allow(clippy::needless_pass_by_value)]
-fn parse_kmi(buffer: Vec<u8>) -> Result<String> {
+pub fn parse_kmi(buffer: &[u8]) -> Result<String> {
     let re = Regex::new(r"(\d+\.\d+)(?:\S+)?(android\d+)").context("Failed to compile regex")?;
     buffer
-        .windows(3)
+        .windows(4)
         .enumerate()
         .filter(|(_, x)| {
-            x[1] == b'.' && (x[0] == b'5' || x[0] == b'6') && (x[2] >= b'0' && x[2] <= b'9')
+            x[1] == b'.'
+                && x[2].is_ascii_digit()
+                && match x[0] {
+                    b'5' => x[3].is_ascii_digit(),
+                    b'6'..=b'9' => true,
+                    _ => false,
+                }
         })
         .find_map(|(i, _)| {
             let a = &buffer[i..buffer.len().min(i + 100)];
@@ -348,7 +367,7 @@ fn parse_kmi_from_kernel(kernel: &PathBuf) -> Result<String> {
         .read_to_end(&mut buffer)
         .context("Failed to read kernel file")?;
 
-    parse_kmi(buffer)
+    parse_kmi(&buffer)
 }
 
 fn parse_kmi_from_boot(image: &PathBuf) -> Result<String> {
@@ -358,7 +377,7 @@ fn parse_kmi_from_boot(image: &PathBuf) -> Result<String> {
     if let Some(kernel) = bootimage.get_blocks().get_kernel() {
         let mut output = Vec::<u8>::new();
         kernel.dump(&mut output, false)?;
-        parse_kmi(output)
+        parse_kmi(&output)
     } else {
         bail!("no kernel found in boot image")
     }
@@ -474,6 +493,14 @@ pub struct BootPatchArgs {
     #[arg(long, default_value = "false")]
     no_install: bool,
 
+    /// Comma-separated module names to block from loading (module_load_filter)
+    #[arg(
+        long,
+        value_name = "NAMES",
+        default_value = "vr,vklp,oplus_secure_guard,oplus_secure_guard_new,mkp"
+    )]
+    block_modules: Option<String>,
+
     /// Architecture of embedded assets used by host builds.
     #[cfg(not(target_os = "android"))]
     #[arg(long, default_value = "aarch64")]
@@ -499,6 +526,7 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             adb_debug_prop,
             cmdline,
             no_install,
+            block_modules,
             #[cfg(target_os = "android")]
             ota,
             #[cfg(target_os = "android")]
@@ -516,6 +544,13 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
         } = args;
 
         println!(include_str!("./android/banner"));
+
+        if let Some(modules) = &block_modules {
+            ensure!(
+                valid_block_modules(modules),
+                "blocked preset module list must be at most 255 bytes and contain only letters, digits, '_' or '-'"
+            );
+        }
 
         #[cfg(target_os = "android")]
         let patch_file = image.is_some();
@@ -695,6 +730,16 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
         } else if cpio.exists("ksu_allow_shell") {
             println!("- Removing allow shell config");
             cpio.rm("ksu_allow_shell", false);
+        }
+
+        if let Some(modules) = block_modules {
+            if !modules.is_empty() {
+                println!("- Blocking modules: {modules}");
+            }
+            cpio.add(
+                KSU_BLOCK_MODULES_CONFIG,
+                CpioEntry::regular(0o644, Box::new(modules.into_bytes())),
+            )?;
         }
 
         if enable_adbd || adb_debug_prop.is_some() {

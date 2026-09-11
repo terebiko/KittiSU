@@ -15,6 +15,7 @@ use crate::{
     apk_sign, assets,
     boot_patch::{BootPatchArgs, BootRestoreArgs},
     defs,
+    lkm_image::BootPatchV2Args,
 };
 
 /// KernelSU userspace cli
@@ -142,6 +143,11 @@ enum Commands {
 
     /// Restore boot or init_boot images patched by KernelSU
     BootRestore(BootRestoreArgs),
+
+    /// Patch KernelSU into a boot image
+    ///
+    /// Always operates on a boot image; never selects init_boot or vendor_boot.
+    BootPatchV2(BootPatchV2Args),
 
     /// Show boot information
     BootInfo {
@@ -856,6 +862,7 @@ pub fn run() -> Result<()> {
             }
         },
         Commands::BootRestore(boot_restore) => crate::boot_patch::restore(boot_restore),
+        Commands::BootPatchV2(patch) => crate::lkm_image::patch_boot(&patch),
         Commands::Resetprop(resetprop_args) => crate::android::resetprop::run(&resetprop_args),
         Commands::Kernel { command } => match command {
             Kernel::NukeExt4Sysfs { mnt } => ksucalls::nuke_ext4_sysfs(&mnt),
