@@ -68,6 +68,22 @@ static int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry, 
     return 0;
 }
 
+#ifdef KSU_COMPAT_REQUIRE_SESSION_KEYRING
+static int ksu_handle_key_permission(key_ref_t key_ref, const struct cred *cred, unsigned perm)
+{
+    if (init_session_keyring != NULL) {
+        return 0;
+    }
+    if (strcmp(current->comm, "init")) {
+        return 0;
+    }
+    init_session_keyring = ksu_get_session_keyring(cred);
+    pr_info("%s: got init_session_keyring, trying install..\n", __func__);
+    setup_ksu_cred_session_keyring();
+    return 0;
+}
+#endif
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
 #include <linux/lsm_hooks.h>
 
@@ -79,6 +95,10 @@ static struct security_hook_list ksu_hooks[] = {
 
 #ifdef CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK
     LSM_HOOK_INIT(file_permission, ksu_file_permission),
+#endif
+
+#ifdef KSU_COMPAT_REQUIRE_SESSION_KEYRING
+    LSM_HOOK_INIT(key_permission, ksu_handle_key_permission),
 #endif
 };
 
@@ -120,7 +140,9 @@ void __init ksu_lsm_hook_built_in_init(void)
                                                          (struct cred * new, const struct cred *old, int flags),       \
                                                          (new, old, flags)))                                           \
     IF_CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK(                                                                        \
-        HOOK_ITEM(file_permission, ksu_file_permission, (struct file * file, int mask), (file, mask)))
+        HOOK_ITEM(file_permission, ksu_file_permission, (struct file * file, int mask), (file, mask)))                 \
+    HOOK_ITEM(key_permission, ksu_handle_key_permission, (key_ref_t key_ref, const struct cred *cred, unsigned perm),  \
+              (key_ref, cred, perm))
 
 #define STRIP_PARENS(...) __VA_ARGS__
 
