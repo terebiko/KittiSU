@@ -1,7 +1,7 @@
+use std::ffi::CString;
 use std::io::{ErrorKind, Write};
 
-use anyhow::{Context, Result};
-use rustix::cstr;
+use anyhow::{Context, Result, ensure};
 use rustix::fs::{Mode, symlink, unlink};
 use rustix::{
     fd::AsFd,
@@ -132,14 +132,56 @@ pub fn init() -> Result<()> {
     Ok(())
 }
 
+const KSU_BLOCK_MODULES_PATH: &str = "/ksu_block_modules";
+const KSU_BLOCK_MODULES_MAX_LEN: usize = 255;
+const KSU_DEFAULT_BLOCK_MODULES: &str = "vr,vklp,oplus_secure_guard,oplus_secure_guard_new,mkp";
+
+fn valid_block_modules(modules: &str) -> bool {
+    modules.len() <= KSU_BLOCK_MODULES_MAX_LEN
+        && (modules.is_empty()
+            || modules.split(',').all(|name| {
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|ch| ch.is_ascii_alphanumeric() || ch == b'_' || ch == b'-')
+            }))
+}
+
+fn load_module_params() -> Result<CString> {
+    let mut params: Vec<u8> = Vec::new();
+
+    if std::fs::exists("/ksu_allow_shell").unwrap_or(false) {
+        log::warn!("ksu allow shell at init!");
+        params.extend_from_slice(b"allow_shell=1");
+    }
+
+    let blocked_modules = match std::fs::read_to_string(KSU_BLOCK_MODULES_PATH) {
+        Ok(modules) => modules,
+        Err(err) if err.kind() == ErrorKind::NotFound => KSU_DEFAULT_BLOCK_MODULES.to_owned(),
+        Err(err) => {
+            return Err(err).with_context(|| format!("Cannot read {KSU_BLOCK_MODULES_PATH}"));
+        }
+    };
+
+    ensure!(
+        valid_block_modules(&blocked_modules),
+        "Invalid blocked preset module list"
+    );
+    if params
+        .last()
+        .is_some_and(|byte| !byte.is_ascii_whitespace())
+    {
+        params.push(b' ');
+    }
+    params.extend_from_slice(format!("block_modules={blocked_modules}").as_bytes());
+
+    CString::new(params).context("KernelSU module parameters contain a NUL byte")
+}
+
 fn load_module_from_path(path: &str) -> Result<()> {
     anyhow::ensure!(rustix::process::getpid().is_init(), "Invalid process");
     let buffer = std::fs::read(path).with_context(|| format!("Cannot read file {}", path))?;
-    let params = if std::fs::exists("/ksu_allow_shell").unwrap_or(false) {
-        log::warn!("ksu allow shell at init!");
-        cstr!("allow_shell=1")
-    } else {
-        cstr!("")
-    };
-    ksuinit::load_module(&buffer, params)
+    let params = load_module_params()?;
+    log::info!("load kernelsu with params {params:?}");
+    ksuinit::load_module(&buffer, &params)
 }

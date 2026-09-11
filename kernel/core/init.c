@@ -31,6 +31,7 @@
 #include "feature/sulog.h"
 #include "feature/adb_root.h"
 #include "feature/dynamic_manager.h"
+#include "feature/module_load_filter.h"
 #include "feature/sucompat.h"
 #include "feature/selinux_hide.h"
 #include "infra/symbol_resolver.h"
@@ -151,6 +152,10 @@ bool allow_shell = true;
 bool allow_shell = false;
 #endif
 
+char ksu_block_modules[256];
+module_param_string(block_modules, ksu_block_modules, sizeof(ksu_block_modules), 0);
+MODULE_PARM_DESC(block_modules, "Comma-separated preset module names to acknowledge without loading");
+
 int __init kernelsu_init(void)
 {
     pr_info("Initialized on: %s (%s) with driver version: %u\n", UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
@@ -255,6 +260,8 @@ int __init kernelsu_init(void)
     } else {
         ksu_hook_init();
 
+        ksu_module_load_filter_hook_init();
+
         ksu_allowlist_init();
 
         ksu_throne_tracker_init();
@@ -294,6 +301,7 @@ void __exit kernelsu_exit(void)
     ksu_adb_root_exit();
     ksu_sulog_exit();
     ksu_feature_exit();
+    ksu_module_load_filter_hook_exit();
 
     if (ksu_cred) {
         put_cred(ksu_cred);
