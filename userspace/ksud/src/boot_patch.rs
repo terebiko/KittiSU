@@ -323,14 +323,19 @@ rm -f /data/adb/post-fs-data.d/post_ota.sh
 #[cfg(target_os = "android")]
 pub use android::*;
 
-#[allow(clippy::needless_pass_by_value)]
-fn parse_kmi(buffer: Vec<u8>) -> Result<String> {
+pub fn parse_kmi(buffer: &[u8]) -> Result<String> {
     let re = Regex::new(r"(\d+\.\d+)(?:\S+)?(android\d+)").context("Failed to compile regex")?;
     buffer
-        .windows(3)
+        .windows(4)
         .enumerate()
         .filter(|(_, x)| {
-            x[1] == b'.' && (x[0] == b'5' || x[0] == b'6') && (x[2] >= b'0' && x[2] <= b'9')
+            x[1] == b'.'
+                && x[2].is_ascii_digit()
+                && match x[0] {
+                    b'5' => x[3].is_ascii_digit(),
+                    b'6'..=b'9' => true,
+                    _ => false,
+                }
         })
         .find_map(|(i, _)| {
             let a = &buffer[i..buffer.len().min(i + 100)];
@@ -362,7 +367,7 @@ fn parse_kmi_from_kernel(kernel: &PathBuf) -> Result<String> {
         .read_to_end(&mut buffer)
         .context("Failed to read kernel file")?;
 
-    parse_kmi(buffer)
+    parse_kmi(&buffer)
 }
 
 fn parse_kmi_from_boot(image: &PathBuf) -> Result<String> {
@@ -372,7 +377,7 @@ fn parse_kmi_from_boot(image: &PathBuf) -> Result<String> {
     if let Some(kernel) = bootimage.get_blocks().get_kernel() {
         let mut output = Vec::<u8>::new();
         kernel.dump(&mut output, false)?;
-        parse_kmi(output)
+        parse_kmi(&output)
     } else {
         bail!("no kernel found in boot image")
     }
