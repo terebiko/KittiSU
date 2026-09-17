@@ -279,3 +279,9 @@ ifeq ($(shell grep -q "struct mutex status_lock" $(srctree)/security/selinux/inc
 $(info -- $(REPO_NAME)/compat: found selinux status variables in selinux_state)
 ccflags-y += -DKSU_COMPAT_SELINUX_STATUS_VAR_IN_SELINUX_STATE
 endif
+
+# https://github.com/torvalds/linux/commit/8c0637e950d68933a67f7438f779d79b049b5e5c
+ifeq ($(shell grep -q -F "key_need_perm" $(srctree)/include/linux/key.h; echo $$?),0)
+$(info -- $(REPO_NAME)/compat: key need perm as enum found)
+ccflags-y += -DKSU_COMPAT_KEY_NEED_PERM_AS_ENUM
+endif
