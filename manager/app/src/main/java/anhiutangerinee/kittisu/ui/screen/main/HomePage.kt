@@ -426,13 +426,9 @@ fun UpdateCard() {
 fun RebootDropdownItems(items: Map<Int, String>) {
     items.onEachIndexed { index, (id, reason) ->
         DropdownMenuItem(
-            selected = false,
             text = { Text(stringResource(id)) },
             onClick = { reboot(reason) },
-            shapes = MenuDefaults.itemShape(
-                index = index,
-                count = items.size
-            )
+            shape = MenuDefaults.itemShape(index, items.size).shape,
         )
     }
 }

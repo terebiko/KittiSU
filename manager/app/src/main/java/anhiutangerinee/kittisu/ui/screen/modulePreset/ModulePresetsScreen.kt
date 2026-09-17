@@ -26,6 +26,7 @@ import androidx.compose.material.icons.twotone.Refresh
 import androidx.compose.material.icons.twotone.Source
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,7 +69,7 @@ import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LoadedPreset
 import anhiutangerinee.kittisu.ui.viewmodel.ModulePresetViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ModulePresetsScreen() {
     val navigator = LocalNavigator.current

@@ -115,12 +115,8 @@ fun OpenSourceLicenseScreen() {
             )
         },
     ) { paddingValues ->
-        val cornerRadius = 16.dp
         LibrariesContainer(
             libraries = libraries,
-            libraryModifier = Modifier
-                .padding(vertical = 4.dp)
-                .clip(RoundedCornerShape(cornerRadius)),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
@@ -140,6 +136,7 @@ fun OpenSourceLicenseScreen() {
             ),
             onLibraryClick = { library ->
                 selectedLibrary = library
+                true
             }
         )
 
