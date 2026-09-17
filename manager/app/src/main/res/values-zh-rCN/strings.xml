@@ -348,6 +348,8 @@
     <string name="sort_name_desc">名称降序</string>
     <string name="sort_install_time_new">安装时间（新）</string>
     <string name="sort_install_time_old">安装时间（旧）</string>
+    <string name="sort_update_time_new">更新时间（新）</string>
+    <string name="sort_update_time_old">更新时间（旧）</string>
     <string name="sort_size_desc">大小降序</string>
     <string name="sort_size_asc">大小升序</string>
     <string name="sort_usage_freq">使用频率</string>

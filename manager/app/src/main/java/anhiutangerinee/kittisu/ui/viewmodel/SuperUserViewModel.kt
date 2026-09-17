@@ -60,6 +60,8 @@ enum class SortType(val displayNameRes: Int, val persistKey: String) {
     NAME_DESC(anhiutangerinee.kittisu.R.string.sort_name_desc, "NAME_DESC"),
     INSTALL_TIME_NEW(anhiutangerinee.kittisu.R.string.sort_install_time_new, "INSTALL_TIME_NEW"),
     INSTALL_TIME_OLD(anhiutangerinee.kittisu.R.string.sort_install_time_old, "INSTALL_TIME_OLD"),
+    UPDATE_TIME_NEW(anhiutangerinee.kittisu.R.string.sort_update_time_new, "UPDATE_TIME_NEW"),
+    UPDATE_TIME_OLD(anhiutangerinee.kittisu.R.string.sort_update_time_old, "UPDATE_TIME_OLD"),
     SIZE_DESC(anhiutangerinee.kittisu.R.string.sort_size_desc, "SIZE_DESC"),
     SIZE_ASC(anhiutangerinee.kittisu.R.string.sort_size_asc, "SIZE_ASC"),
     USAGE_FREQ(anhiutangerinee.kittisu.R.string.sort_usage_freq, "USAGE_FREQ");
@@ -158,6 +160,8 @@ class SuperUserViewModel : ViewModel() {
     var selectedApps by mutableStateOf<Set<String>>(emptySet())
         internal set
     var loadingProgress by mutableFloatStateOf(0f)
+        private set
+    var managerUids by mutableStateOf<Set<Int>>(emptySet())
         private set
 
     private fun loadSelectedCategory(): AppCategory {
@@ -331,6 +335,9 @@ class SuperUserViewModel : ViewModel() {
 
             withContext(Dispatchers.IO) {
                 val pm = ksuApp.packageManager
+                managerUids = runCatching {
+                    Natives.getManagersList()?.managers?.map { it.uid }?.toSet().orEmpty()
+                }.getOrDefault(emptySet())
                 val allPackages = IKsuInterface.Stub.asInterface(binder)
                 val total = allPackages.packageCount
                 val pageSize = 100

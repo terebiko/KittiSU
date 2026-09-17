@@ -205,6 +205,10 @@ fun SuperUserPage(bottomPadding: Dp) {
                         .compareTo(group1.mainApp.packageInfo.firstInstallTime)
                     SortType.INSTALL_TIME_OLD -> group1.mainApp.packageInfo.firstInstallTime
                         .compareTo(group2.mainApp.packageInfo.firstInstallTime)
+                    SortType.UPDATE_TIME_NEW -> group2.mainApp.packageInfo.lastUpdateTime
+                        .compareTo(group1.mainApp.packageInfo.lastUpdateTime)
+                    SortType.UPDATE_TIME_OLD -> group1.mainApp.packageInfo.lastUpdateTime
+                        .compareTo(group2.mainApp.packageInfo.lastUpdateTime)
                     else -> group1.mainApp.label.lowercase()
                         .compareTo(group2.mainApp.label.lowercase())
                 }
@@ -432,6 +436,7 @@ private fun SuperUserContent(
             ) { _, appGroup ->
                 AppGroupItem(
                     appGroup = appGroup,
+                    isManager = appGroup.uid in viewModel.managerUids,
                     isSelected = appGroup.packageNames.any {
                         viewModel.selectedApps.contains(
                             it
@@ -753,6 +758,7 @@ private fun BottomSheetMenuItemView(menuItem: BottomSheetMenuItem) {
 @Composable
 private fun AppGroupItem(
     appGroup: SuperUserViewModel.AppGroup,
+    isManager: Boolean,
     isSelected: Boolean,
     onToggleSelection: () -> Unit,
     onClick: () -> Unit,
@@ -800,6 +806,12 @@ private fun AppGroupItem(
                     LabelText(
                         label = "DEFAULT",
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+                if (isManager) {
+                    LabelText(
+                        label = "MANAGER",
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
                     )
                 }
                 if (appGroup.apps.size > 1) {
