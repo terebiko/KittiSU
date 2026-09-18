@@ -708,9 +708,8 @@ int ksu_handle_input_handle_event(unsigned int *type, unsigned int *code, int *v
         if (val) {
             // key pressed, count it
             volumedown_pressed_count += 1;
-            if (is_volumedown_enough(volumedown_pressed_count)) {
-                ksu_stop_input_hook_runtime();
-            }
+            // Keep the hook active here: unregistering may sleep in atomic context.
+            // on_post_fs_data performs the deferred unregister.
         }
     }
 
