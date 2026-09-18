@@ -23,6 +23,7 @@
 #include "runtime/ksud_boot.h"
 
 #include "infra/file_wrapper.h"
+#include "ksu.h"
 
 struct ksu_file_wrapper {
     struct file *orig;
@@ -601,8 +602,10 @@ int ksu_install_file_wrapper(int fd)
         goto out_put_fd;
     }
 
+    const struct cred *old_cred = override_creds(ksu_cred);
     struct file *wrapper_file = ksu_anon_inode_create_getfile_compat("[ksu_fdwrapper]", &file_wrapper_data->ops,
                                                                      file_wrapper_data, orig_file->f_flags, NULL);
+    revert_creds(old_cred);
     if (IS_ERR(wrapper_file)) {
         pr_err("ksu_fdwrapper: getfile failed: %ld\n", PTR_ERR(wrapper_file));
         ret = PTR_ERR(wrapper_file);
