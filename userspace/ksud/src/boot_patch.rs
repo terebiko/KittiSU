@@ -488,6 +488,10 @@ pub struct BootPatchArgs {
     #[arg(long, default_value = "false")]
     no_install: bool,
 
+    /// Disable custom init rc processing in the patched image.
+    #[arg(long, default_value = "false")]
+    no_custom_rc: bool,
+
     /// Comma-separated kernel modules that KernelSU should quietly reject.
     #[arg(long, default_value = DEFAULT_BLOCKED_MODULES)]
     block_modules: String,
@@ -517,6 +521,7 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             adb_debug_prop,
             cmdline,
             no_install,
+            no_custom_rc,
             block_modules,
             #[cfg(target_os = "android")]
             ota,
@@ -710,16 +715,40 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             }
         }
 
-        if allow_shell {
-            println!("- Adding allow shell config");
+        let mut ksu_config: Vec<String> = cpio
+            .entry_by_name("ksu_config")
+            .and_then(CpioEntry::data)
+            .and_then(|v| std::str::from_utf8(v).ok())
+            .map(|v| v.split(' ').map(ToOwned::to_owned).collect())
+            .unwrap_or_default();
+
+        let mut apply_config = |name: &str, value: &str, add: bool| {
+            let has_value = ksu_config.iter().any(|v| v == value);
+            if add {
+                println!("- Adding {name} config");
+                if !has_value {
+                    ksu_config.push(value.to_owned());
+                }
+            } else if has_value {
+                println!("- Removing {name} config");
+                ksu_config.retain(|v| v != value);
+            }
+        };
+
+        apply_config("no custom rc", "norc=1", no_custom_rc);
+        apply_config("allow shell", "allow_shell=1", allow_shell);
+
+        if ksu_config.is_empty() {
+            cpio.rm("ksu_config", false);
+        } else {
             cpio.add(
-                "ksu_allow_shell",
-                CpioEntry::regular(0o644, Box::new(Vec::<u8>::new())),
+                "ksu_config",
+                CpioEntry::regular(0o644, Box::new(ksu_config.join(" ").into_bytes())),
             )?;
-        } else if cpio.exists("ksu_allow_shell") {
-            println!("- Removing allow shell config");
-            cpio.rm("ksu_allow_shell", false);
         }
+
+        // Remove the legacy configuration file when rewriting the unified config.
+        cpio.rm("allow_shell", false);
 
         cpio.add(
             MODULE_FILTER_CONFIG,
