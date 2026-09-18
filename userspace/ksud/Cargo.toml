@@ -24,6 +24,7 @@ android-bootimg = { git = "https://github.com/5ec1cff/android_bootimg", rev = "1
 memmap2 = "0.9.10"
 bitflags = "2.11.0"
 base16ct = { version = "1.0.0", features = ["alloc"] }
+memchr = "2.8.3"
 
 [target.'cfg(target_os = "android")'.dependencies]
 rustix = { version = "=1.1.4", default-features = false, features = ["process", "thread", "fs", "system", "stdio"] }
