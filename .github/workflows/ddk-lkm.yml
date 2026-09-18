@@ -125,7 +125,7 @@ jobs:
 
         MODULE_DIR=$(realpath .)
         if [ "$KMI" = "android17-6.18" ]; then
-          make -C "$KDIR" M="$MODULE_DIR" MO="$MODULE_DIR" modules CC=clang \
+          make -C "$KDIR" M="$MODULE_DIR" modules CC=clang \
             CONFIG_KSU=m CONFIG_KSU_MULTI_MANAGER_SUPPORT=y CONFIG_KSU_TRACEPOINT_HOOK=y \
             CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y $EXTRA_ARGS
         else
