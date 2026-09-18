@@ -214,4 +214,9 @@ int ksu_patch_text(void *dst, void *src, size_t len, int flags)
     return stop_machine(ksu_patch_text_cb, &info, cpu_online_mask);
 }
 
+void *scan_call_to(void *start, size_t size, void *target)
+{
+    return NULL;
+}
+
 #endif /* __x86_64__ */

@@ -369,4 +369,20 @@ int ksu_patch_text(void *dst, void *src, size_t len, int flags)
 #endif
 }
 
+void *scan_call_to(void *start, size_t size, void *target)
+{
+    const u32 *insn = start;
+    size_t count = size / sizeof(u32);
+
+    for (size_t i = 0; i < count; i++) {
+        if ((insn[i] & 0xfc000000U) != 0x94000000U)
+            continue;
+        s32 imm26 = (s32)((insn[i] & 0x03ffffffU) << 6) >> 6;
+        void *branch_target = (void *)((uintptr_t)&insn[i] + ((s64)imm26 << 2));
+        if (branch_target == target)
+            return (void *)&insn[i];
+    }
+    return NULL;
+}
+
 #endif /* __aarch64__ */

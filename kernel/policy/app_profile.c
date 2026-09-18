@@ -23,6 +23,9 @@
 
 #include "policy/allowlist.h"
 #include "policy/app_profile.h"
+#include "hook/patch_memory.h"
+#include "infra/symbol_resolver.h"
+#include <linux/kallsyms.h>
 #include "arch.h"
 #include "compat/kernel_compat.h"
 #include "klog.h" // IWYU pragma: keep
@@ -30,6 +33,13 @@
 #include "infra/su_mount_ns.h"
 #ifdef CONFIG_KSU_TRACEPOINT_HOOK
 #include "hook/tp_marker.h"
+#endif
+
+#define NEED_BACKPORT_COMPAT                                                                                           \
+    (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(6, 11, 0))
+
+#if NEED_BACKPORT_COMPAT
+static bool has_call_to_spin_lock;
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
@@ -126,12 +136,31 @@ void disable_seccomp(void)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
     // https://github.com/torvalds/linux/commit/bfafe5efa9754ebc991750da0bcca2a6694f3ed3#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R576-R577
     fake->flags |= PF_EXITING;
+#elif NEED_BACKPORT_COMPAT
+    if (has_call_to_spin_lock)
+        fake->flags |= PF_EXITING;
+    else
+        fake->sighand = NULL;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
     // https://github.com/torvalds/linux/commit/0d8315dddd2899f519fe1ca3d4d5cdaf44ea421e#diff-45eb79a57536d8eccfc1436932f093eb5c0b60d9361c39edb46581ad313e8987R556-R558
     fake->sighand = NULL;
 #endif
     seccomp_filter_release(fake);
     kfree(fake);
+#endif
+}
+
+void __init ksu_app_profile_init(void)
+{
+#if NEED_BACKPORT_COMPAT
+    unsigned long size = 0;
+    void *spin_lock = (void *)find_kernel_symbol_exact("_raw_spin_lock_irq");
+    void *release = (void *)find_kernel_symbol_exact("seccomp_filter_release");
+    if (!release || !spin_lock || !kallsyms_lookup_size_offset(release, &size, NULL)) {
+        pr_warn("unable to inspect seccomp_filter_release; using legacy cleanup\n");
+        return;
+    }
+    has_call_to_spin_lock = scan_call_to(release, size, spin_lock) != NULL;
 #endif
 }
 
