@@ -147,6 +147,7 @@ fn execute(cli: &Args) -> Result<()> {
         persist_only: cli.persist_only,
         verbose: cli.verbose,
         show_context: cli.show_context,
+        rebuild: false,
     };
 
     // Validate: at most one special mode
@@ -177,13 +178,18 @@ fn execute(cli: &Args) -> Result<()> {
         return Ok(());
     }
 
-    // -c: compact property area memory
-    // When a positional argument is given, treat it as a SELinux context name.
+    // -c: rebuild property area memory. When a positional argument is given,
+    // treat it as a SELinux context name; without one, rebuild all areas.
     if cli.compact {
-        let context = cli.name().map(std::string::String::as_str);
-        let compacted = sys_prop::compact(context).context("compact failed")?;
-        if !compacted {
-            bail!("nothing to compact");
+        if let Some(name) = cli.name() {
+            let context = if cli.show_context {
+                sys_prop::get_context(name)?
+            } else {
+                name.to_owned()
+            };
+            rp.rebuild(&context).context("rebuild failed")?;
+        } else if !rp.rebuild_all(false).context("rebuild failed")? {
+            bail!("failed to rebuild one or more property areas");
         }
         return Ok(());
     }
@@ -255,6 +261,7 @@ fn direct_resetprop() -> ResetProp {
         persist_only: false,
         verbose: false,
         show_context: false,
+        rebuild: false,
     }
 }
 
@@ -283,6 +290,7 @@ pub fn load_system_prop_file(path: &Path) -> Result<()> {
         persist_only: false,
         verbose: false,
         show_context: false,
+        rebuild: false,
     };
 
     let file = File::open(path).with_context(|| format!("Failed to open {}", path.display()))?;
