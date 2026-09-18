@@ -102,7 +102,13 @@ jobs:
         sed -i -E 's/^([[:space:]]*)check_exports\(mod\);/\1\/\/ check_exports(mod);/' "$MODPOST"
         sed -i -E 's/^([[:space:]]*)s->module = exp->module;/\1\/\/ s->module = exp->module;/' "$MODPOST"
         sed -i 's/^static void check_exports(/static void __attribute__((unused)) check_exports(/' "$MODPOST"
-        sed -i 's/__version_ext_names\") =$/__version_ext_names\") = ""/' "$MODPOST"
+        # Match the escaped C string in the generator, including its literal
+        # backslash-n. With no symbol CRCs, modpost must emit = "" rather than = ;.
+        sed -i 's/__version_ext_names\\") =\\n/__version_ext_names\\") = \\"\\"\\n/' "$MODPOST"
+        if grep -Fq '__version_ext_names\") =\n' "$MODPOST"; then
+          echo "ERROR: modpost still emits an empty extended-version names initializer" >&2
+          exit 1
+        fi
         make O="$KDIR" gki_defconfig
         scripts/config --file "$KDIR/.config" -d LTO_CLANG -e LTO_NONE -d LTO_CLANG_THIN -d LTO_CLANG_FULL -d THINLTO
         if [ "$KMI" = "android16-6.12" ] || [ "$KMI" = "android17-6.18" ]; then
