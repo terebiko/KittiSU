@@ -1158,12 +1158,14 @@ int ksu_dup_policydb(struct policydb *old_db, struct policydb *new_db)
     int len = 0;
 
     ksu_lock_sepolicy_legacy();
-    len = old_db->len;
+    // policydb_read() adds a self-entry to each type's attribute bitmap on
+    // kernels whose source policy omits it. Reserve space for those entries.
+    len = old_db->len + (size_t)old_db->p_types.nprim * (sizeof(u32) + sizeof(u64));
     ksu_unlock_sepolicy_legacy();
 
     data = vmalloc(len);
     if (!data) {
-        pr_err("alloc policy len %d\n", len);
+        pr_err("alloc policy buffer len %d\n", len);
         ret = -ENOMEM;
         goto out_free_data;
     }
@@ -1178,6 +1180,7 @@ int ksu_dup_policydb(struct policydb *old_db, struct policydb *new_db)
         ksu_unlock_sepolicy_legacy();
         goto out_free_data;
     }
+    len -= fp.len;
     ksu_unlock_sepolicy_legacy();
 
     // https://android-review.googlesource.com/c/kernel/common/+/3009995
@@ -1211,7 +1214,7 @@ int ksu_dup_policydb(struct policydb *old_db, struct policydb *new_db)
         goto out_free_data;
     }
 
-    new_db->len = old_db->len;
+    new_db->len = len;
 
     kvfree(data);
     ret = len;
