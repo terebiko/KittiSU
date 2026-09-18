@@ -8,7 +8,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{Context, Ok, Result, bail};
+use anyhow::{Context, Ok, Result, anyhow, bail};
 use getopts::Options;
 use libc::c_int;
 use log::error;
@@ -47,7 +47,7 @@ fn print_usage(program: &str, opts: &Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn set_identity(uid: u32, gid: u32, groups: &[u32]) {
+fn set_identity(uid: u32, gid: u32, groups: &[u32]) -> Result<()> {
     rustix::thread::set_thread_groups(
         groups
             .iter()
@@ -55,11 +55,33 @@ fn set_identity(uid: u32, gid: u32, groups: &[u32]) {
             .collect::<Vec<_>>()
             .as_ref(),
     )
-    .ok();
+    .with_context(|| format!("set supplementary groups to {groups:?}"))?;
     let gid = Gid::from_raw(gid);
     let uid = Uid::from_raw(uid);
-    set_thread_res_gid(gid, gid, gid).ok();
-    set_thread_res_uid(uid, uid, uid).ok();
+    set_thread_res_gid(gid, gid, gid).with_context(|| format!("set gid to {gid}"))?;
+    set_thread_res_uid(uid, uid, uid).with_context(|| format!("set uid to {uid}"))?;
+    Ok(())
+}
+
+fn user_id(value: &str) -> Result<u32> {
+    let name = CString::new(value).with_context(|| format!("invalid user name: {value}"))?;
+    let account = unsafe { libc::getpwnam(name.as_ptr()).as_ref() };
+    account.map(|entry| entry.pw_uid).map_or_else(
+        || {
+            value
+                .parse::<u32>()
+                .map_err(|_| anyhow!("unknown user: {value}"))
+        },
+        Ok,
+    )
+}
+
+fn switch_selinux_context(value: &str) -> Result<()> {
+    if value.is_empty() || value.as_bytes().contains(&0) {
+        bail!("invalid empty SELinux context");
+    }
+    std::fs::write("/proc/thread-self/attr/current", value)
+        .with_context(|| format!("write SELinux context {value}"))
 }
 
 fn wrap_tty(fd: c_int) {
@@ -103,9 +125,11 @@ pub fn root_shell() -> Result<()> {
                 && !(arg[0].starts_with("-g")
                     || arg[0].starts_with("-G")
                     || arg[0].starts_with("-s")
+                    || arg[0].starts_with("-Z")
                     || arg[0] == "--group"
                     || arg[0] == "--supp-group="
-                    || arg[0] == "--shell=")
+                    || arg[0] == "--shell="
+                    || arg[0] == "--context=")
         })
         .map_or(usize::MAX, |idx| idx + 1);
     let args = match first_non_option.cmp(&first_option_c) {
@@ -139,6 +163,12 @@ pub fn root_shell() -> Result<()> {
         "p",
         "preserve-environment",
         "preserve the entire environment",
+    );
+    opts.optopt(
+        "Z",
+        "context",
+        "run with the specified SELinux context",
+        "CONTEXT",
     );
     opts.optopt(
         "s",
@@ -213,6 +243,7 @@ pub fn root_shell() -> Result<()> {
     let mount_master = matches.opt_present("M");
     let use_fd_wrapper = !matches.opt_present("W");
     let no_new_privs = matches.opt_present("ksu-no-new-privs");
+    let selinux_context = matches.opt_str("Z");
 
     let groups = matches
         .opt_strs("G")
@@ -246,17 +277,12 @@ pub fn root_shell() -> Result<()> {
     }
 
     // use current uid if no user specified, these has been done in kernel!
-    let mut uid = getuid().as_raw();
-    if free_idx < matches.free.len() {
-        let name = &matches.free[free_idx];
-        uid = unsafe {
-            let pw = CString::new(name.as_str())
-                .ok()
-                .and_then(|c_name| libc::getpwnam(c_name.as_ptr()).as_ref());
-
-            pw.map_or_else(|| name.parse::<u32>().unwrap_or(0), |pw| pw.pw_uid)
-        }
-    }
+    let identity_requested = free_idx < matches.free.len() || gid.is_some() || !groups.is_empty();
+    let uid = if free_idx < matches.free.len() {
+        user_id(&matches.free[free_idx])?
+    } else {
+        getuid().as_raw()
+    };
 
     // if there is no gid provided, use uid.
     let gid = gid.unwrap_or(uid);
@@ -318,7 +344,17 @@ pub fn root_shell() -> Result<()> {
                 wrap_tty(2);
             }
 
-            set_identity(uid, gid, &groups);
+            if identity_requested {
+                set_identity(uid, gid, &groups).map_err(|error| {
+                    std::io::Error::new(std::io::ErrorKind::Other, error.to_string())
+                })?;
+            }
+
+            if let Some(context) = selinux_context.as_deref() {
+                switch_selinux_context(context).map_err(|error| {
+                    std::io::Error::new(std::io::ErrorKind::Other, error.to_string())
+                })?;
+            }
 
             Result::Ok(())
         })
