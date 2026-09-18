@@ -32,7 +32,6 @@ extern struct static_key_true ksu_init_rc_hook;
 extern bool ksu_init_rc_hook __read_mostly;
 #endif
 
-#ifdef KSU_COMPAT_REQUIRE_SESSION_KEYRING
 static int ksu_handle_key_permission(key_ref_t key_ref, const struct cred *cred, unsigned perm)
 {
     if (init_session_keyring != NULL)
@@ -45,7 +44,6 @@ static int ksu_handle_key_permission(key_ref_t key_ref, const struct cred *cred,
     setup_ksu_cred_session_keyring();
     return 0;
 }
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 2, 0)
 #include <linux/stop_machine.h>
@@ -95,9 +93,7 @@ static struct security_hook_list ksu_hooks[] = {
 #ifdef CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK
     LSM_HOOK_INIT(file_permission, ksu_file_permission),
 #endif
-#ifdef KSU_COMPAT_REQUIRE_SESSION_KEYRING
     LSM_HOOK_INIT(key_permission, ksu_handle_key_permission),
-#endif
 };
 
 void __init ksu_lsm_hook_built_in_init(void)
@@ -129,11 +125,6 @@ void __init ksu_lsm_hook_built_in_init(void)
 #define IF_CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK(x)
 #endif
 
-#ifdef KSU_COMPAT_REQUIRE_SESSION_KEYRING
-#define IF_KSU_COMPAT_REQUIRE_SESSION_KEYRING(x) x
-#else
-#define IF_KSU_COMPAT_REQUIRE_SESSION_KEYRING(x)
-#endif
 
 #define LSM_HOOK_LIST(HOOK_ITEM)                                                                                       \
     HOOK_ITEM(inode_rename, ksu_inode_rename,                                                                          \
@@ -145,10 +136,8 @@ void __init ksu_lsm_hook_built_in_init(void)
                                                          (new, old, flags)))                                           \
     IF_CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK(                                                                        \
         HOOK_ITEM(file_permission, ksu_file_permission, (struct file * file, int mask), (file, mask)))               \
-    IF_KSU_COMPAT_REQUIRE_SESSION_KEYRING(                                                                             \
-        HOOK_ITEM(key_permission, ksu_handle_key_permission, (key_ref_t key_ref, const struct cred *cred,           \
-                                                               unsigned perm),                                          \
-                  (key_ref, cred, perm)))
+    HOOK_ITEM(key_permission, ksu_handle_key_permission, (key_ref_t key_ref, const struct cred *cred, unsigned perm), \
+              (key_ref, cred, perm))
 
 #define STRIP_PARENS(...) __VA_ARGS__
 
