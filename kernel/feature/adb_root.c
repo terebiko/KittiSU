@@ -8,6 +8,12 @@
 #include <linux/ptrace.h>
 #include <linux/static_key.h>
 #include <linux/slab.h>
+#include <linux/version.h>
+
+// current_user_stack_pointer() moved to task_stack.h in Linux 4.11.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#include <linux/sched/task_stack.h>
+#endif
 
 #include "adb_root.h"
 #include "arch.h"

@@ -363,6 +363,10 @@ static inline int do_ksu_handle_execveat_sucompat(int *fd, const char *filename,
     memcpy((void *)filename, ksud_path, sizeof(ksud_path));
 out:
     ksu_sulog_emit_pending(pending_sucompat, 0, GFP_KERNEL);
+#ifdef CONFIG_KSU_SUSFS
+    // Always mark this exec path so older SUSFS integrations do not hang at boot.
+    set_thread_flag(TIF_PROC_IN_KSU_EXECVE);
+#endif
     return 0;
 }
 
