@@ -17,6 +17,20 @@ use regex_lite::Regex;
 
 use crate::assets;
 
+const MODULE_FILTER_CONFIG: &str = "ksu_block_modules";
+const DEFAULT_BLOCKED_MODULES: &str = "vr,vklp,oplus_secure_guard,oplus_secure_guard_new,mkp";
+
+fn validate_blocked_modules(value: &str) -> bool {
+    value.len() < 256
+        && (value.is_empty()
+            || value.split(',').all(|name| {
+                !name.is_empty()
+                    && name
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+            }))
+}
+
 #[cfg(target_os = "android")]
 mod android {
     use std::{
@@ -474,6 +488,10 @@ pub struct BootPatchArgs {
     #[arg(long, default_value = "false")]
     no_install: bool,
 
+    /// Comma-separated kernel modules that KernelSU should quietly reject.
+    #[arg(long, default_value = DEFAULT_BLOCKED_MODULES)]
+    block_modules: String,
+
     /// Architecture of embedded assets used by host builds.
     #[cfg(not(target_os = "android"))]
     #[arg(long, default_value = "aarch64")]
@@ -499,6 +517,7 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             adb_debug_prop,
             cmdline,
             no_install,
+            block_modules,
             #[cfg(target_os = "android")]
             ota,
             #[cfg(target_os = "android")]
@@ -514,6 +533,11 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             ramdisk,
             ..
         } = args;
+
+        ensure!(
+            validate_blocked_modules(&block_modules),
+            "--block-modules must be a comma-separated list of module names under 256 bytes"
+        );
 
         println!(include_str!("./android/banner"));
 
@@ -696,6 +720,11 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             println!("- Removing allow shell config");
             cpio.rm("ksu_allow_shell", false);
         }
+
+        cpio.add(
+            MODULE_FILTER_CONFIG,
+            CpioEntry::regular(0o644, Box::new(block_modules.into_bytes())),
+        )?;
 
         if enable_adbd || adb_debug_prop.is_some() {
             println!("- Adding adb_debug props");
@@ -947,6 +976,7 @@ fn rebuild_without_ksu(
 ) -> Result<Vec<u8>> {
     println!("- Removing KernelSU from boot image");
     cpio.rm("kernelsu.ko", false);
+    cpio.rm(MODULE_FILTER_CONFIG, false);
     if cpio.exists("init.real") {
         cpio.mv("init.real", "init")?;
     }
@@ -972,5 +1002,21 @@ fn map_file(file: &PathBuf) -> Result<Mmap> {
         Ok(MmapOptions::new()
             .len(file.seek(SeekFrom::End(0))? as usize)
             .map(&file)?)
+    }
+}
+
+#[cfg(test)]
+mod module_filter_tests {
+    use super::validate_blocked_modules;
+
+    #[test]
+    fn validates_module_filter_lists() {
+        for value in ["", "vr", "foo_bar,baz-2"] {
+            assert!(validate_blocked_modules(value));
+        }
+        for value in [",vr", "vr,", "vr,,mkp", "bad/name", "space name"] {
+            assert!(!validate_blocked_modules(value));
+        }
+        assert!(!validate_blocked_modules(&"a".repeat(256)));
     }
 }

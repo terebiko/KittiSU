@@ -1,7 +1,9 @@
-use std::io::{ErrorKind, Write};
+use std::{
+    ffi::CString,
+    io::{ErrorKind, Write},
+};
 
 use anyhow::{Context, Result};
-use rustix::cstr;
 use rustix::fs::{Mode, symlink, unlink};
 use rustix::{
     fd::AsFd,
@@ -135,11 +137,25 @@ pub fn init() -> Result<()> {
 fn load_module_from_path(path: &str) -> Result<()> {
     anyhow::ensure!(rustix::process::getpid().is_init(), "Invalid process");
     let buffer = std::fs::read(path).with_context(|| format!("Cannot read file {}", path))?;
-    let params = if std::fs::exists("/ksu_allow_shell").unwrap_or(false) {
+    let mut params = Vec::new();
+    if std::fs::exists("/ksu_allow_shell").unwrap_or(false) {
         log::warn!("ksu allow shell at init!");
-        cstr!("allow_shell=1")
-    } else {
-        cstr!("")
-    };
-    ksuinit::load_module(&buffer, params)
+        params.push("allow_shell=1".to_owned());
+    }
+    if let Ok(blocked) = std::fs::read_to_string("/ksu_block_modules") {
+        anyhow::ensure!(
+            blocked.len() < 256
+                && (blocked.is_empty()
+                    || blocked.split(',').all(|name| {
+                        !name.is_empty()
+                            && name.bytes().all(|byte| {
+                                byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-'
+                            })
+                    })),
+            "Invalid module filter configuration"
+        );
+        params.push(format!("block_modules={blocked}"));
+    }
+    let params = CString::new(params.join(" ")).context("Invalid KernelSU module parameters")?;
+    ksuinit::load_module(&buffer, &params)
 }

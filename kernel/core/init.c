@@ -33,6 +33,7 @@
 #include "feature/dynamic_manager.h"
 #include "feature/sucompat.h"
 #include "feature/selinux_hide.h"
+#include "feature/module_filter.h"
 #include "infra/symbol_resolver.h"
 
 #ifdef CONFIG_ARM64
@@ -255,6 +256,8 @@ int __init kernelsu_init(void)
     } else {
         ksu_hook_init();
 
+        ksu_module_filter_init();
+
         ksu_allowlist_init();
 
         ksu_throne_tracker_init();
@@ -291,6 +294,7 @@ void __exit kernelsu_exit(void)
     ksu_allowlist_exit();
 
     ksu_selinux_hide_exit();
+    ksu_module_filter_exit();
     ksu_adb_root_exit();
     ksu_sulog_exit();
     ksu_feature_exit();
