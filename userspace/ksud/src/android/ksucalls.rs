@@ -1,11 +1,63 @@
 #![allow(clippy::unreadable_literal)]
-use std::{fs, os::fd::RawFd, sync::OnceLock};
+use std::{cell::Cell, fs, os::fd::RawFd, sync::OnceLock};
 
 use crate::{android::uapi, defs::MountInfo};
 
 // Global driver fd cache
 static DRIVER_FD: OnceLock<RawFd> = OnceLock::new();
 static INFO_CACHE: OnceLock<uapi::ksu_get_info_cmd> = OnceLock::new();
+
+thread_local! {
+    static DRIVER_PROBE_ACTIVE: Cell<bool> = const { Cell::new(false) };
+    static DRIVER_PROBE_BLOCKED: Cell<bool> = const { Cell::new(false) };
+}
+
+extern "C" fn handle_sigsys(
+    _signal: libc::c_int,
+    info: *mut libc::siginfo_t,
+    context: *mut libc::c_void,
+) {
+    if info.is_null() || context.is_null() {
+        return;
+    }
+
+    let is_seccomp_trap = unsafe { (*info).si_code == 1 };
+    if !is_seccomp_trap || !DRIVER_PROBE_ACTIVE.with(Cell::get) {
+        return;
+    }
+    DRIVER_PROBE_BLOCKED.with(|blocked| blocked.set(true));
+
+    let machine_context = context.cast::<libc::ucontext_t>();
+    unsafe {
+        #[cfg(target_arch = "aarch64")]
+        {
+            (*machine_context).uc_mcontext.regs[0] = (-libc::EPERM) as u64;
+        }
+        #[cfg(target_arch = "arm")]
+        {
+            (*machine_context).uc_mcontext.arm_r0 = (-libc::EPERM) as u32;
+        }
+        #[cfg(target_arch = "x86_64")]
+        {
+            (*machine_context).uc_mcontext.gregs[libc::REG_RAX as usize] = i64::from(-libc::EPERM);
+        }
+    }
+}
+
+pub fn install_sigsys_guard() {
+    unsafe {
+        let mut action: libc::sigaction = std::mem::zeroed();
+        action.sa_flags = libc::SA_SIGINFO;
+        action.sa_sigaction = handle_sigsys as *const () as usize;
+        libc::sigemptyset(&raw mut action.sa_mask);
+        if libc::sigaction(libc::SIGSYS, &raw const action, std::ptr::null_mut()) != 0 {
+            log::warn!(
+                "cannot install SIGSYS guard: {}",
+                std::io::Error::last_os_error()
+            );
+        }
+    }
+}
 
 fn scan_driver_fd() -> Option<RawFd> {
     let fd_dir = fs::read_dir("/proc/self/fd").ok()?;
@@ -30,6 +82,8 @@ fn init_driver_fd() -> Option<RawFd> {
     let fd = scan_driver_fd();
     if fd.is_none() {
         let mut fd = -1;
+        DRIVER_PROBE_BLOCKED.with(|blocked| blocked.set(false));
+        DRIVER_PROBE_ACTIVE.with(|active| active.set(true));
         unsafe {
             libc::syscall(
                 libc::SYS_reboot,
@@ -39,6 +93,10 @@ fn init_driver_fd() -> Option<RawFd> {
                 &mut fd,
             );
         };
+        DRIVER_PROBE_ACTIVE.with(|active| active.set(false));
+        if DRIVER_PROBE_BLOCKED.with(|blocked| blocked.replace(false)) {
+            log::error!("KernelSU driver discovery was blocked by seccomp");
+        }
         if fd >= 0 { Some(fd) } else { None }
     } else {
         fd
@@ -50,6 +108,12 @@ pub fn ksuctl<T>(request: u32, arg: *mut T) -> std::io::Result<i32> {
     use std::io;
 
     let fd = *DRIVER_FD.get_or_init(|| init_driver_fd().unwrap_or(-1));
+    if fd < 0 {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "KernelSU driver fd is unavailable",
+        ));
+    }
     unsafe {
         let ret = libc::ioctl(fd as libc::c_int, request as i32, arg);
         if ret < 0 {
