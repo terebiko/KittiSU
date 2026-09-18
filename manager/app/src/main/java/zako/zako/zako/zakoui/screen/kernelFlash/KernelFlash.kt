@@ -61,7 +61,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
@@ -70,6 +69,7 @@ import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.theme.CardConfig
+import anhiutangerinee.kittisu.ui.theme.rememberTerminalFontFamily
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.install
 import anhiutangerinee.kittisu.ui.util.reboot
@@ -106,6 +106,7 @@ fun KernelFlashScreen(
     selectedSlot: String? = null
 ) {
     val context = LocalContext.current
+    val terminalFontFamily = rememberTerminalFontFamily()
 
     val shouldAutoExit = remember {
         val sharedPref = context.getSharedPreferences("kernel_flash_prefs", Context.MODE_PRIVATE)
@@ -302,7 +303,7 @@ fun KernelFlashScreen(
                     modifier = Modifier.padding(16.dp),
                     text = logText,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = terminalFontFamily,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }

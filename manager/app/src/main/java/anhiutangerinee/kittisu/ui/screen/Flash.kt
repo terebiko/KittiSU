@@ -71,7 +71,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -87,6 +86,7 @@ import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import anhiutangerinee.kittisu.ui.theme.rememberTerminalFontFamily
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LkmSelection
@@ -175,6 +175,7 @@ fun updateModuleInstallStatus(
 @Composable
 fun FlashScreen(flashIt: FlashIt) {
     val context = LocalContext.current
+    val terminalFontFamily = rememberTerminalFontFamily()
 
     // 是否通过从外部启动的模块安装
     val isExternalInstall = remember {
@@ -631,7 +632,7 @@ fun FlashScreen(flashIt: FlashIt) {
                     modifier = Modifier.padding(16.dp),
                     text = text,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = terminalFontFamily,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }

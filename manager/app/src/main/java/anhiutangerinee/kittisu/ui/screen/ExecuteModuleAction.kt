@@ -43,7 +43,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.KeyEventBlocker
@@ -54,6 +53,7 @@ import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.ModuleDeepLink
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import anhiutangerinee.kittisu.ui.theme.rememberTerminalFontFamily
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
@@ -70,6 +70,7 @@ import java.util.Locale
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun ExecuteModuleActionScreen(moduleId: String) {
+    val terminalFontFamily = rememberTerminalFontFamily()
     var text by rememberSaveable { mutableStateOf("") }
     var tempText : String
 	val logContent = remember { StringBuilder() }	
@@ -191,7 +192,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
                     modifier = Modifier.padding(8.dp),
                     text = text,
                     fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = terminalFontFamily,
                     lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                 )
             }

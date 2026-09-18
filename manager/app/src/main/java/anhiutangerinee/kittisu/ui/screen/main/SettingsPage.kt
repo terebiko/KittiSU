@@ -54,6 +54,7 @@ import androidx.compose.material.icons.twotone.Share
 import androidx.compose.material.icons.twotone.Update
 import androidx.compose.material.icons.twotone.ElectricalServices
 import androidx.compose.material.icons.twotone.FolderDelete
+import androidx.compose.material.icons.twotone.FontDownload
 import androidx.compose.material.icons.twotone.RemoveCircle
 import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material3.AlertDialog
@@ -118,6 +119,7 @@ import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import anhiutangerinee.kittisu.ui.theme.CUSTOM_MONOSPACE_FONT_KEY
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
@@ -753,6 +755,22 @@ fun SettingsPage(bottomPadding: Dp) {
                                 onCheckedChange = { enabled ->
                                     prefs.edit { putBoolean("check_update", enabled) }
                                     checkUpdate = enabled
+                                }
+                            )
+                        }
+
+                        item {
+                            var customMonospaceFont by rememberSaveable {
+                                mutableStateOf(prefs.getBoolean(CUSTOM_MONOSPACE_FONT_KEY, false))
+                            }
+                            SettingsSwitchWidget(
+                                icon = Icons.TwoTone.FontDownload,
+                                title = stringResource(R.string.settings_custom_monospace_font),
+                                description = stringResource(R.string.settings_custom_monospace_font_summary),
+                                checked = customMonospaceFont,
+                                onCheckedChange = { enabled ->
+                                    prefs.edit { putBoolean(CUSTOM_MONOSPACE_FONT_KEY, enabled) }
+                                    customMonospaceFont = enabled
                                 }
                             )
                         }

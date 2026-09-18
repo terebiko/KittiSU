@@ -65,7 +65,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -83,6 +82,7 @@ import anhiutangerinee.kittisu.ui.component.settings.lazySegmentColumn
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.blurSource
+import anhiutangerinee.kittisu.ui.theme.rememberTerminalFontFamily
 import anhiutangerinee.kittisu.ui.util.LocalBlurState
 import anhiutangerinee.kittisu.ui.util.SulogEntry
 import anhiutangerinee.kittisu.ui.util.SulogEventFilter
@@ -709,6 +709,7 @@ private fun SulogDetailDialog(
     entry: SulogEntry,
     onDismiss: () -> Unit,
 ) {
+    val terminalFontFamily = rememberTerminalFontFamily()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(sulogEntryTitle(entry)) },
@@ -719,7 +720,7 @@ private fun SulogDetailDialog(
                 SelectionContainer {
                     Text(
                         text = sulogEntryDetailText(entry),
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = terminalFontFamily,
                     )
                 }
             }
