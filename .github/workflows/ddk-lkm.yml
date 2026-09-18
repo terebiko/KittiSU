@@ -96,6 +96,13 @@ jobs:
         mkdir -p "$KDIR"
 
         pushd "/opt/ddk/src/$KMI"
+        # x86 DDK images may miss the modpost compatibility patch. Keep this
+        # idempotent so it is safe when the image already includes the fix.
+        MODPOST=scripts/mod/modpost.c
+        sed -i -E 's/^([[:space:]]*)check_exports\(mod\);/\1\/\/ check_exports(mod);/' "$MODPOST"
+        sed -i -E 's/^([[:space:]]*)s->module = exp->module;/\1\/\/ s->module = exp->module;/' "$MODPOST"
+        sed -i 's/^static void check_exports(/static void __attribute__((unused)) check_exports(/' "$MODPOST"
+        sed -i 's/__version_ext_names\") =$/__version_ext_names\") = ""/' "$MODPOST"
         make O="$KDIR" gki_defconfig
         scripts/config --file "$KDIR/.config" -d LTO_CLANG -e LTO_NONE -d LTO_CLANG_THIN -d LTO_CLANG_FULL -d THINLTO
         if [ "$KMI" = "android16-6.12" ] || [ "$KMI" = "android17-6.18" ]; then
@@ -129,7 +136,7 @@ jobs:
             CONFIG_KSU=m CONFIG_KSU_MULTI_MANAGER_SUPPORT=y CONFIG_KSU_TRACEPOINT_HOOK=y \
             CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y $EXTRA_ARGS
         else
-          make -C "$KDIR" M="$MODULE_DIR" MO="$MODULE_DIR" modules CC=clang \
+          make -C "$KDIR" M="$MODULE_DIR" src="$MODULE_DIR" modules CC=clang \
             CONFIG_KSU=m CONFIG_KSU_MULTI_MANAGER_SUPPORT=y CONFIG_KSU_TRACEPOINT_HOOK=y \
             CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y $EXTRA_ARGS
         fi
