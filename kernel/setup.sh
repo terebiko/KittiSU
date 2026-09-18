@@ -9,6 +9,7 @@ display_usage() {
 	echo "  --cleanup:			  Cleans up previous modifications made by the script."
 	echo "  <commit-or-tag>:		Sets up or updates the KernelSU to specified tag or commit."
 	echo "  -h, --help:			 Displays this usage information."
+	echo "  --submodule:		  Resets KernelSU as a submodule."
 	echo "  (no args):			  Sets up or updates the KernelSU environment to the latest tagged version."
 }
 
@@ -34,6 +35,9 @@ perform_cleanup() {
 	grep -q "drivers/kernelsu/Kconfig" "$DRIVER_KCONFIG" && sed -i '/drivers\/kernelsu\/Kconfig/d' "$DRIVER_KCONFIG" && echo "[-] Kconfig reverted."
 	if [ -d "$GKI_ROOT/KernelSU" ]; then
 		rm -rf "$GKI_ROOT/KernelSU" && echo "[-] KernelSU directory deleted."
+	fi
+	if [ -f "$GKI_ROOT/.gitmodules" ] && grep -q 'KernelSU' "$GKI_ROOT/.gitmodules"; then
+		echo "[!] KernelSU has been added as a submodule; remove it manually if needed."
 	fi
 }
 
@@ -65,6 +69,23 @@ setup_kernelsu() {
 	echo '[+] Done.'
 }
 
+setup_submodule() {
+	cd "$GKI_ROOT"
+	if [ ! -d "$GKI_ROOT/KernelSU" ]; then
+		echo '[!] KernelSU directory does not exist. Run setup first.'
+		exit 127
+	fi
+	if [ ! -d "$GKI_ROOT/.git" ] || [ "${CI:-false}" = "true" ] || [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+		echo '[!] Skipping submodule setup in a non-repository or CI checkout.'
+		return 0
+	fi
+	if [ -f "$GKI_ROOT/.gitmodules" ] && grep -q 'KernelSU' "$GKI_ROOT/.gitmodules"; then
+		echo '[!] KernelSU is already a submodule. Skipping.'
+		return 0
+	fi
+	git submodule add "$KITTISU_REPOSITORY" KernelSU || echo '[!] Failed to add KernelSU as a submodule.'
+}
+
 # Process command-line arguments
 if [ "$#" -eq 0 ]; then
 	initialize_variables
@@ -74,6 +95,9 @@ elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 elif [ "$1" = "--cleanup" ]; then
 	initialize_variables
 	perform_cleanup
+elif [ "$1" = "--submodule" ]; then
+	initialize_variables
+	setup_submodule
 else
 	initialize_variables
 	setup_kernelsu "$@"
