@@ -153,6 +153,10 @@ bool allow_shell = true;
 bool allow_shell = false;
 #endif
 
+#ifdef MODULE
+bool ksu_bundled;
+#endif
+
 int __init kernelsu_init(void)
 {
     pr_info("Initialized on: %s (%s) with driver version: %u\n", UTS_RELEASE, UTS_MACHINE, KSU_VERSION);
@@ -312,6 +316,9 @@ module_init(kernelsu_init);
 #endif
 module_exit(kernelsu_exit);
 module_param(allow_shell, bool, 0);
+#ifdef MODULE
+module_param_named(bundled, ksu_bundled, bool, 0);
+#endif
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("weishu");
