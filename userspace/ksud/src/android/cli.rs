@@ -140,6 +140,9 @@ enum Commands {
     /// Patch boot or init_boot images to apply KernelSU
     BootPatch(BootPatchArgs),
 
+    /// Embed a KernelSU LKM capsule into an ARM64 kernel image
+    LkmImage(crate::lkm_image::BootPatchV2Args),
+
     /// Restore boot or init_boot images patched by KernelSU
     BootRestore(BootRestoreArgs),
 
@@ -816,6 +819,8 @@ pub fn run() -> Result<()> {
         },
 
         Commands::BootPatch(boot_patch) => crate::boot_patch::patch(boot_patch),
+
+        Commands::LkmImage(args) => crate::lkm_image::patch_boot(&args),
 
         Commands::BootInfo { command } => match command {
             BootInfo::CurrentKmi => {

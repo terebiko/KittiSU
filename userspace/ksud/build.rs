@@ -203,6 +203,28 @@ fn main() {
         .expect("Failed to write VERSION_NAME");
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS not set");
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    if target_os == "android" && target_arch == "aarch64" {
+        let output = Path::new(&out_dir).join("lkm_image_bootstrap.o");
+        println!("cargo:rerun-if-changed=src/lkm_image_bootstrap.S");
+        cc::Build::new()
+            .file("src/lkm_image_bootstrap.S")
+            .cargo_metadata(false)
+            .out_dir(out_dir)
+            .compile("lkm_image_bootstrap");
+        let archive = Path::new(&out_dir).join("liblkm_image_bootstrap.a");
+        let object = Path::new(&out_dir).join("lkm_image_bootstrap.o");
+        if !object.exists() && archive.exists() {
+            let _ = std::process::Command::new("ar")
+                .args(["x", archive.to_str().unwrap()])
+                .current_dir(out_dir)
+                .status();
+            let extracted = Path::new(&out_dir).join("lkm_image_bootstrap.o");
+            if extracted.exists() {
+                let _ = fs::rename(extracted, output);
+            }
+        }
+    }
     if target_os == "android" {
         build_mkbootfs(out_dir);
         configure_bindgen();
