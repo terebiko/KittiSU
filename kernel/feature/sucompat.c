@@ -396,7 +396,17 @@ static inline void ksu_handle_execveat_init(const char *filename, void *envp)
 int ksu_handle_execve(int *fd, const char *filename, void *argv, void *envp, int *flags)
 {
     struct ksu_sulog_pending_event *pending_root_execve = NULL;
+    int ret;
 
+    // Old hook callers may pass AT_FDCWD and a NULL flags pointer directly.
+    // Avoid dereferencing those values as pointers.
+    if (fd == (int *)AT_FDCWD && flags == 0)
+        goto skip_check;
+
+    if (*fd != AT_FDCWD || *flags != 0)
+        return 0;
+
+skip_check:
     ksu_handle_execveat_init(filename, envp);
 
 #ifdef KSU_COMPAT_USE_STATIC_KEY
@@ -414,7 +424,7 @@ int ksu_handle_execve(int *fd, const char *filename, void *argv, void *envp, int
             ksu_sulog_capture_root_execve_manual(filename, *((struct user_arg_ptr *)argv), GFP_KERNEL);
     }
 
-    int ret = do_ksu_handle_execveat_sucompat(fd, filename, argv);
+    ret = do_ksu_handle_execveat_sucompat(fd, filename, argv);
 
     // record sulog!
     ksu_sulog_emit_pending(pending_root_execve, ret, GFP_KERNEL);
