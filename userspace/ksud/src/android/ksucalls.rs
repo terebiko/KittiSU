@@ -7,6 +7,9 @@ use crate::{android::uapi, defs::MountInfo};
 static DRIVER_FD: OnceLock<RawFd> = OnceLock::new();
 static INFO_CACHE: OnceLock<uapi::ksu_get_info_cmd> = OnceLock::new();
 
+const KSU_DRIVER_INODE: &str = "anon_inode:[ksu_driver]";
+const KSU_SU_DRIVER_INODE: &str = "anon_inode:[ksu_driver_su]";
+
 thread_local! {
     static DRIVER_PROBE_ACTIVE: Cell<bool> = const { Cell::new(false) };
     static DRIVER_PROBE_BLOCKED: Cell<bool> = const { Cell::new(false) };
@@ -75,6 +78,39 @@ fn scan_driver_fd() -> Option<RawFd> {
     }
 
     None
+}
+
+/// Claim a driver descriptor inherited by `su` before the target command runs.
+/// The descriptor is cached so App Profile and FD-wrapper operations use the
+/// session-specific driver instead of probing again after exec.
+pub fn claim_inherited_driver_fd() -> std::io::Result<()> {
+    if DRIVER_FD.get().is_some() {
+        return Ok(());
+    }
+
+    let entries = std::fs::read_dir("/proc/self/fd")?;
+    let mut fallback = None;
+    for entry in entries.flatten() {
+        let Ok(fd) = entry.file_name().to_string_lossy().parse::<RawFd>() else {
+            continue;
+        };
+        let Ok(target) = std::fs::read_link(entry.path()) else {
+            continue;
+        };
+        match target.to_string_lossy().as_ref() {
+            KSU_SU_DRIVER_INODE => {
+                let _ = DRIVER_FD.set(fd);
+                return Ok(());
+            }
+            KSU_DRIVER_INODE => fallback = Some(fd),
+            _ => {}
+        }
+    }
+
+    if let Some(fd) = fallback {
+        let _ = DRIVER_FD.set(fd);
+    }
+    Ok(())
 }
 
 // Get cached driver fd

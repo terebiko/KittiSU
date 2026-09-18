@@ -108,6 +108,12 @@ fn wrap_tty(fd: c_int) {
 pub fn root_shell() -> Result<()> {
     // we are root now, this was set in kernel!
 
+    // Preserve the session-specific driver handed over by the su transition.
+    // This must happen before argument handling or exec so App Profile FD
+    // wrappers remain valid after the target command starts.
+    crate::android::ksucalls::claim_inherited_driver_fd()
+        .context("claim inherited KernelSU driver fd")?;
+
     use anyhow::anyhow;
     let env_args: Vec<String> = env::args().collect();
     let program = env_args[0].clone();
