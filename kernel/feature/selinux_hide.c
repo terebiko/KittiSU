@@ -282,6 +282,9 @@ static ssize_t my_write_access(struct file *file, char *buf, size_t size)
     ksu_security_compute_av_user(ssid, tsid, tclass, &avd);
 #endif
 
+    // Stock Android reports a sequence number of one for access decisions.
+    // A policy reload can otherwise expose the loader's backup sequence.
+    avd.seqno = 1;
     length = scnprintf(buf, SIMPLE_TRANSACTION_LIMIT, "%x %x %x %x %u %x", avd.allowed, 0xffffffff, avd.auditallow,
                        avd.auditdeny, avd.seqno, avd.flags);
 out:
@@ -797,12 +800,19 @@ __maybe_static void initialize_fake_status()
 
     struct selinux_kernel_status *new_status = page_address(new_page);
     memcpy(new_status, status, sizeof(*status));
-    if (ksu_late_loaded && !new_status->enforcing) {
-        // In late_load mode, we may be loaded when selinux was set to permissive
-        // So we need to modify the sequence value
-        // We assume that setenforce 0 is just called once
-        new_status->enforcing = 1;
-        new_status->sequence = new_status->policyload ? 4 : 0;
+    if (ksu_late_loaded) {
+        // The loader may have reloaded sepolicy before a late module load.
+        // Reproduce the values exposed by a stock boot instead.
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+        new_status->sequence = 4;
+        new_status->policyload = 1;
+#else
+        new_status->sequence = 0;
+        new_status->policyload = 0;
+#endif
+        if (!new_status->enforcing) {
+            new_status->enforcing = 1;
+        }
     }
 
     fake_status = new_page;
