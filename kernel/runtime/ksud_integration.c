@@ -371,7 +371,7 @@ static void load_module_rc(void)
     if (attempted)
         return;
     attempted = true;
-    old_cred = ksu_cred ? override_creds(ksu_cred) : NULL;
+    old_cred = override_creds(ksu_cred);
     for (i = 0; i < ARRAY_SIZE(paths); i++) {
         file = filp_open(paths[i], O_RDONLY, 0);
         if (!IS_ERR(file))
@@ -396,8 +396,7 @@ static void load_module_rc(void)
 close:
     filp_close(file, NULL);
 out:
-    if (old_cred)
-        revert_creds(old_cred);
+    revert_creds(old_cred);
 }
 
 // https://cs.android.com/android/platform/superproject/main/+/main:system/core/init/parser.cpp;l=144;drc=61197364367c9e404c7da6900658f1b16c42d0da

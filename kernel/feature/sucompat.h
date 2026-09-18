@@ -24,6 +24,8 @@ int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
 #ifdef CONFIG_KSU_TRACEPOINT_HOOK
 // WARNING! THERE HAVE TRYING TO CALL SYSCALL INTERNALLY
 // ENSURE CALL IT ONLY IN TRACEPOINT SYSCALL REDIRECT
+long ksu_handle_faccessat_sucompat_internal(int orig_nr, struct pt_regs *regs);
+long ksu_handle_stat_sucompat_internal(int orig_nr, struct pt_regs *regs);
 int ksu_handle_execve_sucompat_tp_internal(const char __user **filename_user, int orig_nr, struct pt_regs *regs);
 int ksu_handle_execveat_sucompat_tp_internal(const char __user **filename_user, int orig_nr, struct pt_regs *regs);
 #endif
