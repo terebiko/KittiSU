@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "adb_client"
 version = "3.1.1"
-source = "git+https://github.com/Kernel-SU/adb_client#d97a966435bebaa55017834869dec08150826aa7"
+source = "git+https://github.com/terebiko/adb_client#d97a966435bebaa55017834869dec08150826aa7"
 dependencies = [
  "byteorder",
  "log",
@@ -1006,7 +1006,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 [[package]]
 name = "java-properties"
 version = "2.0.0"
-source = "git+https://github.com/Kernel-SU/java-properties.git?branch=master#42a4aa941b70ded2dd3be9e9f892471023e70229"
+source = "git+https://github.com/terebiko/java-properties.git?branch=master#42a4aa941b70ded2dd3be9e9f892471023e70229"
 dependencies = [
  "encoding_rs",
  "lazy_static",
@@ -1449,7 +1449,7 @@ dependencies = [
 [[package]]
 name = "prop-rs"
 version = "0.1.0"
-source = "git+https://github.com/Kernel-SU/ksu_props#54c81eaa51a9c0e1770161d468310656a53ac5b0"
+source = "git+https://github.com/terebiko/ksu_props#54c81eaa51a9c0e1770161d468310656a53ac5b0"
 dependencies = [
  "prost",
 ]
@@ -1457,7 +1457,7 @@ dependencies = [
 [[package]]
 name = "prop-rs-android"
 version = "0.1.0"
-source = "git+https://github.com/Kernel-SU/ksu_props#54c81eaa51a9c0e1770161d468310656a53ac5b0"
+source = "git+https://github.com/terebiko/ksu_props#54c81eaa51a9c0e1770161d468310656a53ac5b0"
 dependencies = [
  "libc",
  "log",
@@ -1631,7 +1631,7 @@ checksum = "94300abf3f1ae2e2b8ffb7b58043de3d399c73fa6f4b73826402a5c457614dbe"
 [[package]]
 name = "rustix"
 version = "0.38.34"
-source = "git+https://github.com/Kernel-SU/rustix.git?rev=4a53fbc#4a53fbc7cb7a07cabe87125cc21dbc27db316259"
+source = "git+https://github.com/terebiko/rustix.git?rev=4a53fbc#4a53fbc7cb7a07cabe87125cc21dbc27db316259"
 dependencies = [
  "bitflags 2.11.1",
  "errno 0.3.14",
