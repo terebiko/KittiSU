@@ -331,6 +331,22 @@ int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv, voi
     return ksu_handle_execve(fd, filename->name, argv, envp, flags);
 }
 
+int ksu_handle_post_execve(int *fd, const char *filename, void *argv, void *envp, int *flags, int *retval)
+{
+    return 0;
+}
+
+int ksu_handle_post_execveat(int *fd, struct filename **filename_ptr, void *argv, void *envp, int *flags, int *retval)
+{
+    struct filename *filename;
+    filename = *filename_ptr;
+    if (IS_ERR(filename)) {
+        return -EINVAL;
+    }
+
+    return ksu_handle_post_execve(fd, filename->name, argv, envp, flags, retval);
+}
+
 // because simonpunk, he do check in hook side
 // and call ksu_handle_execveat_sucompat
 // we need unpack filename* in here, and pass it to ksu_handle_execveat
@@ -344,6 +360,12 @@ int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr, void *
     //		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
 
     return ksu_handle_execveat(fd, filename_ptr, argv, envp, flags);
+}
+
+int ksu_handle_post_execveat_sucompat(int *fd, struct filename **filename_ptr, void *argv, void *envp, int *flags,
+                                      int *retval)
+{
+    return ksu_handle_post_execveat(fd, filename_ptr, argv, envp, flags, retval);
 }
 #endif
 #endif

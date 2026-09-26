@@ -79,6 +79,11 @@ int ksu_install_fd(void)
     return fd;
 }
 
+int ksu_install_su_fd(void)
+{
+    return ksu_install_fd();
+}
+
 #ifdef CONFIG_KSU_TOOLKIT_SUPPORT
 extern int ksu_try_handle_toolkit_cmd(int magic2, unsigned int cmd, void __user **arg);
 #endif
