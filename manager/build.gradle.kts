@@ -1,3 +1,6 @@
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.agp.app) apply false
     alias(libs.plugins.agp.test) apply false
@@ -14,7 +17,7 @@ val androidCompileNdkVersion by extra(libs.versions.ndk.get())
 val androidSourceCompatibility by extra(JavaVersion.VERSION_21)
 val androidTargetCompatibility by extra(JavaVersion.VERSION_21)
 val managerVersionCode by extra(30000 + getGitCommitCount() + 700)
-val managerVersionName by extra(getGitDescribe())
+val managerVersionName by extra(getBuildDate())
 
 fun getGitCommitCount(): Int {
     return providers.exec {
@@ -22,8 +25,10 @@ fun getGitCommitCount(): Int {
     }.standardOutput.asText.get().trim().toInt()
 }
 
-fun getGitDescribe(): String {
-    return providers.exec {
-        commandLine("git", "describe", "--tags", "--always", "--abbrev=0")
-    }.standardOutput.asText.get().trim()
+fun getBuildDate(): String {
+    val date = providers.gradleProperty("versionName").orNull
+        ?: LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+    return date.trim()
 }
+
+fun getGitDescribe(): String = getBuildDate()

@@ -431,14 +431,9 @@ void track_throne(unsigned int flags)
     }
     tts->flags = flags;
 
-    if (flags & TRACK_THRONE_FROM_RENAMEAT) {
-        // after renameat hook, packages.list.tmp -> packages.list
-        // don't async for it, or it will always have an race
-        // for example,
-        // we put track_throne task to init
-        // and user install an new app before task_work executed
-        // ^ race here
-
+    if (flags & (TRACK_THRONE_FROM_RENAMEAT | TRACK_THRONE_FORCE_SYNCHRONOUS)) {
+        // after renameat hook or synchronous request, packages.list.tmp -> packages.list
+        // don't async for it, or it will always have a race condition
         do_track_throne(tts);
     } else {
         ksu_run_in_init_if_possible(do_track_throne, tts);

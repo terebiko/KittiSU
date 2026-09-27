@@ -25,4 +25,4 @@ find . -type f -exec sed -i \
     -e "s/com_resukisu_zako/${word3}_${word4}_zako/g" {} +
 
 # add -spoofed on tags
-sed -i -e '/fun getGitDescribe(): String {/,/^    }/ s/\.trim()$/.trim() + "-spoofed"/' build.gradle.kts
+sed -i -e '/fun getBuildDate(): String {/,/^    }/ s/\.trim()$/.trim() + "-spoofed"/' build.gradle.kts

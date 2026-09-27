@@ -177,13 +177,15 @@ pub fn on_services() {
 
 pub fn on_boot_completed() {
     ksucalls::report_boot_complete();
-    crate::android::recovery::boot_completed();
     info!("on_boot_completed triggered!");
 
     run_stage("boot-completed", false);
     if !is_safe_mode() {
         crate::android::susfs::init_event::on_boot_completed();
     }
+
+    // ponytail: mark recovery boot_completed after all stage scripts finish
+    crate::android::recovery::boot_completed();
 }
 
 const fn resetprop() -> ResetProp {
