@@ -143,8 +143,8 @@ extern bool ksu_kernel_umount_enabled;
 // WARNING! THERE HAVE TRYING TO CALL SYSCALL INTERNALLY
 // ENSURE CALL IT ONLY IN TRACEPOINT SYSCALL REDIRECT
 static int ksu_handle_execve_sucompat_common_tp_internal(const char __user **filename_user,
-                                                         const char __user *const __user *argv_user,
-                                                         bool execveat, int orig_nr, const struct pt_regs *regs)
+                                                         const char __user *const __user *argv_user, bool execveat,
+                                                         int orig_nr, const struct pt_regs *regs)
 {
     const char su[] = SU_PATH;
     const char __user *fn;
@@ -203,16 +203,14 @@ do_orig_execve:
 
 int ksu_handle_execve_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs)
 {
-    return ksu_handle_execve_sucompat_common_tp_internal(filename_user,
-                                                         (const char __user *const __user *)PT_REGS_PARM2(regs),
-                                                         false, orig_nr, regs);
+    return ksu_handle_execve_sucompat_common_tp_internal(
+        filename_user, (const char __user *const __user *)PT_REGS_PARM2(regs), false, orig_nr, regs);
 }
 
 int ksu_handle_execveat_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs)
 {
-    return ksu_handle_execve_sucompat_common_tp_internal(filename_user,
-                                                         (const char __user *const __user *)PT_REGS_PARM3(regs),
-                                                         true, orig_nr, regs);
+    return ksu_handle_execve_sucompat_common_tp_internal(
+        filename_user, (const char __user *const __user *)PT_REGS_PARM3(regs), true, orig_nr, regs);
 }
 #endif
 

@@ -36,7 +36,8 @@ int ksu_handle_post_execveat_sucompat(int *fd, struct filename **filename_ptr, v
 // WARNING! THERE HAVE TRYING TO CALL SYSCALL INTERNALLY
 // ENSURE CALL IT ONLY IN TRACEPOINT SYSCALL REDIRECT
 int ksu_handle_execve_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs);
-int ksu_handle_execveat_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs);
+int ksu_handle_execveat_sucompat_tp_internal(const char __user **filename_user, int orig_nr,
+                                             const struct pt_regs *regs);
 #endif
 
 #endif
