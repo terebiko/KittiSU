@@ -207,6 +207,8 @@ fun FlashScreen(flashIt: FlashIt) {
     var hasUpdateCompleted by rememberSaveable { mutableStateOf(false) }
     var showRebootDialog by remember { mutableStateOf(false) }
     var showPostInstallDialog by remember { mutableStateOf(false) }
+    var scriptForReview by remember { mutableStateOf<String?>(null) }
+    var scriptSourceForReview by remember { mutableStateOf<String?>(null) }
 
     val snackBarHost = LocalSnackbarHost.current
     val scope = rememberCoroutineScope()
@@ -410,6 +412,29 @@ fun FlashScreen(flashIt: FlashIt) {
                 val runningScriptString = context.getString(R.string.preset_running_script)
                 text = runningScriptString.format(flashIt.currentIndex + 1, flashIt.scripts.size, scriptName)
                 logContent.append(text).append("\n")
+                val scriptUrl = runCatching {
+                    resolveScriptUrl(flashIt.scripts[flashIt.currentIndex].path, flashIt.baseUrl)
+                }.getOrElse {
+                    text += "\nInvalid script URL: ${it.message}\n"
+                    setFlashingStatus(FlashingStatus.FAILED)
+                    hasFlashCompleted = true
+                    return@withContext
+                }
+                val script = runCatching { downloadScript(scriptUrl) }.getOrElse {
+                    text += "\nFailed to download script: ${it.message}\n"
+                    setFlashingStatus(FlashingStatus.FAILED)
+                    hasFlashCompleted = true
+                    return@withContext
+                }
+                if (script.isBlank()) {
+                    text += "\nDownloaded script is empty\n"
+                    setFlashingStatus(FlashingStatus.FAILED)
+                    hasFlashCompleted = true
+                    return@withContext
+                }
+                scriptSourceForReview = scriptUrl
+                scriptForReview = script
+                return@withContext
             }
 
             flashIt(flashIt, onFinish = { showReboot, code ->
@@ -653,6 +678,51 @@ fun FlashScreen(flashIt: FlashIt) {
                 TextButton(onClick = { showRebootDialog = false }) {
                     Text(stringResource(R.string.preset_reboot_later))
                 }
+            }
+        )
+    }
+
+    if (scriptForReview != null && flashIt is FlashIt.FlashScripts) {
+        val script = scriptForReview!!
+        AlertDialog(
+            onDismissRequest = {
+                scriptForReview = null
+                setFlashingStatus(FlashingStatus.FAILED)
+                hasFlashCompleted = true
+            },
+            title = { Text("Review root script: ${flashIt.scripts[flashIt.currentIndex].name}") },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(scriptSourceForReview.orEmpty())
+                    Text(script, fontFamily = FontFamily.Monospace)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scriptForReview = null
+                    scope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            PresetPostInstallManager.runScript(script,
+                                onStdout = { text += "$it\n"; logContent.append(it).append("\n") },
+                                onStderr = { text += "$it\n"; logContent.append(it).append("\n") })
+                        }
+                        if (result.code == 0 && flashIt.currentIndex < flashIt.scripts.size - 1) {
+                            delay(500)
+                            navigator.replace(Route.Flash(flashIt.copy(currentIndex = flashIt.currentIndex + 1)))
+                        } else {
+                            setFlashingStatus(if (result.code == 0) FlashingStatus.SUCCESS else FlashingStatus.FAILED)
+                            hasFlashCompleted = true
+                            if (flashIt.fromPending) PresetPostInstallManager.clearPendingScripts()
+                        }
+                    }
+                }) { Text("Run as root") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    scriptForReview = null
+                    setFlashingStatus(FlashingStatus.FAILED)
+                    hasFlashCompleted = true
+                }) { Text(stringResource(android.R.string.cancel)) }
             }
         )
     }
@@ -1074,33 +1144,8 @@ fun flashIt(
             onFinish(false, 0)
         }
         is FlashIt.FlashScripts -> {
-            if (flashIt.scripts.isEmpty() || flashIt.currentIndex >= flashIt.scripts.size) {
-                onFinish(false, 0)
-                return
-            }
-            val currentScript = flashIt.scripts[flashIt.currentIndex]
-            onStdout("\n")
-            val scriptUrl = runCatching {
-                resolveScriptUrl(currentScript.path, flashIt.baseUrl)
-            }.getOrElse {
-                onStderr("Invalid script URL: ${it.message}\n")
-                onFinish(false, 1)
-                return
-            }
-            onStdout("Downloading script from: $scriptUrl\n")
-            val scriptContent = runCatching { downloadScript(scriptUrl) }.getOrElse {
-                onStderr("Failed to download script: $scriptUrl\n${it.message}\n")
-                onFinish(false, 1)
-                return
-            }
-            if (scriptContent.isBlank()) {
-                onStderr("Downloaded script is empty\n")
-                onFinish(false, 1)
-                return
-            }
-            onStdout("Running script (${scriptContent.length} bytes)\n")
-            val result = PresetPostInstallManager.runScript(scriptContent, onStdout, onStderr)
-            onFinish(false, result.code)
+            onStderr("Post-install scripts require review in FlashScreen\n")
+            onFinish(false, 1)
         }
         FlashIt.FlashRestore -> restoreBoot(onFinish, onStdout, onStderr)
         FlashIt.FlashUninstall -> uninstallPermanently(onFinish, onStdout, onStderr)

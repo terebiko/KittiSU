@@ -449,6 +449,8 @@ pub fn regenerate_modules_rc() -> Result<()> {
     let temporary = target.with_extension("tmp");
 
     let mut output = File::create(&temporary)?;
+    #[cfg(unix)]
+    set_permissions(&temporary, Permissions::from_mode(0o600))?;
     append_init_rc(
         &Path::new(defs::ADB_DIR).join("initrc.d"),
         true,

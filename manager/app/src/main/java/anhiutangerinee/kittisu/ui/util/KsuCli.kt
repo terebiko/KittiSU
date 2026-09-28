@@ -534,7 +534,7 @@ fun isSepolicyValid(rules: String?): Boolean {
     }
     val shell = getRootShell()
     val result =
-        shell.newJob().add("${getKsuDaemonPath()} sepolicy check '$rules'").to(ArrayList(), null)
+        shell.newJob().add("${getKsuDaemonPath()} sepolicy check ${rules.shellQuote()}").to(ArrayList(), null)
             .exec()
     return result.isSuccess
 }
@@ -542,7 +542,7 @@ fun isSepolicyValid(rules: String?): Boolean {
 fun getSepolicy(pkg: String): String {
     val shell = getRootShell()
     val result =
-        shell.newJob().add("${getKsuDaemonPath()} profile get-sepolicy $pkg").to(ArrayList(), null)
+        shell.newJob().add("${getKsuDaemonPath()} profile get-sepolicy ${pkg.shellQuote()}").to(ArrayList(), null)
             .exec()
     Log.i(TAG, "code: ${result.code}, out: ${result.out}, err: ${result.err}")
     return result.out.joinToString("\n")
@@ -550,7 +550,7 @@ fun getSepolicy(pkg: String): String {
 
 fun setSepolicy(pkg: String, rules: String): Boolean {
     val shell = getRootShell()
-    val result = shell.newJob().add("${getKsuDaemonPath()} profile set-sepolicy $pkg '$rules'")
+    val result = shell.newJob().add("${getKsuDaemonPath()} profile set-sepolicy ${pkg.shellQuote()} ${rules.shellQuote()}")
         .to(ArrayList(), null).exec()
     Log.i(TAG, "set sepolicy result: ${result.code}")
     return result.isSuccess
@@ -564,7 +564,7 @@ fun listAppProfileTemplates(): List<String> {
 
 fun getAppProfileTemplate(id: String): String {
     val shell = getRootShell()
-    return shell.newJob().add("${getKsuDaemonPath()} profile get-template '${id}'")
+    return shell.newJob().add("${getKsuDaemonPath()} profile get-template ${id.shellQuote()}")
         .to(ArrayList(), null).exec().out.joinToString("\n")
 }
 
@@ -577,7 +577,7 @@ fun setAppProfileTemplate(id: String, template: String): Boolean {
 
 fun deleteAppProfileTemplate(id: String): Boolean {
     val shell = getRootShell()
-    return shell.newJob().add("${getKsuDaemonPath()} profile delete-template '${id}'")
+    return shell.newJob().add("${getKsuDaemonPath()} profile delete-template ${id.shellQuote()}")
         .to(ArrayList(), null).exec().isSuccess
 }
 internal fun String.shellQuote(): String = "'${replace("'", "'\\''")}'"
@@ -678,7 +678,7 @@ fun getZygiskImplement(): String {
 fun addKernelUmountPath(path: String, flags: Int): Boolean {
     val shell = getRootShell()
     val flagsArg = if (flags >= 0) "--flags $flags" else ""
-    val cmd = "${getKsuDaemonPath()} kernel umount add $path $flagsArg"
+    val cmd = "${getKsuDaemonPath()} kernel umount add ${path.shellQuote()} $flagsArg"
     val result = ShellUtils.fastCmdResult(shell, cmd)
     Log.i(TAG, "add umount path $path result: $result")
     return result
@@ -686,7 +686,7 @@ fun addKernelUmountPath(path: String, flags: Int): Boolean {
 
 fun removeKernelUmountPath(path: String): Boolean {
     val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} kernel umount del $path"
+    val cmd = "${getKsuDaemonPath()} kernel umount del ${path.shellQuote()}"
     val result = ShellUtils.fastCmdResult(shell, cmd)
     Log.i(TAG, "remove umount path $path result: $result")
     return result
@@ -706,7 +706,7 @@ fun listKernelUmountPaths(): String {
 fun addUmountConfigUmountPath(path: String, flags: Int): Boolean {
     val shell = getRootShell()
     val flagsArg = if (flags >= 0) "--flags $flags" else ""
-    val cmd = "${getKsuDaemonPath()} umount-config add $path $flagsArg"
+    val cmd = "${getKsuDaemonPath()} umount-config add ${path.shellQuote()} $flagsArg"
     val result = ShellUtils.fastCmdResult(shell, cmd)
     Log.i(TAG, "add umount path $path result: $result")
     return result
@@ -714,7 +714,7 @@ fun addUmountConfigUmountPath(path: String, flags: Int): Boolean {
 
 fun removeUmountConfigUmountPath(path: String): Boolean {
     val shell = getRootShell()
-    val cmd = "${getKsuDaemonPath()} umount-config del $path"
+    val cmd = "${getKsuDaemonPath()} umount-config del ${path.shellQuote()}"
     val result = ShellUtils.fastCmdResult(shell, cmd)
     Log.i(TAG, "remove umount path $path result: $result")
     return result

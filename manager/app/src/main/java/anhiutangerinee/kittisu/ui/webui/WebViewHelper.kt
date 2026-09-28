@@ -90,6 +90,8 @@ internal suspend fun prepareWebView(
                 javaScriptEnabled = true
                 domStorageEnabled = true
                 allowFileAccess = false
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
             }
 
             val webRoot = File("${webUIState.modDir}/webroot")
@@ -103,6 +105,12 @@ internal suspend fun prepareWebView(
 
             // WebViewClient
             webView.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    val url = request?.url ?: return true
+                    return !url.scheme.equals("https", ignoreCase = true) ||
+                        !url.host.equals("mui.kernelsu.org", ignoreCase = true)
+                }
+
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                     val url = request.url
                     if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals("icon", ignoreCase = true)) {
@@ -119,6 +127,10 @@ internal suspend fun prepareWebView(
                                 )
                             }
                         }
+                    }
+                    if (!url.scheme.equals("https", ignoreCase = true) ||
+                        !url.host.equals("mui.kernelsu.org", ignoreCase = true)) {
+                        return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(byteArrayOf()))
                     }
                     return webViewAssetLoader.shouldInterceptRequest(url)
                 }

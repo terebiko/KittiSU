@@ -118,13 +118,22 @@ static void fillArrayWithList(JNIEnv *env, jobject list, int *data, int count) {
 }
 
 NativeBridge(getAppProfile, jobject, jstring pkg, jint uid) {
-	if (GetEnvironment()->GetStringLength(env, pkg) > KSU_MAX_PACKAGE_NAME) {
+	if (!pkg) {
+		return NULL;
+	}
+
+	const char* cpkg = GetEnvironment()->GetStringUTFChars(env, pkg, nullptr);
+	if (!cpkg) {
+		return NULL;
+	}
+	size_t pkg_len = strlen(cpkg);
+	if (pkg_len >= KSU_MAX_PACKAGE_NAME) {
+		GetEnvironment()->ReleaseStringUTFChars(env, pkg, cpkg);
 		return NULL;
 	}
 
 	char key[KSU_MAX_PACKAGE_NAME] = { 0 };
-	const char* cpkg = GetEnvironment()->GetStringUTFChars(env, pkg, nullptr);
-	strcpy(key, cpkg);
+	memcpy(key, cpkg, pkg_len + 1);
 	GetEnvironment()->ReleaseStringUTFChars(env, pkg, cpkg);
 
 	struct app_profile profile = { 0 };
@@ -234,13 +243,18 @@ NativeBridge(setAppProfile, jboolean, jobject profile) {
 	if (!key) {
 		return false;
 	}
-	if (GetEnvironment()->GetStringLength(env, (jstring) key) > KSU_MAX_PACKAGE_NAME) {
+	const char* cpkg = GetEnvironment()->GetStringUTFChars(env, (jstring) key, nullptr);
+	if (!cpkg) {
+		return false;
+	}
+	size_t key_len = strlen(cpkg);
+	if (key_len >= KSU_MAX_PACKAGE_NAME) {
+		GetEnvironment()->ReleaseStringUTFChars(env, (jstring) key, cpkg);
 		return false;
 	}
 
-	const char* cpkg = GetEnvironment()->GetStringUTFChars(env, (jstring) key, nullptr);
 	char p_key[KSU_MAX_PACKAGE_NAME] = { 0 };
-	strcpy(p_key, cpkg);
+	memcpy(p_key, cpkg, key_len + 1);
 	GetEnvironment()->ReleaseStringUTFChars(env, (jstring) key, cpkg);
 
 	jint currentUid = GetEnvironment()->GetIntField(env, profile, currentUidField);
@@ -265,7 +279,13 @@ NativeBridge(setAppProfile, jboolean, jobject profile) {
 		jobject templateName = GetEnvironment()->GetObjectField(env, profile, rootTemplateField);
 		if (templateName) {
 			const char* ctemplateName = GetEnvironment()->GetStringUTFChars(env, (jstring) templateName, nullptr);
-			strcpy(p.rp_config.template_name, ctemplateName);
+			if (!ctemplateName) return false;
+			size_t tlen = strlen(ctemplateName);
+			if (tlen >= KSU_MAX_PACKAGE_NAME) {
+				GetEnvironment()->ReleaseStringUTFChars(env, (jstring) templateName, ctemplateName);
+				return false;
+			}
+			memcpy(p.rp_config.template_name, ctemplateName, tlen + 1);
 			GetEnvironment()->ReleaseStringUTFChars(env, (jstring) templateName, ctemplateName);
 		}
 
@@ -282,9 +302,17 @@ NativeBridge(setAppProfile, jboolean, jobject profile) {
 
 		p.rp_config.profile.capabilities.effective = capListToBits(env, capabilities);
 
-		const char* cdomain = GetEnvironment()->GetStringUTFChars(env, (jstring) domain, nullptr);
-		strcpy(p.rp_config.profile.selinux_domain, cdomain);
-		GetEnvironment()->ReleaseStringUTFChars(env, (jstring) domain, cdomain);
+		if (domain) {
+			const char* cdomain = GetEnvironment()->GetStringUTFChars(env, (jstring) domain, nullptr);
+			if (!cdomain) return false;
+			size_t dlen = strlen(cdomain);
+			if (dlen >= KSU_SELINUX_DOMAIN) {
+				GetEnvironment()->ReleaseStringUTFChars(env, (jstring) domain, cdomain);
+				return false;
+			}
+			memcpy(p.rp_config.profile.selinux_domain, cdomain, dlen + 1);
+			GetEnvironment()->ReleaseStringUTFChars(env, (jstring) domain, cdomain);
+		}
 
 		p.rp_config.profile.namespaces = GetEnvironment()->GetIntField(env, profile, namespacesField);
 	} else {

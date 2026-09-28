@@ -71,8 +71,8 @@ def escape_telegram_html(text: str) -> str:
 
 def get_caption():
     msg = MSG_TEMPLATE.format(
-        title=TITLE,
-        branch=BRANCH,
+        title=escape_telegram_html(TITLE),
+        branch=escape_telegram_html(BRANCH),
         version=VERSION,
         commit_message=escape_telegram_html(commit_message),
         commit_line=commit_line,
@@ -82,8 +82,8 @@ def get_caption():
 
 def get_caption_for_debug():
     msg = MSG_TEMPLATE.format(
-        title=f"{TITLE}-Debug",
-        branch=BRANCH,
+        title=f"{escape_telegram_html(TITLE)}-Debug",
+        branch=escape_telegram_html(BRANCH),
         version=VERSION,
         commit_message=escape_telegram_html(commit_message),
         commit_line=commit_line,

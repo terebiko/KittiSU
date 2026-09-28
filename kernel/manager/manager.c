@@ -39,9 +39,10 @@ bool ksu_is_manager_appid(u16 appid)
 
 bool ksu_is_manager_uid(u32 uid)
 {
-    u16 appid = uid % PER_USER_RANGE;
+    if (uid >= PER_USER_RANGE)
+        return false;
 
-    return ksu_is_manager_appid(appid);
+    return ksu_is_manager_appid(uid);
 }
 
 bool is_manager(void)
