@@ -573,10 +573,10 @@ private fun StatusCard(
                             else -> stringResource(id = R.string.home_working)
                         }
                         val workingModeSurfaceText = when {
-                            systemStatus.lkmMode == true -> "LKM"
-                            else -> "Built-in"
+                            systemStatus.lkmMode == true -> stringResource(R.string.home_mode_lkm)
+                            else -> stringResource(R.string.home_mode_built_in)
                         }
-                        
+
                         Text(
                             text = workingModeText,
                             style = MaterialTheme.typography.headlineMedium,
@@ -628,7 +628,7 @@ private fun StatusCard(
                         )
                         Spacer(Modifier.height(8.dp))
                         LabelText(
-                            label = "Legacy",
+                            label = stringResource(R.string.home_mode_legacy),
                             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                             contentColor = MaterialTheme.colorScheme.onSurface
                         )

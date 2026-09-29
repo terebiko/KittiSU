@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -412,7 +413,7 @@ private fun ModulesHeader(count: Int) {
             fontWeight = FontWeight.SemiBold
         )
         Text(
-            text = stringResource(R.string.preset_modules_count, count),
+            text = pluralStringResource(R.plurals.preset_modules_count_plural, count, count),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -457,13 +458,13 @@ private fun ModuleRow(
                     )
                 }
                 IconButton(onClick = onMoveUp, enabled = enabled && canMoveUp) {
-                    Icon(Icons.TwoTone.ArrowUpward, contentDescription = null)
+                    Icon(Icons.TwoTone.ArrowUpward, contentDescription = stringResource(R.string.preset_move_module_up))
                 }
                 IconButton(onClick = onMoveDown, enabled = enabled && canMoveDown) {
-                    Icon(Icons.TwoTone.ArrowDownward, contentDescription = null)
+                    Icon(Icons.TwoTone.ArrowDownward, contentDescription = stringResource(R.string.preset_move_module_down))
                 }
                 IconButton(onClick = onEdit, enabled = enabled) {
-                    Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_module_name))
+                    Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_edit_module))
                 }
                 IconButton(onClick = onDelete, enabled = enabled) {
                     Icon(
@@ -655,7 +656,7 @@ private fun PostInstallEditor(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = stringResource(R.string.preset_modules_count, postInstalls.size),
+                    text = pluralStringResource(R.plurals.preset_scripts_count, postInstalls.size, postInstalls.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -684,12 +685,12 @@ private fun PostInstallEditor(
                         )
                     }
                     IconButton(onClick = { editingIndex = index }, enabled = enabled) {
-                        Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_edit))
+                        Icon(Icons.TwoTone.Edit, contentDescription = stringResource(R.string.preset_edit_post_install))
                     }
                     IconButton(onClick = { postInstalls.removeAt(index) }, enabled = enabled) {
                         Icon(
                             Icons.TwoTone.Delete,
-                            contentDescription = stringResource(R.string.preset_remove_module),
+                            contentDescription = stringResource(R.string.preset_remove_post_install),
                             tint = MaterialTheme.colorScheme.error
                         )
                     }

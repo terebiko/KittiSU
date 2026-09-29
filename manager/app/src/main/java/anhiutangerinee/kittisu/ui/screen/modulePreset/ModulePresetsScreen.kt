@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -215,7 +216,7 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
                         Spacer(Modifier.size(6.dp))
                     }
                     Text(
-                        text = "By: $committer",
+                        text = stringResource(R.string.preset_by_committer, committer),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -226,7 +227,7 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
             preset.presetEntry.team?.takeIf { it.isNotBlank() }?.let { team ->
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Team: $team",
+                    text = stringResource(R.string.preset_team_detail, team),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -235,7 +236,7 @@ fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(pluralStringResource(R.plurals.preset_modules_count_plural, preset.presetEntry.modules.size, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (preset.presetEntry.postInstalls.isNotEmpty()) {
                     Spacer(Modifier.size(8.dp))
                     PostInstallBadge()

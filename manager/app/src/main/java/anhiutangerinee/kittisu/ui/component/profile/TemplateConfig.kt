@@ -41,7 +41,7 @@ fun TemplateConfig(
     var template by rememberSaveable {
         mutableStateOf(profile.rootTemplate ?: "")
     }
-    val profileTemplates = listOf("None") + listAppProfileTemplates()
+    val profileTemplates = listOf(stringResource(R.string.profile_template_none)) + listAppProfileTemplates()
 //    val noTemplates = profileTemplates.isEmpty()
 
     SettingsDropdownWidget(

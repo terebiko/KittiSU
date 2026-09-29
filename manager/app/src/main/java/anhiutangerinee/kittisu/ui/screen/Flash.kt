@@ -690,7 +690,7 @@ fun FlashScreen(flashIt: FlashIt) {
                 setFlashingStatus(FlashingStatus.FAILED)
                 hasFlashCompleted = true
             },
-            title = { Text("Review root script: ${flashIt.scripts[flashIt.currentIndex].name}") },
+            title = { Text(stringResource(R.string.root_script_review_header, flashIt.scripts[flashIt.currentIndex].name)) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Text(scriptSourceForReview.orEmpty())
@@ -715,7 +715,7 @@ fun FlashScreen(flashIt: FlashIt) {
                             if (flashIt.fromPending) PresetPostInstallManager.clearPendingScripts()
                         }
                     }
-                }) { Text("Run as root") }
+                }) { Text(stringResource(R.string.run_as_root)) }
             },
             dismissButton = {
                 TextButton(onClick = {

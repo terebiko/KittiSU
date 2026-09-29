@@ -43,7 +43,7 @@ See the [documentation](https://ReSukiSU.github.io).
 
 ## Translation
 
-If you need to submit a translation for the manager, please go to [Crowdin](https://crowdin.com/project/ReSukiSU).
+Manager UI localization is prepared for Weblate on the `i18n` branch (component: Android String Resource, base `manager/app/src/main/res/values/strings.xml`, translations `manager/app/src/main/res/values-*/strings.xml`). Contributions are submitted via pull requests against `i18n`. (Legacy translations on `main` were synchronized via Crowdin).
 
 ## Sponsor
 

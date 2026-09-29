@@ -252,9 +252,9 @@ private fun TemplateItem(
                     .fillMaxWidth()
                     .padding(top = 5.dp)
             ) {
-                LabelText("UID: ${template.uid}")
+                LabelText(stringResource(R.string.profile_uid_format, template.uid))
                 LabelText(
-                    label = "GID: ${template.gid}",
+                    label = stringResource(R.string.profile_gid_format, template.gid),
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 )
                 LabelText(

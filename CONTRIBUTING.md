@@ -1,8 +1,8 @@
 ## Translations
 
-English and Chinese Simplified are maintained by the developer. If you find inappropriate wording or missing translations, please open an issue or submit a pull request with details.
+English and Chinese Simplified are maintained by the maintainers. If you find inappropriate wording or missing translations, please open an issue or submit a pull request against `i18n`.
 
-For languages other than English and Chinese Simplified, please don't create pull requests for translations; instead, use [Crowdin](https://crowdin.com/project/ReSukiSU).
+For other languages, translations are being transitioned to Weblate on the `i18n` branch. Weblate components target `manager/app/src/main/res/values-*/strings.xml` with source `manager/app/src/main/res/values/strings.xml`.
 
 ## Reporting bugs
 

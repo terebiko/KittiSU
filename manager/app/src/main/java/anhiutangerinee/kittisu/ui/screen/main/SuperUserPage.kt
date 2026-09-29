@@ -89,6 +89,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -686,7 +687,7 @@ private fun CategoryChip(
             }
 
             Text(
-                text = "$appCount apps",
+                text = pluralStringResource(R.plurals.superuser_app_count, appCount, appCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.onPrimaryContainer
@@ -782,23 +783,23 @@ private fun AppGroupItem(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (appGroup.allowSu) {
-                    LabelText(label = "ROOT")
+                    LabelText(label = stringResource(R.string.superuser_status_root))
                 } else {
                     if (Natives.uidShouldUmount(appGroup.uid)) {
                         LabelText(
-                            label = "UMOUNT",
+                            label = stringResource(R.string.superuser_status_umount),
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         )
                     }
                 }
                 if (appGroup.hasCustomProfile) {
                     LabelText(
-                        label = "CUSTOM",
+                        label = stringResource(R.string.superuser_status_custom),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     )
                 } else if (!appGroup.allowSu) {
                     LabelText(
-                        label = "DEFAULT",
+                        label = stringResource(R.string.superuser_status_default),
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }

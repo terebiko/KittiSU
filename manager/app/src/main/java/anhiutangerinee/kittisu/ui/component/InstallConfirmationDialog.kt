@@ -297,7 +297,7 @@ object ZipFileDetector {
         return ZipFileInfo(
             uri = uri,
             type = type,
-            name = props["name"] ?: props["kernel.string"] ?: "Unknown",
+            name = props["name"] ?: props["kernel.string"] ?: context.getString(R.string.unknown_file),
             version = props["version"] ?: props["kernel.version"] ?: "",
             author = props["author"] ?: props["kernel.author"] ?: "",
             description = props["description"] ?: "",

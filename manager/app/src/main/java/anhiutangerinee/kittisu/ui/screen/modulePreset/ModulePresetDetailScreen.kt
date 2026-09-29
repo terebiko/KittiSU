@@ -1,5 +1,6 @@
 package anhiutangerinee.kittisu.ui.screen.modulePreset
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -90,9 +92,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
     var errorAlert by remember { mutableStateOf<String?>(null) }
 
     val allInstalledString = stringResource(R.string.preset_all_installed)
-    val requirementFmt = stringResource(R.string.preset_requirement_failed)
-    val depsFmt = stringResource(R.string.preset_dependencies_missing)
-    val commandExecutionFailed = stringResource(R.string.command_execution_failed)
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -117,17 +117,17 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                             val plan = planResult.getOrNull()
                             if (plan == null) {
                                 val ex = planResult.exceptionOrNull()
-                                snackBarHost.showSnackbar(commandExecutionFailed.format(ex?.localizedMessage ?: ex?.toString() ?: ""))
+                                snackBarHost.showSnackbar(context.getString(R.string.command_execution_failed, ex?.localizedMessage ?: ex?.toString() ?: ""))
                                 return@launch
                             }
                             for (pm in plan.modules) {
                                 val req = checkPresetRequirements(pm.presetModule.requirement)
                                 if (req is RequirementCheckResult.Failed) {
-                                    errorAlert = requirementFmt.format(reasonForRequirement(req))
+                                    errorAlert = context.getString(R.string.preset_requirement_failed, reasonForRequirement(req, context))
                                     return@launch
                                 }
                                 if (!areDependenciesSatisfied(pm.presetModule.dependsOn)) {
-                                    errorAlert = depsFmt.format(pm.presetModule.dependsOn.joinToString(", "))
+                                    errorAlert = context.getString(R.string.preset_dependencies_missing, pm.presetModule.dependsOn.joinToString(", "))
                                     return@launch
                                 }
                             }
@@ -153,7 +153,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
                             val downloaded = downloadResult.getOrNull()
                             if (downloaded == null) {
                                 val ex = downloadResult.exceptionOrNull()
-                                snackBarHost.showSnackbar(commandExecutionFailed.format(ex?.localizedMessage ?: ex?.toString() ?: ""))
+                                snackBarHost.showSnackbar(context.getString(R.string.command_execution_failed, ex?.localizedMessage ?: ex?.toString() ?: ""))
                                 return@launch
                             }
                             val uris = downloaded.modules.mapNotNull { it.cacheUri }
@@ -242,7 +242,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                         Spacer(Modifier.size(8.dp))
                     }
                     Text(
-                        text = "By: $committer",
+                        text = stringResource(R.string.preset_by_committer, committer),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -253,7 +253,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
             preset.presetEntry.team?.takeIf { it.isNotBlank() }?.let { team ->
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Team: $team",
+                    text = stringResource(R.string.preset_team_detail, team),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -265,7 +265,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
                 LocalBadge()
                 Spacer(Modifier.height(8.dp))
             }
-            Text(stringResource(R.string.preset_modules_count, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(pluralStringResource(R.plurals.preset_modules_count_plural, preset.presetEntry.modules.size, preset.presetEntry.modules.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -358,7 +358,7 @@ private fun ModuleRowCard(pm: PresetModule) {
             Spacer(Modifier.height(4.dp))
             Text(pm.moduleId, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             pm.moduleVersion?.let { v ->
-                Text(stringResource(R.string.preset_module_version) + ": " + v, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.preset_version_detail, v), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(shortenUrl(pm.directUrl), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
@@ -375,7 +375,7 @@ private fun ModuleRowCard(pm: PresetModule) {
             }
             if (req is RequirementCheckResult.Failed) {
                 Spacer(Modifier.height(6.dp))
-                Text(reasonForRequirement(req), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(reasonForRequirement(req, LocalContext.current), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -425,9 +425,9 @@ private fun formatBytes(bytes: Long): String {
 
 private fun shortenUrl(url: String): String = if (url.length <= 48) url else url.take(45) + "..."
 
-private fun reasonForRequirement(failed: RequirementCheckResult.Failed): String = when (failed.type) {
-    RequirementType.SUSFS -> "SuSFS: ${failed.reason}"
-    RequirementType.KERNELSU -> "KernelSU: ${failed.reason}"
-    RequirementType.ANDROID -> "Android: ${failed.reason}"
+private fun reasonForRequirement(failed: RequirementCheckResult.Failed, context: Context): String = when (failed.type) {
+    RequirementType.SUSFS -> context.getString(R.string.preset_susfs_reason, failed.reason)
+    RequirementType.KERNELSU -> context.getString(R.string.preset_kernelsu_reason, failed.reason)
+    RequirementType.ANDROID -> context.getString(R.string.preset_android_reason, failed.reason)
     RequirementType.METADATA -> failed.reason
 }

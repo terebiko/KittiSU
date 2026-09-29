@@ -147,7 +147,7 @@ fun ExecuteModuleActionScreen(moduleId: String) {
                                 "KernelSU_module_action_log_${date}.log"
                             )
                             file.writeText(logContent.toString())
-                            snackBarHost.showSnackbar("Log saved to ${file.absolutePath}")
+                            snackBarHost.showSnackbar(context.getString(R.string.action_log_saved_text, file.absolutePath))
                         }
                     }
                 },

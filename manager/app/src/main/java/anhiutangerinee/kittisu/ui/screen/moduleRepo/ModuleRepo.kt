@@ -79,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -433,9 +434,6 @@ fun OnlineModuleItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val moduleVersion = stringResource(id = R.string.module_version)
-                val moduleAuthor = stringResource(id = R.string.module_author)
-
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -463,7 +461,7 @@ fun OnlineModuleItem(
                             ) {
                                 Icon(
                                     imageVector = Icons.TwoTone.Star,
-                                    contentDescription = "stars",
+                                    contentDescription = pluralStringResource(R.plurals.module_repo_stars, module.stargazerCount, module.stargazerCount),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -478,14 +476,14 @@ fun OnlineModuleItem(
                     }
 
                     Text(
-                        text = "$moduleVersion: ${module.latestRelease} (${module.latestVersionCode})",
+                        text = stringResource(R.string.module_repo_version_detail, module.latestRelease, module.latestVersionCode),
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
                         lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                         fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
                     )
 
                     Text(
-                        text = "$moduleAuthor: ${module.authors}",
+                        text = stringResource(R.string.module_repo_author_detail, module.authors),
                         fontSize = MaterialTheme.typography.bodySmall.fontSize,
                         lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                         fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
@@ -607,7 +605,6 @@ fun downloadAssetAndInstall(
     navigator: Navigator,
     coroutineScope: CoroutineScope
 ) {
-    val downloadingText = context.getText(R.string.module_downloading).toString()
     coroutineScope.launch {
         withContext(Dispatchers.IO) {
             download(
@@ -624,7 +621,7 @@ fun downloadAssetAndInstall(
                 },
                 onDownloading = {
                     launch(Dispatchers.Main) {
-                        Toast.makeText(context, downloadingText.format(module.moduleName), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.module_downloading, module.moduleName), Toast.LENGTH_SHORT).show()
                     }
                 },
             )
@@ -696,7 +693,7 @@ fun ChooseDialogContent(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Text(
-                                    text = stringResource(R.string.assets_multiple_select_dialog_content_description,formatFileSize(asset.size), asset.downloadCount),
+                                    text = pluralStringResource(R.plurals.module_repo_asset_downloads, asset.downloadCount, formatFileSize(asset.size), asset.downloadCount),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

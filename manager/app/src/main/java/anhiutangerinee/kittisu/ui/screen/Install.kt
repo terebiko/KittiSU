@@ -347,7 +347,7 @@ fun InstallScreen(
 
                         partitionsState = partitions
                         val displayPartitions = partitions.map { name ->
-                            if (defaultPartition == name) "$name (default)" else name
+                            if (defaultPartition == name) stringResource(R.string.partition_default_label, name) else name
                         }
 
                         val defaultIndex = partitions.indexOf(defaultPartition).takeIf { it >= 0 } ?: 0
@@ -409,7 +409,7 @@ fun InstallScreen(
                             description = (lkmSelection as? LkmSelection.LkmUri)?.let {
                                 stringResource(
                                     id = R.string.selected_lkm,
-                                    it.uri.lastPathSegment ?: "(file)"
+                                    it.uri.lastPathSegment ?: stringResource(R.string.unknown_file_label)
                                 )
                             },
                             icon = Icons.AutoMirrored.TwoTone.Input,

@@ -256,7 +256,7 @@ fun ModulePage(bottomPadding: Dp) {
                 }
 
                 if (selectedModules.isEmpty()) {
-                    snackBarHost.showSnackbar("Unable to access selected module files")
+                    snackBarHost.showSnackbar(context.getString(R.string.module_files_inaccessible))
                     return@launch
                 }
                 selectedModules.forEach { it ->
@@ -270,7 +270,7 @@ fun ModulePage(bottomPadding: Dp) {
                 // 单个安装模块
                 try {
                     if (!ModuleUtils.isUriAccessible(context, uri)) {
-                        snackBarHost.showSnackbar("Unable to access selected module files")
+                        snackBarHost.showSnackbar(context.getString(R.string.module_files_inaccessible))
                         return@launch
                     }
 
@@ -282,7 +282,7 @@ fun ModulePage(bottomPadding: Dp) {
                     showConfirmationDialog = true
                 } catch (e: Exception) {
                     Log.e("ModuleScreen", "Error processing a single URI: $uri, Error: ${e.message}")
-                    snackBarHost.showSnackbar("Error processing module file: ${e.message}")
+                    snackBarHost.showSnackbar(context.getString(R.string.module_file_processing_error, e.message))
                 }
             }
         }
@@ -450,7 +450,7 @@ fun ModulePage(bottomPadding: Dp) {
                             } catch (e: Exception) {
                                 Log.e("ModuleScreen", "Error launching WebUI: ${e.message}", e)
                                 scope.launch {
-                                    snackBarHost.showSnackbar("Error launching WebUI: ${e.message}")
+                                    snackBarHost.showSnackbar(context.getString(R.string.module_webui_launch_error, e.message))
                                 }
                             }
                             return@ModuleList
@@ -1088,7 +1088,7 @@ private fun ModuleList(
                                 defaultShortcutIconUri = defaultActionShortcutIconUri
                             },
                             unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            text = { Text("Action") }
+                            text = { Text(stringResource(R.string.action)) }
                         )
 
                         Tab(
@@ -1099,7 +1099,7 @@ private fun ModuleList(
                                 defaultShortcutIconUri = defaultWebUiShortcutIconUri
                             },
                             unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            text = { Text("WebUI") }
+                            text = { Text(stringResource(R.string.module_shortcut_webui)) }
                         )
                     }
                 }
@@ -1523,7 +1523,7 @@ fun ModuleItem(
                         )
                         if (module.metamodule) {
                             LabelText(
-                                label = "META",
+                                label = stringResource(R.string.module_status_meta),
                                 containerColor = MaterialTheme.colorScheme.tertiary,
                             )
                         }

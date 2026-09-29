@@ -73,6 +73,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -475,7 +476,9 @@ fun ReleaseCard(
                             onClick()
                         },
                         iconPlaceholder = false,
-                        description = stringResource(R.string.assert_support_content).format(
+                        description = pluralStringResource(
+                            R.plurals.module_repo_release_downloads,
+                            assetInfo.downloadCount,
                             formatFileSize(assetInfo.size),
                             assetInfo.downloadCount
                         )

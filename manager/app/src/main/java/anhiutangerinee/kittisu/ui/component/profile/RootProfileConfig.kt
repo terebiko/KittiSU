@@ -67,7 +67,7 @@ fun SegmentedColumnScope.rootProfileConfig(
     onProfileChange: (Natives.Profile) -> Unit,
 ) {
     item {
-        UidPanel(uid = profile.uid, label = "uid", onUidChange = {
+        UidPanel(uid = profile.uid, label = stringResource(R.string.profile_uid), onUidChange = {
             onProfileChange(
                 profile.copy(
                     uid = it,
@@ -78,7 +78,7 @@ fun SegmentedColumnScope.rootProfileConfig(
     }
 
     item {
-        UidPanel(uid = profile.gid, label = "gid", onUidChange = {
+        UidPanel(uid = profile.gid, label = stringResource(R.string.profile_gid), onUidChange = {
             onProfileChange(
                 profile.copy(
                     gid = it,
@@ -341,6 +341,8 @@ private fun SELinuxPanel(
     val editSELinuxDialog = rememberCustomDialog { dismiss ->
         var domain by remember { mutableStateOf(profile.context) }
         var rules by remember { mutableStateOf(profile.rules) }
+        val domainInvalidMsg = stringResource(R.string.profile_selinux_domain_invalid)
+        val rulesInvalidMsg = stringResource(R.string.profile_selinux_rules_invalid)
 
         val inputOptions = listOf(
             InputTextField(
@@ -361,7 +363,7 @@ private fun SELinuxPanel(
                     // value can be a-zA-Z0-9_
                     val regex = Regex("^[a-z_]+:[a-z0-9_]+:[a-z0-9_]+(:[a-z0-9_]+)?$")
                     if (value?.matches(regex) == true) ValidationResult.Valid
-                    else ValidationResult.Invalid("Domain must be in the format of \"user:role:type:level\"")
+                    else ValidationResult.Invalid(domainInvalidMsg)
                 }
             ),
             InputTextField(
@@ -379,7 +381,7 @@ private fun SELinuxPanel(
                 },
                 validationListener = { value ->
                     if (isSepolicyValid(value)) ValidationResult.Valid
-                    else ValidationResult.Invalid("SELinux rules is invalid!")
+                    else ValidationResult.Invalid(rulesInvalidMsg)
                 }
             )
         )
