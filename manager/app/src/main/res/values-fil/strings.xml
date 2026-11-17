@@ -4,13 +4,12 @@
     <string name="home_not_installed">Hindi naka-install</string>
     <string name="home_click_to_install">Pindutin para mag-install</string>
     <string name="home_working">Gumagana</string>
-    <string name="home_working_version">Bersyon: %s</string>
     <string name="home_unsupported">Hindi Suportado</string>
     <string name="home_unsupported_reason">Sinusuportahan lang ng KernelSU ang mga kernel ng GKI ngayon</string>
     <string name="home_manager_version">Bersyon ng Manager</string>
-    <string name="home_selinux_status">Katayuan ng SELinux</string>
-    <string name="selinux_status_disabled">Hindi pinagana</string>
-    <string name="selinux_status_enforcing">Enforcing</string>
+    <string name="home_selinux_status">Estado ng SELinux</string>
+    <string name="selinux_status_disabled">Nakapatay</string>
+    <string name="selinux_status_enforcing">Pinapatakbo</string>
     <string name="selinux_status_permissive">Permissive</string>
     <string name="unknown">Hindi matukoy</string>
     <string name="superuser">Superuser</string>
@@ -30,14 +29,12 @@
     <string name="reboot_download">I-reboot sa Download</string>
     <string name="reboot_edl">I-reboot sa EDL</string>
     <string name="about">Tungkol</string>
-    <string name="module_uninstall_confirm">Sigurado ka bang gusto mong i-uninstall ang modyul %s\?</string>
+    <string name="module_uninstall_confirm">Sigurado ka bang gusto mong i-uninstall ang modyul %s?</string>
     <string name="module_uninstall_success">Na-uninstall ang %s</string>
     <string name="module_uninstall_failed">Nabigong i-uninstall: %s</string>
     <string name="module_version">Bersyon</string>
     <string name="module_author">May-akda</string>
-    <string name="refresh">I-refresh</string>
     <string name="show_system_apps">Ipakita ang mga application ng system</string>
-    <string name="hide_system_apps">Itago ang mga application ng system</string>
     <string name="send_log">Magpadala ng Log</string>
     <string name="safe_mode">Safe mode</string>
     <string name="reboot_to_apply">I-reboot para umepekto</string>
@@ -63,9 +60,9 @@
     <string name="force_stop_app" formatted="false">Pilit na I-hinto</string>
     <string name="restart_app">I-restart</string>
     <string name="failed_to_update_sepolicy">Nabigong i-update ang mga panuntunan ng SELinux para sa: %s</string>
-    <string name="settings_check_update">Mga abiso sa update</string>
-    <string name="settings_check_update_summary">Awtomatikong mag-check para sa mga update ng module at manager</string>
     <string name="save_log">I-save ang mga Log</string>
     <string name="settings_sucompat">Klasikong su command</string>
     <string name="settings_sucompat_summary">Payagan ang root access gamit ang /system/bin/su, sa mga bagong proseso.</string>
+    <string name="home_kernel">Bersyon ng Kernel</string>
+    <string name="home_susfs_version">Bersyon ng SuSFS</string>
 </resources>

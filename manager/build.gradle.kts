@@ -1,5 +1,4 @@
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import com.diffplug.spotless.LineEnding
 
 plugins {
     alias(libs.plugins.agp.app) apply false
@@ -7,28 +6,63 @@ plugins {
     alias(libs.plugins.androidx.baselineprofile) apply false
     alias(libs.plugins.kotlin) apply false
     alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.spotless)
 }
 
-val androidMinSdkVersion by extra(26)
-val androidTargetSdkVersion by extra(37)
-val androidCompileSdkVersion by extra(37)
-val androidBuildToolsVersion by extra("36.1.0")
-val androidCompileNdkVersion by extra(libs.versions.ndk.get())
-val androidSourceCompatibility by extra(JavaVersion.VERSION_21)
-val androidTargetCompatibility by extra(JavaVersion.VERSION_21)
-val managerVersionCode by extra(30000 + getGitCommitCount() + 700)
-val managerVersionName by extra(getBuildDate())
+spotless {
+    lineEndings = LineEnding.UNIX
 
-fun getGitCommitCount(): Int {
-    return providers.exec {
-        commandLine("git", "rev-list", "--count", "HEAD")
-    }.standardOutput.asText.get().trim().toInt()
+    kotlin {
+        target("**/src/**/*.kt")
+        targetExclude("**/build/**", "**/generated/**")
+        ktlint(libs.versions.ktlint.get())
+            .customRuleSets(listOf("io.nlopez.compose.rules:ktlint:${libs.versions.compose.rules.get()}"))
+            .editorConfigOverride(
+                mapOf(
+                    "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+                    "ktlint_compose_modifier-missing-check" to "disabled",
+                    "ktlint_compose_compositionlocal-allowlist" to "disabled",
+                    "ktlint_compose_mutable-state-param-check" to "disabled",
+                    "ktlint_compose_parameter-naming" to "disabled",
+                    "ktlint_compose_modifier-naming" to "disabled",
+                ),
+            )
+    }
+
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        targetExclude("**/build/**", "**/.gradle/**")
+        ktlint(libs.versions.ktlint.get())
+    }
 }
 
-fun getBuildDate(): String {
-    val date = providers.gradleProperty("versionName").orNull
-        ?: LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-    return date.trim()
-}
+extra["androidMinSdkVersion"] = 26
+extra["androidTargetSdkVersion"] = 37
+extra["androidCompileSdkVersion"] = 37
+extra["androidBuildToolsVersion"] = "36.1.0"
+extra["androidCompileNdkVersion"] = libs.versions.ndk.get()
+extra["androidSourceCompatibility"] = JavaVersion.VERSION_21
+extra["androidTargetCompatibility"] = JavaVersion.VERSION_21
+extra["managerVersionCode"] = 30000 + getGitCommitCount() + 700
+extra["managerVersionName"] = getGitDescribe()
+extra["isPrBuild"] = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
+extra["defaultManagerPackageName"] = "anhiutangerinee.kittisu"
+extra["managerPackageName"] = project.findProperty("KSU_PACKAGE_NAME")?.toString() ?: extra["defaultManagerPackageName"]
+extra["defaultManagerAppName"] = if (extra["isPrBuild"] == true) "KittiSU PR" else "KittiSU"
+extra["managerName"] = project.findProperty("KSU_NAME")?.toString() ?: extra["defaultManagerAppName"]
 
-fun getGitDescribe(): String = getBuildDate()
+val isSpoofedBuild = project.findProperty("IS_SPOOFED_BUILD")?.toString()?.toBoolean() ?: false
+
+fun getGitCommitCount(): Int = providers.exec {
+    commandLine("git", "rev-list", "--count", "HEAD")
+}.standardOutput.asText.get().trim().toInt()
+
+fun getGitDescribe(): String {
+    val desc = providers.exec {
+        commandLine("git", "describe", "--tags", "--always", "--abbrev=0")
+    }.standardOutput.asText.get().trim()
+    if (isSpoofedBuild) {
+        return "$desc-spoofed"
+    }
+    return desc
+}

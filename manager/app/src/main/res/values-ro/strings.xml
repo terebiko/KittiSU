@@ -4,7 +4,6 @@
     <string name="home_not_installed">Nu este instalat</string>
     <string name="home_click_to_install">Click pentru a instala</string>
     <string name="home_working">Funcționează</string>
-    <string name="home_working_version">Versiune: %s</string>
     <string name="home_unsupported">Necompatibil</string>
     <string name="home_unsupported_reason">KernelSU suportă doar nuclee GKI acum</string>
     <string name="home_kernel">Nucleu</string>
@@ -33,9 +32,7 @@
     <string name="module_uninstall_failed">Dezinstalare eșuată: %s</string>
     <string name="module_version">Versiune</string>
     <string name="module_author">Autor</string>
-    <string name="refresh">Reîmprospătează</string>
     <string name="show_system_apps">Arată aplicațiile de sistem</string>
-    <string name="hide_system_apps">Ascunde aplicațiile de sistem</string>
     <string name="send_log">Raportează jurnal</string>
     <string name="safe_mode">Mod sigur</string>
     <string name="reboot_to_apply">Repornește pentru ca modificările să intre în vigoare</string>
@@ -77,7 +74,6 @@
     <string name="app_profile_template_delete">Șterge</string>
     <string name="app_profile_template_view">Vizualizare șablon</string>
     <string name="app_profile_template_readonly">doar citire</string>
-    <string name="app_profile_template_id_exist">ID-ul șablonului există deja!</string>
     <string name="app_profile_import_from_clipboard">Import din clipboard</string>
     <string name="app_profile_export_to_clipboard">Export în clipboard</string>
     <string name="app_profile_template_export_empty">Nu există șabloane locale de exportat!</string>
@@ -85,16 +81,11 @@
     <string name="app_profile_template_sync">Sincronizează șabloanele online</string>
     <string name="app_profile_template_save_failed">Nu s-a salvat șablonul</string>
     <string name="app_profile_template_import_empty">Clipboard-ul este gol!</string>
-    <string name="module_changelog_failed">Preluarea jurnalului de modificări a eșuat: %s</string>
-    <string name="settings_check_update">Notificări de actualizare</string>
-    <string name="settings_check_update_summary">Verifică automat actualizările pentru modul și manager</string>
     <string name="grant_root_failed">Nu s-a acordat acces root!</string>
     <string name="direct_install">Instalare directă (recomandat)</string>
     <string name="select_file">Selectează un fișier</string>
     <string name="install_inactive_slot">Instalează într-un slot inactiv (după OTA)</string>
-    <string name="install_inactive_slot_warning">Dispozitivul va fi **FORȚAT** să pornească în slot-ul inactiv curent după o repornire!
-\nFolosește această opțiune numai după finisarea OTA.
-\nContinui?</string>
+    <string name="install_inactive_slot_warning">Dispozitivul va fi **FORȚAT** să pornească în slot-ul inactiv curent după o repornire! \nFolosește această opțiune numai după finisarea OTA. \nContinui?</string>
     <string name="install_next">Înainte</string>
     <string name="select_file_tip">Se recomandă imaginea partiției %1$s</string>
     <string name="select_kmi">Selectează KMI</string>
@@ -108,7 +99,6 @@
     <string name="flashing">Instalare</string>
     <string name="flash_success">Instalare reușită</string>
     <string name="flash_failed">Instalarea a eșuat</string>
-    <string name="selected_lkm">Lkm selectat: %s</string>
     <string name="save_log">Salvează Jurnale</string>
     <string name="settings_sucompat">Redirecționare binar su</string>
     <string name="settings_sucompat_summary">Permite aplicațiilor cu permisiune de Superutilizator în Profilul Aplicației să obțină un shell de superutilizator executând /system/bin/su; eficient doar pentru procesele noi.</string>

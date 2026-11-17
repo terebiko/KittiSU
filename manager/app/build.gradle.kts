@@ -10,20 +10,17 @@ plugins {
     id("kotlin-parcelize")
 }
 
-val androidCompileSdkVersion: Int by rootProject.extra
-val androidCompileNdkVersion: String by rootProject.extra
-val androidBuildToolsVersion: String by rootProject.extra
-val androidMinSdkVersion: Int by rootProject.extra
-val androidTargetSdkVersion: Int by rootProject.extra
-val androidSourceCompatibility: JavaVersion by rootProject.extra
-val androidTargetCompatibility: JavaVersion by rootProject.extra
-val managerVersionCode: Int by rootProject.extra
-val managerVersionName: String by rootProject.extra
-val managerCommit = providers.gradleProperty("commit").orElse(
-    providers.exec { commandLine("git", "rev-parse", "HEAD") }.standardOutput.asText.map { it.trim() }
-).get()
-val managerPackageName = providers.gradleProperty("KSU_PACKAGE_NAME").orElse("anhiutangerinee.kittisu")
-val managerName = providers.gradleProperty("KSU_NAME").orElse("KittiSU")
+val androidCompileSdkVersion = rootProject.extra["androidCompileSdkVersion"] as Int
+val androidCompileNdkVersion = rootProject.extra["androidCompileNdkVersion"] as String
+val androidBuildToolsVersion = rootProject.extra["androidBuildToolsVersion"] as String
+val androidMinSdkVersion = rootProject.extra["androidMinSdkVersion"] as Int
+val androidTargetSdkVersion = rootProject.extra["androidTargetSdkVersion"] as Int
+val androidSourceCompatibility = rootProject.extra["androidSourceCompatibility"] as JavaVersion
+val androidTargetCompatibility = rootProject.extra["androidTargetCompatibility"] as JavaVersion
+val managerVersionCode = rootProject.extra["managerVersionCode"] as Int
+val managerVersionName = rootProject.extra["managerVersionName"] as String
+val managerPackageName = rootProject.extra["managerPackageName"] as String
+val managerName = rootProject.extra["managerName"] as String
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -35,7 +32,7 @@ apksign {
 val baseCFlags = listOf(
     "-Wall", "-Qunused-arguments", "-fvisibility=hidden", "-fvisibility-inlines-hidden",
     "-fno-exceptions", "-fno-stack-protector", "-fomit-frame-pointer",
-    "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__"
+    "-Wno-builtin-macro-redefined", "-Wno-unused-value", "-D__FILE__=__FILE_NAME__",
 )
 val baseCppFlags = baseCFlags + "-fno-rtti"
 
@@ -43,7 +40,7 @@ val isReleaseTask =
     project.gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
 
 android {
-    namespace = "anhiutangerinee.kittisu"
+    namespace = "org.bakasu.bakasu"
 
     buildTypes {
         debug {
@@ -64,8 +61,13 @@ android {
                     arguments += "-DCMAKE_BUILD_TYPE=Release"
 
                     val releaseFlags = listOf(
-                        "-flto", "-ffunction-sections", "-fdata-sections", "-Wl,--gc-sections",
-                        "-fno-unwind-tables", "-fno-asynchronous-unwind-tables", "-Wl,--exclude-libs,ALL"
+                        "-flto",
+                        "-ffunction-sections",
+                        "-fdata-sections",
+                        "-Wl,--gc-sections",
+                        "-fno-unwind-tables",
+                        "-fno-asynchronous-unwind-tables",
+                        "-Wl,--exclude-libs,ALL",
                     )
                     val configFlags = listOf("-Oz", "-DNDEBUG").joinToString(" ")
 
@@ -75,7 +77,7 @@ android {
                     arguments += listOf(
                         "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
                         "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
-                        "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,--icf=all -s -Wl,--hash-style=sysv -Wl,-z,norelro"
+                        "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--gc-sections -Wl,--exclude-libs,ALL -Wl,--icf=all -s -Wl,--hash-style=sysv -Wl,-z,norelro",
                     )
                 }
             }
@@ -85,9 +87,9 @@ android {
     buildFeatures {
         aidl = true
         buildConfig = true
+        resValues = true
         compose = true
         prefab = true
-        resValues = true
     }
 
     packaging {
@@ -95,9 +97,11 @@ android {
             useLegacyPackaging = true
         }
         resources {
-            // https://stackoverflow.com/a/58956288
-            // It will break Layout Inspector, but it's unused for release build.
-            excludes += "META-INF/*.version"
+            if (isReleaseTask) {
+                // https://stackoverflow.com/a/58956288
+                // It will break Layout Inspector, but it's unused for release build.
+                excludes += "META-INF/*.version"
+            }
             // https://github.com/Kotlin/kotlinx.coroutines?tab=readme-ov-file#avoiding-including-the-debug-infrastructure-in-the-resulting-apk
             excludes += "DebugProbesKt.bin"
             // https://issueantenna.com/repo/kotlin/kotlinx.coroutines/issues/3158
@@ -129,12 +133,11 @@ android {
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
         versionName = managerVersionName
-        applicationId = managerPackageName.get()
-        resValue("string", "app_name", managerName.get())
+        applicationId = managerPackageName
 
-        val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
+        val isPrBuild = rootProject.extra["isPrBuild"] as Boolean
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
-        buildConfigField("String", "GIT_COMMIT", "\"$managerCommit\"")
+        resValue("string", "app_name", managerName)
 
         externalNativeBuild {
             cmake {
@@ -145,7 +148,7 @@ android {
         }
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a", "x86_64", "armeabi-v7a", "riscv64")
         }
     }
 
@@ -153,7 +156,7 @@ android {
         abi {
             isEnable = isReleaseTask
             reset()
-            include("arm64-v8a", "x86_64", "armeabi-v7a")
+            include("arm64-v8a", "x86_64", "armeabi-v7a", "riscv64")
             isUniversalApk = true
         }
     }
@@ -167,10 +170,6 @@ android {
         sourceCompatibility = androidSourceCompatibility
         targetCompatibility = androidTargetCompatibility
     }
-
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
 }
 
 baselineProfile {
@@ -181,12 +180,8 @@ baselineProfile {
 
 base {
     archivesName.set(
-        "${managerName.get().replace(" ", "_")}_${managerVersionName}_${managerVersionCode}"
+        "KittiSU_${managerVersionName}_$managerVersionCode",
     )
-}
-
-configurations.all {
-    exclude(group = "androidx.navigationevent", module = "navigationevent-compose")
 }
 
 aboutLibraries {
@@ -199,10 +194,21 @@ aboutLibraries {
 }
 
 dependencies {
+    lintChecks(project(":lint-rules"))
     baselineProfile(project(":baselineprofile"))
-    implementation(libs.androidx.profileinstaller)
+
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.compose.viewmodel)
+
     implementation(libs.gson)
+    implementation(libs.commons.compress)
+    implementation(libs.xz)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.profileinstaller)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material.icons.extended)
@@ -211,6 +217,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.foundation)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.foundation)
 
     implementation(libs.androidx.compose.runtime.tracing)
@@ -220,14 +227,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
-    implementation(libs.androidx.navigation3.runtime)
     implementation(libs.miuix.blur)
-    implementation(libs.miuix.navigation)
-    implementation(libs.androidx.navigationevent) {
-        exclude(group = "androidx.navigation", module = "navigationevent-compose")
-    }
+    implementation(libs.miuix.nav)
 
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose.m3)
@@ -237,30 +239,28 @@ dependencies {
     implementation(libs.com.github.topjohnwu.libsu.io)
 
     implementation(libs.material.kolor)
-    implementation(libs.material.components)
     implementation(libs.monet.compat)
+    implementation(libs.material.components)
     implementation(libs.androidx.palette.ktx)
     implementation(libs.capsule)
 
     implementation(libs.dev.rikka.rikkax.parcelablelist)
 
     implementation(libs.io.coil.kt.coil.compose)
+    implementation(libs.ucrop)
 
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
 
+    implementation(libs.me.zhanghai.android.appiconloader)
     implementation(libs.me.zhanghai.android.appiconloader.coil)
-
-    implementation(libs.sheet.compose.dialogs.core)
-    implementation(libs.sheet.compose.dialogs.list)
-    implementation(libs.sheet.compose.dialogs.input)
+    implementation(libs.org.lsposed.hiddenapibypass)
 
     implementation(libs.markdown)
+    implementation(libs.markwon.tables)
     implementation(libs.androidx.webkit)
 
     implementation(libs.lsposed.cxx)
 
     implementation(libs.accompanist.drawablepainter)
-
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.json:json:20240303")
 }

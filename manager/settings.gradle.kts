@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "KittiSU"
 include(":app")
 include(":baselineprofile")
+include(":lint-rules")

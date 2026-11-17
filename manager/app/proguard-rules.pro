@@ -4,6 +4,9 @@
 -dontwarn org.conscrypt.**
 -dontwarn kotlinx.serialization.**
 
+# Commons Compress references the optional Zstandard backend; ZIP metadata uses XZ.
+-dontwarn com.github.luben.zstd.ZstdInputStream
+
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
 -dontwarn com.google.auto.service.AutoService
@@ -37,6 +40,8 @@
 -dontwarn javax.lang.model.util.SimpleTypeVisitor8
 -dontwarn javax.lang.model.util.Types
 -dontwarn javax.tools.Diagnostic$Kind
--dontwarn androidx.navigationevent.compose.RememberNavigationEventStateKt**
+-dontwarn com.yalantis.ucrop**
+-keep class com.yalantis.ucrop** { *; }
+-keep interface com.yalantis.ucrop** { *; }
 
--keep interface com.resukisu.zako.** { *; }
+-keep interface org.bakasu.rootService.** { *; }

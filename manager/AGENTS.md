@@ -1,0 +1,233 @@
+# AGENTS.md
+
+## Purpose
+
+This file defines repository-wide instructions for coding agents working on this Android project.
+
+Use it to decide:
+
+* where a change belongs;
+* which UI primitives and architectural boundaries must be preserved;
+* how user-visible text must be authored;
+* what to verify before reporting a task as complete.
+
+Task-specific maintainer instructions take precedence over this file. For focused requests, make the
+smallest coherent change that satisfies the request. For broad behavior changes or refactors, first
+identify the nearest existing implementation pattern and preserve the project structure.
+
+---
+
+## Repository package layout
+
+The application code is rooted at `org.bakasu.bakasu`.
+
+* `data/` — data repositories and related data-layer implementation.
+* `ui/` — user-interface code, including pages, state, and reusable Compose components.
+
+Preserve these responsibilities. Do not move code into a convenient but incorrect package merely to
+complete a change faster.
+
+### Data layer
+
+Repository implementations belong under `org.bakasu.bakasu.data` and its subpackages. Keep
+persistence, data loading, mapping, and repository concerns in this layer. Do not embed UI
+composition or presentation-only behavior in repositories.
+
+### Koin dependency injection
+
+Dependency injection is configured in `org.bakasu.bakasu.di.AppModules` and started by the
+application. Keep registrations in the existing module groups:
+
+* `coreModule` contains process-wide infrastructure and qualified shared scopes;
+* `repositoryModule` contains repository and data-source implementations;
+* `useCaseModule` contains domain use cases and wires them to repositories;
+* `viewModelModule` contains screen ViewModels, including parameterized ViewModels.
+
+Use constructor injection for new classes. Register a new dependency in the module matching its
+layer, and use `single` for shared stateless or repository objects, `factory` for short-lived
+use-case objects, and `viewModel`/`viewModelOf` for ViewModels. Reuse existing qualifiers such as
+`applicationScopeQualifier`; do not create a second Koin container or resolve dependencies with
+manual service locators.
+
+Compose screens obtain dependencies with `koinInject<T>()` and ViewModels with `koinViewModel<T>()`.
+Parameterized ViewModels must use Koin parameters (`parametersOf`) at the screen boundary. Keep
+Koin lookup out of repositories and use cases; their dependencies belong in constructors so the
+domain and data layers remain directly testable.
+
+### Repository and use-case boundaries
+
+Repositories live under `org.bakasu.bakasu.data` and own persistence, platform access,
+networking, caching, and data-source coordination. Use cases live under
+`org.bakasu.bakasu.domain.usecase` and expose one focused domain operation by composing
+repositories and other domain dependencies. ViewModels orchestrate use cases and expose UI state;
+screens and reusable components render that state and send intents back to the ViewModel.
+
+Keep the dependency direction `ui/viewmodel -> domain/usecase -> data/repository`. Do not make a
+repository depend on a ViewModel or UI component, and do not move repository work into a screen.
+
+---
+
+## UI component conventions
+
+### Canonical component location
+
+All reusable UI components must be placed under:
+
+```text
+org.bakasu.bakasu.ui.component
+```
+
+Do not create parallel reusable-component packages inside individual pages, features, or view
+models. Screen-specific composables may remain close to their screen when they are truly local, but
+components intended for reuse must live in `ui.component`.
+
+### Dialog
+
+Every custom dialog should manage by
+`org.bakasu.bakasu.ui.component.Dialog#rememberCustomDialog`,
+if you need confirmDialog, use `org.bakasu.bakasu.ui.component.Dialog#rememberConfirmDialog`,
+if you need loadingDialog, use `org.bakasu.bakasu.ui.component.Dialog#rememberLoadingDialog`
+
+### Settings UI
+
+Use the settings component system under:
+
+```text
+org.bakasu.bakasu.ui.component.settings
+```
+
+Do not hand-build settings rows, dividers, switch rows, page-navigation rows, or similar settings
+primitives when an existing settings component can express the required behavior.
+
+#### Layout groups
+
+Use one of the standard settings layout groups:
+
+* `SegmentedColumn` — the default for ordinary settings groups whose complete content is statically
+  known at compile time and cannot change because of runtime data updates.
+* `LazySegmentedColumn` — use when the group's content is driven by data that can change at runtime,
+  such as an updated collection, reordered items, additions, removals, or otherwise dynamic settings
+  entries.
+
+Choose based on whether the group can change at runtime, not on personal layout preference. Do not
+replace these group components with ad-hoc columns and manually drawn separators or rounded
+containers.
+
+#### Fine-grained settings widgets
+
+For switch controls, page-navigation entries, and other individual settings rows, use the
+corresponding `SettingsBaseWidget` wrapper rather than composing an imitation manually.
+
+Examples include:
+
+* `SettingsSwitchWidget` for settings controlled by a switch;
+* `SettingsJumpPageWidget` for settings that open or navigate to another page;
+* the appropriate existing `SettingsBaseWidget` wrapper for comparable settings interactions.
+
+Reuse the closest existing wrapper and its API. Do not manually assemble a `Row`, text, click
+handler, divider, shape, and trailing icon/switch just to reproduce a standard settings widget.
+
+### Animated corner shapes
+
+When a component needs a dynamic rounded-corner animation, use the implementation in:
+
+```text
+org.bakasu.bakasu.ui.component.settings.material3internal.AnimatedShape.kt
+```
+
+Do not introduce duplicate animated-shape implementations or manually interpolate equivalent corner
+geometry when `AnimatedShape.kt` fits the need.
+
+---
+
+## Text and Android resources
+
+### No hardcoded user-visible text
+
+All user-visible text is forbidden from being hardcoded in Kotlin, Java, or Compose source. Use
+Android string resources for labels, titles, descriptions, button text, accessibility text, errors,
+and other displayed copy.
+
+When changing user-visible wording:
+
+* add or update the appropriate Android resource;
+* preserve existing formatting placeholders and plural behavior;
+* update the English default resources in `values/` and the Simplified Chinese resources in
+  `values-zh-rCN/` for every user-visible string change;
+* other locales may be updated independently and are not a requirement for completing a change;
+* avoid embedding translated text in code, previews, or component defaults.
+
+### Compose resource access
+
+When a string is resolved from a Compose context, obtain it with `stringResource`, for example:
+
+```kotlin
+val title = stringResource(R.string.example_title)
+```
+
+Prefer `stringResource` whenever the value is needed in Compose. Use context-based resource access
+only where Compose resource access is not available or not appropriate, such as non-Compose
+data/platform code.
+
+Do not pass hardcoded text into reusable UI components when a resource-backed value can be passed
+instead.
+
+---
+
+## Architecture discipline
+
+* Keep repositories and data access in `data/`.
+* Keep presentation and Compose work in `ui/`.
+* Put reusable composables in `ui.component`, and prefer the settings component system for settings
+  surfaces.
+* Extend the nearest existing pattern before creating a new abstraction.
+* Avoid duplicating existing widgets, shapes, or resource-access patterns.
+* Use `org.bakasu.bakasu.ui.component.HorizontalPagerWithInteraction` for every pager. Do not
+  call
+  `HorizontalPager` directly from screens; pager gesture arbitration belongs in this component.
+
+---
+
+## Recommended workflow
+
+For every implementation change under `manager/`, coding agents must run `./gradlew spotlessCheck`
+and ensure it passes before reporting completion, just as applicable lint checks must pass. When
+formatting violations are found, run `./gradlew spotlessApply`, review the formatting changes, and
+rerun `./gradlew spotlessCheck`.
+When changing `.editorconfig` or formatter rules, use `--no-daemon --no-configuration-cache` so
+ktlint reloads the configuration instead of reusing cached rules.
+
+For implementation tasks:
+
+1. Identify the affected layer and the nearest comparable implementation.
+2. Place new code in the canonical package for that responsibility.
+3. For settings UI, select `SegmentedColumn` or `LazySegmentedColumn` based on runtime mutability,
+   then use the appropriate `SettingsBaseWidget` wrapper.
+4. Add or update Android resources before wiring user-visible text into UI.
+5. Use `stringResource` for strings resolved in Compose.
+6. Verify formatting by running `./gradlew spotlessCheck` from the manager project root.
+7. Verify changes by running `./gradlew assembleRelease` from the manager project root.
+8. Report exactly what was changed and whether `./gradlew spotlessCheck`,
+   `./gradlew assembleRelease`, and applicable lint checks completed successfully.
+
+---
+
+## Completion checklist
+
+Before completing a UI or settings task, verify:
+
+* Reusable components are under `org.bakasu.bakasu.ui.component`, unless it from library, if so,
+  you MUST keep the original copyright notice.
+* Settings screens use `org.bakasu.bakasu.ui.component.settings` components.
+* Static settings groups use `SegmentedColumn`; runtime-changing groups use `LazySegmentedColumn`.
+* Standard settings rows use the relevant `SettingsBaseWidget` wrapper instead of a hand-built
+  equivalent.
+* Dynamic corner-shape animation uses `AnimatedShape.kt` when applicable.
+* Every pager is rendered through `HorizontalPagerWithInteraction`.
+* No user-visible string is hardcoded.
+* Compose strings use `stringResource` whenever possible.
+* Verify formatting with `./gradlew spotlessCheck` and ensure it passes before reporting completion.
+* Verify the project with `./gradlew assembleRelease` before reporting completion.
+* Any build or test result is reported honestly; never claim verification passed when it was not
+  run.
+* Ensure any lint rule checks passed.
