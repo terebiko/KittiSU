@@ -24,11 +24,11 @@ import android.widget.EdgeEffect
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import anhiutangerinee.kittisu.ui.overscroll.EdgeEffectCompat.distanceCompat
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.roundToInt
-import anhiutangerinee.kittisu.ui.overscroll.EdgeEffectCompat.distanceCompat
 
 internal object EdgeEffectCompat {
 

@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.data.application
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ApplicationControlRepository(
     private val ksuCliRepository: KsuCliRepository,

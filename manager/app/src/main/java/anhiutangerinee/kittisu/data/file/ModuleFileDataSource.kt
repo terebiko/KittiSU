@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import java.util.Properties
 import anhiutangerinee.kittisu.R
+import java.util.Properties
 
 class ModuleUtils {
     private companion object {

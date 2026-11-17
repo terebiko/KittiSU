@@ -2,6 +2,12 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.SuSFSConfig
+import anhiutangerinee.kittisu.domain.model.SuSFSSlotInfo
+import anhiutangerinee.kittisu.domain.model.SuSFSStatusInfo
+import anhiutangerinee.kittisu.domain.model.SusKstatStatically
+import anhiutangerinee.kittisu.domain.model.UidScheme
+import anhiutangerinee.kittisu.domain.usecase.SuSFSConfigUseCase
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,12 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.domain.model.SuSFSConfig
-import anhiutangerinee.kittisu.domain.model.SuSFSSlotInfo
-import anhiutangerinee.kittisu.domain.model.SuSFSStatusInfo
-import anhiutangerinee.kittisu.domain.model.SusKstatStatically
-import anhiutangerinee.kittisu.domain.model.UidScheme
-import anhiutangerinee.kittisu.domain.usecase.SuSFSConfigUseCase
 
 data class SuSFSUiState(
     val config: SuSFSConfig? = null,

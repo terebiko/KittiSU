@@ -3,13 +3,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.domain.model.RepositoryApiType
 import anhiutangerinee.kittisu.domain.model.RepositoryFailure
 import anhiutangerinee.kittisu.domain.model.RepositorySource
@@ -17,6 +10,13 @@ import anhiutangerinee.kittisu.domain.usecase.AddModuleRepositoryUseCase
 import anhiutangerinee.kittisu.domain.usecase.ObserveRepositorySourcesUseCase
 import anhiutangerinee.kittisu.domain.usecase.RemoveModuleRepositoryUseCase
 import anhiutangerinee.kittisu.domain.usecase.RenameModuleRepositoryUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class RepositorySourcesUiState(
     val sources: List<RepositorySource> = emptyList(),

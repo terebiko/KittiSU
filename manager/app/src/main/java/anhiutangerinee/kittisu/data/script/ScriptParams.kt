@@ -1,6 +1,7 @@
 package anhiutangerinee.kittisu.data.script
 
 import androidx.annotation.StringRes
+import anhiutangerinee.kittisu.R
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
@@ -9,7 +10,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParseException
 import com.google.gson.JsonPrimitive
 import com.google.gson.Strictness
-import anhiutangerinee.kittisu.R
 
 /*
  * params.json (schemaVersion 1) of a one-shot script: the parameters the manager asks for

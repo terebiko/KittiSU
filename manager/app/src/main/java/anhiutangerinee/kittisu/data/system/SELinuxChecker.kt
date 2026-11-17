@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.data.system
 
 import android.content.Context
+import anhiutangerinee.kittisu.R
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.io.SuFile
-import anhiutangerinee.kittisu.R
 
 fun isSELinuxPermissive(): Boolean {
     val shell = Shell.Builder.create().build("sh")

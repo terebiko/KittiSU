@@ -52,8 +52,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -74,6 +72,8 @@ import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
 import anhiutangerinee.kittisu.ui.viewmodel.UmountManagerScreenViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.UmountManagerUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.UmountManagerUiEvent
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

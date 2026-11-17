@@ -44,11 +44,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.theme.CardConfig
@@ -61,6 +56,11 @@ import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
 import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
 import anhiutangerinee.kittisu.ui.viewmodel.FlashState
 import anhiutangerinee.kittisu.ui.viewmodel.FlashingStatus
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private val flashCardHorizontalPadding = 16.dp

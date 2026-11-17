@@ -42,8 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.HorizontalPagerWithInteraction
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -67,6 +65,8 @@ import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.SuSFSViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSBoolean
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -3,17 +3,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamiccolor.ColorSpec
-import java.util.Locale
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.AppearanceSetting
 import anhiutangerinee.kittisu.domain.model.PlatformSetting
@@ -30,6 +19,17 @@ import anhiutangerinee.kittisu.domain.usecase.SetShellSuAdbOnlyEnabledUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetSuEnabledUseCase
 import anhiutangerinee.kittisu.domain.usecase.UpdateAppearanceUseCase
 import anhiutangerinee.kittisu.domain.usecase.UpdatePlatformSettingUseCase
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
+import java.util.Locale
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class PredictiveBackAnimation(val value: String, @param:StringRes val resId: Int) {
     None("none", R.string.predictive_back_animation_none),

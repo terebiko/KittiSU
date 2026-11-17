@@ -6,10 +6,6 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.core.net.toUri
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.DownloadState
 import anhiutangerinee.kittisu.domain.model.DownloadStatus
@@ -19,6 +15,10 @@ import anhiutangerinee.kittisu.domain.usecase.EnqueueDownloadUseCase
 import anhiutangerinee.kittisu.domain.usecase.EnqueueManagerUpdateUseCase
 import anhiutangerinee.kittisu.domain.usecase.ObserveDownloadUseCase
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /**
  * @author weishu

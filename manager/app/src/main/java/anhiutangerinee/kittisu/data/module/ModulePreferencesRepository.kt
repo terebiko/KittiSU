@@ -1,11 +1,11 @@
 package anhiutangerinee.kittisu.data.module
 
+import anhiutangerinee.kittisu.data.AppSettingsRepository
+import anhiutangerinee.kittisu.domain.model.ModulePreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import anhiutangerinee.kittisu.data.AppSettingsRepository
-import anhiutangerinee.kittisu.domain.model.ModulePreferences
 
 class ModulePreferencesRepository(
     private val settings: AppSettingsRepository,

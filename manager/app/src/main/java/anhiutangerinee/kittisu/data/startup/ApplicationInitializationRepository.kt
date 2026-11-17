@@ -3,14 +3,14 @@ package anhiutangerinee.kittisu.data.startup
 import android.annotation.SuppressLint
 import android.app.Application
 import android.system.Os
+import anhiutangerinee.kittisu.data.flash.FlashRepository
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 import coil.Coil
 import coil.ImageLoader
 import com.topjohnwu.superuser.internal.MainShell
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.data.flash.FlashRepository
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 
 class ApplicationInitializationRepository(
     private val application: Application,

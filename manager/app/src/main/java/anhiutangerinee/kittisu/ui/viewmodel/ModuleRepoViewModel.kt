@@ -4,14 +4,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.CatalogModule
 import anhiutangerinee.kittisu.domain.model.ModuleCatalogResult
@@ -27,6 +19,14 @@ import anhiutangerinee.kittisu.domain.usecase.ObserveRepositorySourcesUseCase
 import anhiutangerinee.kittisu.domain.usecase.RefreshModuleCatalogUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetBooleanPreferenceUseCase
 import anhiutangerinee.kittisu.domain.usecase.TransliterateTextUseCase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 enum class CatalogContent(@param:StringRes val resId: Int? = null) {
     LOADING,

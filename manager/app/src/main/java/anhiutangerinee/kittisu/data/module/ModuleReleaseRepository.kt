@@ -2,6 +2,17 @@ package anhiutangerinee.kittisu.data.module
 
 import android.os.SystemClock
 import android.util.LruCache
+import anhiutangerinee.kittisu.data.network.NetworkRequestRepository
+import anhiutangerinee.kittisu.data.network.NetworkResponse
+import anhiutangerinee.kittisu.data.network.toDocument
+import anhiutangerinee.kittisu.domain.model.CatalogModule
+import anhiutangerinee.kittisu.domain.model.DocumentFormat
+import anhiutangerinee.kittisu.domain.model.DocumentPolicy
+import anhiutangerinee.kittisu.domain.model.ModuleReadme
+import anhiutangerinee.kittisu.domain.model.ModuleRelease
+import anhiutangerinee.kittisu.domain.model.ModuleReleaseDetails
+import anhiutangerinee.kittisu.domain.model.RepositorySource
+import anhiutangerinee.kittisu.domain.model.documentPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -18,17 +29,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import anhiutangerinee.kittisu.data.network.NetworkRequestRepository
-import anhiutangerinee.kittisu.data.network.NetworkResponse
-import anhiutangerinee.kittisu.data.network.toDocument
-import anhiutangerinee.kittisu.domain.model.CatalogModule
-import anhiutangerinee.kittisu.domain.model.DocumentFormat
-import anhiutangerinee.kittisu.domain.model.DocumentPolicy
-import anhiutangerinee.kittisu.domain.model.ModuleReadme
-import anhiutangerinee.kittisu.domain.model.ModuleRelease
-import anhiutangerinee.kittisu.domain.model.ModuleReleaseDetails
-import anhiutangerinee.kittisu.domain.model.RepositorySource
-import anhiutangerinee.kittisu.domain.model.documentPolicy
 import org.json.JSONObject
 
 /** Resolves presentation metadata without changing the selected repository's downloadable assets. */

@@ -2,17 +2,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import anhiutangerinee.kittisu.domain.model.AppControlAction
 import anhiutangerinee.kittisu.domain.model.AppProfile
 import anhiutangerinee.kittisu.domain.model.InstalledAppGroup
@@ -25,6 +14,17 @@ import anhiutangerinee.kittisu.domain.usecase.GetSuperUserAppGroupUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetAppProfileUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetAppSepolicyUseCase
 import anhiutangerinee.kittisu.domain.usecase.ValidateSepolicyUseCase
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class AppProfileUiState(
     val appGroup: InstalledAppGroup? = null,

@@ -2,18 +2,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.text.Collator
-import java.util.Locale
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.data.module.ModulePreferencesRepository
 import anhiutangerinee.kittisu.domain.model.InstalledModule
 import anhiutangerinee.kittisu.domain.model.MetaModuleStatus
@@ -30,6 +18,18 @@ import anhiutangerinee.kittisu.domain.usecase.SetModuleEnabledUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetModuleRemovedUseCase
 import anhiutangerinee.kittisu.domain.usecase.TransliterateTextUseCase
 import anhiutangerinee.kittisu.domain.usecase.UpdateCachedModuleEnabledUseCase
+import java.text.Collator
+import java.util.Locale
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class ModuleUiState(
     val moduleList: List<InstalledModule> = emptyList(),

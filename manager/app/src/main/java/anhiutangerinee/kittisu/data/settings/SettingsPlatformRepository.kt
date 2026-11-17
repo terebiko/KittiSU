@@ -6,11 +6,6 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import com.topjohnwu.superuser.ShellUtils
-import java.security.SecureRandom
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.data.AppSettingsRepository
 import anhiutangerinee.kittisu.data.shell.KsuCliRepository
@@ -23,6 +18,11 @@ import anhiutangerinee.kittisu.magica.BootCompletedReceiver
 import anhiutangerinee.kittisu.ui.theme.BackgroundManager
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import com.topjohnwu.superuser.ShellUtils
+import java.security.SecureRandom
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class SettingsPlatformRepository(
     private val application: Application,

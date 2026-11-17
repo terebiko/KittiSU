@@ -1,6 +1,10 @@
 package anhiutangerinee.kittisu.data.logging
 
 import android.os.SystemClock
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.SulogFile
+import anhiutangerinee.kittisu.domain.model.SulogState
+import anhiutangerinee.kittisu.domain.model.parseSulogLines
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
 import java.io.InputStreamReader
@@ -16,10 +20,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.SulogFile
-import anhiutangerinee.kittisu.domain.model.SulogState
-import anhiutangerinee.kittisu.domain.model.parseSulogLines
 
 class SulogRepository(
     private val ksuCliRepository: KsuCliRepository,

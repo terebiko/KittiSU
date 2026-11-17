@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.data.webui
 
+import anhiutangerinee.kittisu.domain.model.WebUiModuleInfo
 import java.io.File
 import java.io.InputStream
 import java.util.Properties
-import anhiutangerinee.kittisu.domain.model.WebUiModuleInfo
 
 internal fun readWebUiModuleInfo(
     moduleId: String,

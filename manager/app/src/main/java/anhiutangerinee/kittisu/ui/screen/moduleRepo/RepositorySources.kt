@@ -72,8 +72,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.RepositoryApiType
 import anhiutangerinee.kittisu.domain.model.RepositorySource
@@ -97,6 +95,8 @@ import anhiutangerinee.kittisu.ui.util.LocalBackgroundBlurProvided
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
 import anhiutangerinee.kittisu.ui.viewmodel.RepositorySourcesViewModel
+import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -1,14 +1,5 @@
 package anhiutangerinee.kittisu.data.profile
 
-import java.text.Collator
-import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.Natives.Profile.Namespace
 import anhiutangerinee.kittisu.Natives.Profile.RootProfileFlag
@@ -20,6 +11,15 @@ import anhiutangerinee.kittisu.domain.model.ProfileTemplateException
 import anhiutangerinee.kittisu.domain.model.ProfileTemplateFailure
 import anhiutangerinee.kittisu.profile.Capabilities
 import anhiutangerinee.kittisu.profile.Groups
+import java.text.Collator
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 

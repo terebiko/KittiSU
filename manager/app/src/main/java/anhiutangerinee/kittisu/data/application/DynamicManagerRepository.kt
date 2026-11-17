@@ -1,5 +1,11 @@
 package anhiutangerinee.kittisu.data.application
 
+import anhiutangerinee.kittisu.data.kernel.KernelRepository
+import anhiutangerinee.kittisu.data.packageinfo.InstalledPackageRepository
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.DynamicManagerApp
+import anhiutangerinee.kittisu.domain.model.DynamicManagerConfig
+import anhiutangerinee.kittisu.domain.model.DynamicManagerState
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,12 +15,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.kernel.KernelRepository
-import anhiutangerinee.kittisu.data.packageinfo.InstalledPackageRepository
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.DynamicManagerApp
-import anhiutangerinee.kittisu.domain.model.DynamicManagerConfig
-import anhiutangerinee.kittisu.domain.model.DynamicManagerState
 
 class DynamicManagerRepository(
     private val kernelRepository: KernelRepository,

@@ -4,8 +4,8 @@ import android.os.Parcelable
 import androidx.annotation.Keep
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
-import kotlinx.parcelize.Parcelize
 import anhiutangerinee.kittisu.Natives.Profile.RootProfileFlag
+import kotlinx.parcelize.Parcelize
 
 /**
  * @author weishu

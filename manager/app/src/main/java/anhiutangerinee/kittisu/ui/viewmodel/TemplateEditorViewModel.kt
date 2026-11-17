@@ -2,6 +2,12 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.ProfileTemplate
+import anhiutangerinee.kittisu.domain.model.ProfileTemplateException
+import anhiutangerinee.kittisu.domain.model.ProfileTemplateFailure
+import anhiutangerinee.kittisu.domain.usecase.DeleteProfileTemplateUseCase
+import anhiutangerinee.kittisu.domain.usecase.GetProfileTemplateUseCase
+import anhiutangerinee.kittisu.domain.usecase.SaveProfileTemplateUseCase
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,12 +21,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import anhiutangerinee.kittisu.domain.model.ProfileTemplate
-import anhiutangerinee.kittisu.domain.model.ProfileTemplateException
-import anhiutangerinee.kittisu.domain.model.ProfileTemplateFailure
-import anhiutangerinee.kittisu.domain.usecase.DeleteProfileTemplateUseCase
-import anhiutangerinee.kittisu.domain.usecase.GetProfileTemplateUseCase
-import anhiutangerinee.kittisu.domain.usecase.SaveProfileTemplateUseCase
 
 data class TemplateEditorUiState(
     val template: ProfileTemplate = ProfileTemplate(),

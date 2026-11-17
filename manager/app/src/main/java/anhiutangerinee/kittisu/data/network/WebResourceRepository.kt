@@ -1,10 +1,10 @@
 package anhiutangerinee.kittisu.data.network
 
+import anhiutangerinee.kittisu.domain.model.DocumentPolicy
+import anhiutangerinee.kittisu.domain.model.WebResource
 import okhttp3.Headers.Companion.toHeaders
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import anhiutangerinee.kittisu.domain.model.DocumentPolicy
-import anhiutangerinee.kittisu.domain.model.WebResource
 
 class WebResourceRepository(private val httpClient: OkHttpClient) {
     fun load(url: String, method: String, requestHeaders: Map<String, String>, policy: DocumentPolicy): WebResource? = runCatching {

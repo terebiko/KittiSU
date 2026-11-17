@@ -3,11 +3,6 @@ package anhiutangerinee.kittisu.data.download
 import android.app.Application
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import java.util.concurrent.atomic.AtomicInteger
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import anhiutangerinee.kittisu.data.module.registry.RegistryUrls
 import anhiutangerinee.kittisu.data.module.registry.canShareDownload
 import anhiutangerinee.kittisu.domain.model.DownloadState
@@ -16,6 +11,11 @@ import anhiutangerinee.kittisu.domain.model.DownloadVerificationFailure
 import anhiutangerinee.kittisu.domain.model.ExpectedFile
 import anhiutangerinee.kittisu.domain.model.ManagerApkSource
 import anhiutangerinee.kittisu.domain.model.ManagerUpdateInfo
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class DownloadRepository(
     private val application: Application,

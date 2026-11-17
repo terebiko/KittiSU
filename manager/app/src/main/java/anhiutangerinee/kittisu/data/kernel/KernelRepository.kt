@@ -1,8 +1,6 @@
 package anhiutangerinee.kittisu.data.kernel
 
 import android.app.Application
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.Natives.KernelPatchImplementation
 import anhiutangerinee.kittisu.data.shell.KsuCliRepository
@@ -12,6 +10,8 @@ import anhiutangerinee.kittisu.domain.model.KernelStatus
 import anhiutangerinee.kittisu.domain.model.ManagerRecord
 import anhiutangerinee.kittisu.domain.model.ManagerRuntimeInfo
 import anhiutangerinee.kittisu.getKernelVersion
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class KernelRepository(
     private val application: Application,

@@ -1,7 +1,7 @@
 package anhiutangerinee.kittisu.domain.usecase
 
-import java.io.File
 import anhiutangerinee.kittisu.data.logging.BugreportRepository
+import java.io.File
 
 class GenerateBugreportUseCase(
     private val repository: BugreportRepository,

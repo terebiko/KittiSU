@@ -2,13 +2,13 @@ package anhiutangerinee.kittisu.data.update
 
 import android.os.Build
 import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.data.network.NetworkRequestRepository
 import anhiutangerinee.kittisu.domain.model.ManagerApkSource
 import anhiutangerinee.kittisu.domain.model.ManagerUpdateChannel
 import anhiutangerinee.kittisu.domain.model.ManagerUpdateInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class ManagerUpdateRepository(

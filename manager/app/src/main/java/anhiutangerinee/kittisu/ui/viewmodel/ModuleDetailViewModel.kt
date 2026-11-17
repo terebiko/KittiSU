@@ -2,15 +2,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.domain.model.CatalogModule
 import anhiutangerinee.kittisu.domain.model.ModuleCatalogFailure
 import anhiutangerinee.kittisu.domain.model.ModuleCatalogResult
@@ -26,6 +17,15 @@ import anhiutangerinee.kittisu.domain.usecase.IsCatalogModuleCurrentUseCase
 import anhiutangerinee.kittisu.domain.usecase.ObserveCatalogModulesUseCase
 import anhiutangerinee.kittisu.domain.usecase.ObserveRepositorySourcesUseCase
 import anhiutangerinee.kittisu.domain.usecase.RefreshModuleCatalogUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class ModuleDetailUiState(
     val module: CatalogModule? = null,

@@ -1,8 +1,8 @@
 package anhiutangerinee.kittisu.data.logging
 
 import android.app.Application
-import java.io.File
 import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import java.io.File
 
 class BugreportRepository(
     private val application: Application,

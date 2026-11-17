@@ -2,6 +2,7 @@ package anhiutangerinee.kittisu.data.packageinfo
 
 import android.app.Application
 import androidx.core.content.pm.PackageInfoCompat
+import anhiutangerinee.kittisu.domain.model.InstalledPackageInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +11,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.domain.model.InstalledPackageInfo
 
 class InstalledPackageRepository(
     application: Application,

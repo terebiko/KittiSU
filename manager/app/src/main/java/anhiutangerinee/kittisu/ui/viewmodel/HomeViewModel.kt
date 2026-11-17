@@ -2,20 +2,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import anhiutangerinee.kittisu.data.count.CountRepository
 import anhiutangerinee.kittisu.data.module.ModuleRepository
 import anhiutangerinee.kittisu.data.packageinfo.SuperUserRepository
@@ -33,6 +19,20 @@ import anhiutangerinee.kittisu.domain.usecase.GetSuSFSStatusUseCase
 import anhiutangerinee.kittisu.domain.usecase.IsNetworkAvailableUseCase
 import anhiutangerinee.kittisu.domain.usecase.RebootUseCase
 import anhiutangerinee.kittisu.domain.usecase.SetBooleanPreferenceUseCase
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 typealias HomeUiState = HomeDashboardState
 

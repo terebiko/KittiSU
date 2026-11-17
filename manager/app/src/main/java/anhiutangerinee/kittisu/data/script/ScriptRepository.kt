@@ -4,6 +4,13 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import anhiutangerinee.kittisu.BuildConfig
+import anhiutangerinee.kittisu.Natives
+import anhiutangerinee.kittisu.data.module.registry.DownloadVerificationException
+import anhiutangerinee.kittisu.data.module.registry.RegistryDownloadStore
+import anhiutangerinee.kittisu.data.module.registry.copyForInstall
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.ExpectedFile
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -25,13 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.BuildConfig
-import anhiutangerinee.kittisu.Natives
-import anhiutangerinee.kittisu.data.module.registry.DownloadVerificationException
-import anhiutangerinee.kittisu.data.module.registry.RegistryDownloadStore
-import anhiutangerinee.kittisu.data.module.registry.copyForInstall
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.ExpectedFile
 
 /** A validated script, extracted and ready to run. */
 data class PreparedScript(

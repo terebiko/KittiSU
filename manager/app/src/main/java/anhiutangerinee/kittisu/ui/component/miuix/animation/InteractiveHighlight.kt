@@ -17,9 +17,9 @@ import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.util.fastCoerceIn
+import anhiutangerinee.kittisu.ui.component.miuix.modifier.inspectDragGestures
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.ui.component.miuix.modifier.inspectDragGestures
 import org.intellij.lang.annotations.Language
 
 @SuppressLint("NewApi")

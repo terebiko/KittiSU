@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import java.io.File
@@ -11,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 
 class SuSFSConfigHelper(
     private val ksuCliRepository: KsuCliRepository,

@@ -92,9 +92,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.CatalogAuthor
 import anhiutangerinee.kittisu.domain.model.CatalogModule
@@ -133,6 +130,9 @@ import anhiutangerinee.kittisu.ui.viewmodel.CatalogContent
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleRepoUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleRepoUiState
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleRepoViewModel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

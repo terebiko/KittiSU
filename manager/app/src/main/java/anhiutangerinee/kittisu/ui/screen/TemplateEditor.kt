@@ -44,7 +44,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import kotlinx.coroutines.flow.collectLatest
 import anhiutangerinee.kittisu.Natives.Profile.RootProfileFlag
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.AppProfile
@@ -63,6 +62,7 @@ import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateEditorUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateEditorUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateEditorViewModel
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 

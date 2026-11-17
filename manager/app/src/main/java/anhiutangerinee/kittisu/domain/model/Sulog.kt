@@ -1,11 +1,11 @@
 package anhiutangerinee.kittisu.domain.model
 
 import androidx.annotation.StringRes
+import anhiutangerinee.kittisu.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import anhiutangerinee.kittisu.R
 
 data class SulogFile(
     val name: String,

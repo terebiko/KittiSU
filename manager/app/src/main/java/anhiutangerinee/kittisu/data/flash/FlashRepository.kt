@@ -3,6 +3,14 @@ package anhiutangerinee.kittisu.data.flash
 import android.app.Application
 import android.net.Uri
 import androidx.core.net.toUri
+import anhiutangerinee.kittisu.data.file.ModuleFileRepository
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.FlashOperation
+import anhiutangerinee.kittisu.domain.model.FlashOperationUpdate
+import anhiutangerinee.kittisu.domain.model.FlashProgress
+import anhiutangerinee.kittisu.domain.model.InstallEnvironment
+import anhiutangerinee.kittisu.domain.model.KernelFlashSession
+import anhiutangerinee.kittisu.getKernelVersion
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,14 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.file.ModuleFileRepository
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.FlashOperation
-import anhiutangerinee.kittisu.domain.model.FlashOperationUpdate
-import anhiutangerinee.kittisu.domain.model.FlashProgress
-import anhiutangerinee.kittisu.domain.model.InstallEnvironment
-import anhiutangerinee.kittisu.domain.model.KernelFlashSession
-import anhiutangerinee.kittisu.getKernelVersion
 
 class FlashRepository(
     private val application: Application,

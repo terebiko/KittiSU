@@ -1,16 +1,5 @@
 package anhiutangerinee.kittisu.di
 
-import coil.ImageLoader
-import java.io.File
-import java.util.Locale
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import me.zhanghai.android.appiconloader.coil.AppIconFetcher
-import me.zhanghai.android.appiconloader.coil.AppIconKeyer
-import okhttp3.Cache
-import okhttp3.OkHttpClient
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.data.AppSettingsRepository
 import anhiutangerinee.kittisu.data.application.ApplicationControlRepository
@@ -197,6 +186,17 @@ import anhiutangerinee.kittisu.ui.viewmodel.TemplateEditorViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.UmountManagerScreenViewModel
 import anhiutangerinee.kittisu.ui.webui.MonetColorsProvider
+import coil.ImageLoader
+import java.io.File
+import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import me.zhanghai.android.appiconloader.coil.AppIconFetcher
+import me.zhanghai.android.appiconloader.coil.AppIconKeyer
+import okhttp3.Cache
+import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf

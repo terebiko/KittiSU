@@ -7,8 +7,8 @@ import android.os.IBinder
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
-import com.topjohnwu.superuser.ipc.RootService
 import anhiutangerinee.kittisu.rootService.IKsuInterface
+import com.topjohnwu.superuser.ipc.RootService
 
 /**
  * @author ShirkNeko

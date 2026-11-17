@@ -50,7 +50,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.SuSFSSlotInfo
 import anhiutangerinee.kittisu.ui.component.settings.SegmentedColumn
@@ -67,6 +66,7 @@ import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SuSFSViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSBoolean
 import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSSlotInfo
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 private enum class UnameDialogTab {

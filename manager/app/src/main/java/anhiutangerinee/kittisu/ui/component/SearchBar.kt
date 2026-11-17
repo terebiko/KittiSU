@@ -91,10 +91,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
-import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
@@ -102,6 +98,10 @@ import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.renderBackgroundBlur
 import anhiutangerinee.kittisu.ui.util.LocalPagerPage
 import anhiutangerinee.kittisu.ui.util.LocalSelectedPage
+import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 private val SearchBarInitialHeight = 77.dp

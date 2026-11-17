@@ -12,6 +12,19 @@ import android.os.Environment
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.FileProvider
+import anhiutangerinee.kittisu.BuildConfig
+import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.module.registry.DownloadVerificationException
+import anhiutangerinee.kittisu.data.module.registry.DownloadVerifier
+import anhiutangerinee.kittisu.data.module.registry.RegistryDownloadStore
+import anhiutangerinee.kittisu.data.module.registry.RegistryUrls
+import anhiutangerinee.kittisu.data.settings.SettingsPlatformRepository
+import anhiutangerinee.kittisu.data.update.ManagerUpdateRepository
+import anhiutangerinee.kittisu.data.update.ZipRangeArchive
+import anhiutangerinee.kittisu.domain.model.DownloadStatus
+import anhiutangerinee.kittisu.domain.model.DownloadVerificationFailure
+import anhiutangerinee.kittisu.domain.model.ExpectedFile
+import anhiutangerinee.kittisu.ui.MainActivity
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -29,19 +42,6 @@ import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import anhiutangerinee.kittisu.BuildConfig
-import anhiutangerinee.kittisu.R
-import anhiutangerinee.kittisu.data.module.registry.DownloadVerificationException
-import anhiutangerinee.kittisu.data.module.registry.DownloadVerifier
-import anhiutangerinee.kittisu.data.module.registry.RegistryDownloadStore
-import anhiutangerinee.kittisu.data.module.registry.RegistryUrls
-import anhiutangerinee.kittisu.data.settings.SettingsPlatformRepository
-import anhiutangerinee.kittisu.data.update.ManagerUpdateRepository
-import anhiutangerinee.kittisu.data.update.ZipRangeArchive
-import anhiutangerinee.kittisu.domain.model.DownloadStatus
-import anhiutangerinee.kittisu.domain.model.DownloadVerificationFailure
-import anhiutangerinee.kittisu.domain.model.ExpectedFile
-import anhiutangerinee.kittisu.ui.MainActivity
 import org.koin.android.ext.android.inject
 
 class DownloadService : Service() {

@@ -9,7 +9,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.collectLatest
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.ModuleActionOutput
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
@@ -18,6 +17,7 @@ import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
 import anhiutangerinee.kittisu.ui.viewmodel.ExecuteModuleActionUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.ExecuteModuleActionUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.ExecuteModuleActionViewModel
+import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 

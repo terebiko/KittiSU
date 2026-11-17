@@ -2,6 +2,13 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.ProfileTemplate
+import anhiutangerinee.kittisu.domain.usecase.ExportProfileTemplatesUseCase
+import anhiutangerinee.kittisu.domain.usecase.ImportProfileTemplatesUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplateOfflineUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplateRefreshingUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplatesUseCase
+import anhiutangerinee.kittisu.domain.usecase.RefreshProfileTemplatesUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -10,13 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.domain.model.ProfileTemplate
-import anhiutangerinee.kittisu.domain.usecase.ExportProfileTemplatesUseCase
-import anhiutangerinee.kittisu.domain.usecase.ImportProfileTemplatesUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplateOfflineUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplateRefreshingUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveProfileTemplatesUseCase
-import anhiutangerinee.kittisu.domain.usecase.RefreshProfileTemplatesUseCase
 
 data class TemplateUiState(
     val templateList: List<ProfileTemplate> = emptyList(),

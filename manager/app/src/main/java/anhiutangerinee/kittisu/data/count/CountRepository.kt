@@ -1,12 +1,12 @@
 package anhiutangerinee.kittisu.data.count
 
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
 
 data class CountState(
     val superuserCount: Int = 0,

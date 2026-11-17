@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.data.theme
 
-import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamiccolor.ColorSpec
 import anhiutangerinee.kittisu.data.AppSettingsRepository
 import anhiutangerinee.kittisu.domain.model.coerceCompatibleWith
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 
 class ThemeRepository(
     private val settings: AppSettingsRepository,

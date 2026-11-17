@@ -3,6 +3,12 @@ package anhiutangerinee.kittisu.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.domain.model.UmountPath
+import anhiutangerinee.kittisu.domain.usecase.AddUmountPathUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveUmountStateUseCase
+import anhiutangerinee.kittisu.domain.usecase.RefreshUmountPathsUseCase
+import anhiutangerinee.kittisu.domain.usecase.RemoveUmountPathUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -11,12 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.R
-import anhiutangerinee.kittisu.domain.model.UmountPath
-import anhiutangerinee.kittisu.domain.usecase.AddUmountPathUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveUmountStateUseCase
-import anhiutangerinee.kittisu.domain.usecase.RefreshUmountPathsUseCase
-import anhiutangerinee.kittisu.domain.usecase.RemoveUmountPathUseCase
 
 data class UmountManagerUiState(
     val umountPaths: List<UmountPath> = emptyList(),

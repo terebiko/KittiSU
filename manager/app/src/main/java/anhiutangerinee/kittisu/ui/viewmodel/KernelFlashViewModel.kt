@@ -2,6 +2,12 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.FlashProgress
+import anhiutangerinee.kittisu.domain.usecase.GetBooleanPreferenceUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveKernelFlashUseCase
+import anhiutangerinee.kittisu.domain.usecase.RebootUseCase
+import anhiutangerinee.kittisu.domain.usecase.RemovePreferenceUseCase
+import anhiutangerinee.kittisu.domain.usecase.StartKernelFlashUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,12 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.domain.model.FlashProgress
-import anhiutangerinee.kittisu.domain.usecase.GetBooleanPreferenceUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveKernelFlashUseCase
-import anhiutangerinee.kittisu.domain.usecase.RebootUseCase
-import anhiutangerinee.kittisu.domain.usecase.RemovePreferenceUseCase
-import anhiutangerinee.kittisu.domain.usecase.StartKernelFlashUseCase
 
 data class KernelFlashUiState(
     val requestUri: String? = null,

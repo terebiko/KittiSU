@@ -67,7 +67,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.SulogEntry
 import anhiutangerinee.kittisu.domain.model.SulogEventFilter
@@ -91,6 +90,7 @@ import anhiutangerinee.kittisu.ui.viewmodel.SulogFileSelector
 import anhiutangerinee.kittisu.ui.viewmodel.SulogScreenState
 import anhiutangerinee.kittisu.ui.viewmodel.SulogUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SulogViewModel
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

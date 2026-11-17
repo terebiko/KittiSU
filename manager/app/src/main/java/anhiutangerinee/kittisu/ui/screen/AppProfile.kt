@@ -58,8 +58,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.AppControlAction
 import anhiutangerinee.kittisu.domain.model.AppProfile
@@ -91,6 +89,8 @@ import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
 import anhiutangerinee.kittisu.ui.viewmodel.AppProfileUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.AppProfileUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.AppProfileViewModel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

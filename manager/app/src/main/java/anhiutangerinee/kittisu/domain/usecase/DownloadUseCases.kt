@@ -1,13 +1,13 @@
 package anhiutangerinee.kittisu.domain.usecase
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import anhiutangerinee.kittisu.data.download.DownloadRepository
 import anhiutangerinee.kittisu.domain.model.DownloadState
 import anhiutangerinee.kittisu.domain.model.ExpectedFile
 import anhiutangerinee.kittisu.domain.model.ManagerUpdateInfo
 import anhiutangerinee.kittisu.domain.model.ModuleReleaseAsset
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 class EnqueueDownloadUseCase(private val repository: DownloadRepository) {
     operator fun invoke(url: String, fileName: String, expected: ExpectedFile? = null): Int = repository.enqueue(url, fileName, expected)

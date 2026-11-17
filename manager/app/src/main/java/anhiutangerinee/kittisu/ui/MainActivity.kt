@@ -16,9 +16,6 @@ import androidx.compose.material3.Text
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.domain.model.StartupState
 import anhiutangerinee.kittisu.domain.usecase.ApplyLanguageUseCase
 import anhiutangerinee.kittisu.domain.usecase.EnsureManagerInstalledUseCase
@@ -32,6 +29,9 @@ import anhiutangerinee.kittisu.ui.viewmodel.ModuleViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 

@@ -1,15 +1,15 @@
 package anhiutangerinee.kittisu.data.webui
 
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.WebUiCommandResult
+import anhiutangerinee.kittisu.domain.model.WebUiModuleInfo
+import anhiutangerinee.kittisu.domain.model.WebUiProcess
 import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.Shell
 import com.topjohnwu.superuser.internal.UiThreadHandler
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
 import java.util.concurrent.CompletableFuture
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.WebUiCommandResult
-import anhiutangerinee.kittisu.domain.model.WebUiModuleInfo
-import anhiutangerinee.kittisu.domain.model.WebUiProcess
 
 class WebUiRepository(
     private val ksuCliRepository: KsuCliRepository,

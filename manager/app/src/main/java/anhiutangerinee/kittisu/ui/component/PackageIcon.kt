@@ -6,12 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import anhiutangerinee.kittisu.data.packageinfo.AppIconDataSource
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.packageinfo.AppIconDataSource
 import org.koin.compose.koinInject
 
 /** Resolves a package name to the [PackageInfo] model expected by AppIconFetcher. */

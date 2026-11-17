@@ -81,11 +81,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.Natives.KernelPatchImplementation
 import anhiutangerinee.kittisu.R
@@ -117,6 +112,11 @@ import anhiutangerinee.kittisu.ui.viewmodel.HomeUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.HomeUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.HomeUiState
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -4,15 +4,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import anhiutangerinee.kittisu.domain.model.SuSFSConfig
+import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiAction
+import anhiutangerinee.kittisu.ui.viewmodel.SuSFSViewModel
+import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import anhiutangerinee.kittisu.domain.model.SuSFSConfig
-import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiAction
-import anhiutangerinee.kittisu.ui.viewmodel.SuSFSViewModel
-import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSConfig
 
 internal typealias SuSFSRefreshCallback = suspend (SuSFSConfig, Boolean) -> Unit
 internal typealias SuSFSRefreshRegistrar = (SuSFSRefreshCallback) -> (() -> Unit)

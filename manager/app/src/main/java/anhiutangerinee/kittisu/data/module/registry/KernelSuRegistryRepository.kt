@@ -1,6 +1,19 @@
 package anhiutangerinee.kittisu.data.module.registry
 
 import android.app.Application
+import anhiutangerinee.kittisu.data.module.RepositorySourceStore
+import anhiutangerinee.kittisu.data.network.NetworkStatusRepository
+import anhiutangerinee.kittisu.data.network.documentResponse
+import anhiutangerinee.kittisu.domain.model.CatalogModule
+import anhiutangerinee.kittisu.domain.model.DocumentFormat
+import anhiutangerinee.kittisu.domain.model.DocumentPolicy
+import anhiutangerinee.kittisu.domain.model.HttpStatusException
+import anhiutangerinee.kittisu.domain.model.ModuleReadme
+import anhiutangerinee.kittisu.domain.model.ModuleUpdateVerification
+import anhiutangerinee.kittisu.domain.model.RepositoryApiType
+import anhiutangerinee.kittisu.domain.model.RepositoryError
+import anhiutangerinee.kittisu.domain.model.RepositoryException
+import anhiutangerinee.kittisu.domain.model.RepositoryFailure
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
@@ -18,19 +31,6 @@ import okhttp3.CacheControl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import anhiutangerinee.kittisu.data.module.RepositorySourceStore
-import anhiutangerinee.kittisu.data.network.NetworkStatusRepository
-import anhiutangerinee.kittisu.data.network.documentResponse
-import anhiutangerinee.kittisu.domain.model.CatalogModule
-import anhiutangerinee.kittisu.domain.model.DocumentFormat
-import anhiutangerinee.kittisu.domain.model.DocumentPolicy
-import anhiutangerinee.kittisu.domain.model.HttpStatusException
-import anhiutangerinee.kittisu.domain.model.ModuleReadme
-import anhiutangerinee.kittisu.domain.model.ModuleUpdateVerification
-import anhiutangerinee.kittisu.domain.model.RepositoryApiType
-import anhiutangerinee.kittisu.domain.model.RepositoryError
-import anhiutangerinee.kittisu.domain.model.RepositoryException
-import anhiutangerinee.kittisu.domain.model.RepositoryFailure
 
 class KernelSuRegistryRepository private constructor(
     private val application: Application,

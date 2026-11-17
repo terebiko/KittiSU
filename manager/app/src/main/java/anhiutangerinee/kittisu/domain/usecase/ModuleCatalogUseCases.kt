@@ -1,7 +1,5 @@
 package anhiutangerinee.kittisu.domain.usecase
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.firstOrNull
 import anhiutangerinee.kittisu.data.module.ModuleCatalogRepository
 import anhiutangerinee.kittisu.data.module.ModuleIconRepository
 import anhiutangerinee.kittisu.data.module.ModuleReleaseRepository
@@ -15,6 +13,8 @@ import anhiutangerinee.kittisu.domain.model.ModuleReadme
 import anhiutangerinee.kittisu.domain.model.ModuleRelease
 import anhiutangerinee.kittisu.domain.model.ModuleUpdateVerification
 import anhiutangerinee.kittisu.domain.model.RepositoryApiType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.firstOrNull
 
 class ObserveCatalogModulesUseCase(private val repository: ModuleCatalogRepository) {
     operator fun invoke() = repository.modules

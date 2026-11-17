@@ -3,6 +3,13 @@ package anhiutangerinee.kittisu.ui.viewmodel
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.domain.model.FlashOperation
+import anhiutangerinee.kittisu.domain.model.FlashOperationUpdate
+import anhiutangerinee.kittisu.domain.usecase.CheckFlashModuleMountUseCase
+import anhiutangerinee.kittisu.domain.usecase.ExecuteFlashOperationUseCase
+import anhiutangerinee.kittisu.domain.usecase.IsSoftRebootPreferredUseCase
+import anhiutangerinee.kittisu.domain.usecase.RebootUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,13 +19,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.R
-import anhiutangerinee.kittisu.domain.model.FlashOperation
-import anhiutangerinee.kittisu.domain.model.FlashOperationUpdate
-import anhiutangerinee.kittisu.domain.usecase.CheckFlashModuleMountUseCase
-import anhiutangerinee.kittisu.domain.usecase.ExecuteFlashOperationUseCase
-import anhiutangerinee.kittisu.domain.usecase.IsSoftRebootPreferredUseCase
-import anhiutangerinee.kittisu.domain.usecase.RebootUseCase
 
 enum class FlashingStatus(@param:StringRes val resId: Int) {
     FLASHING(R.string.flashing),

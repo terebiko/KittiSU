@@ -7,6 +7,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.net.toUri
+import anhiutangerinee.kittisu.data.profile.AppProfileKey
+import anhiutangerinee.kittisu.data.profile.ProfileRepository
+import anhiutangerinee.kittisu.domain.model.AllowlistOperationResult
+import anhiutangerinee.kittisu.domain.model.AllowlistRestoreResult
+import anhiutangerinee.kittisu.domain.model.InstalledApp
+import anhiutangerinee.kittisu.domain.model.InstalledAppGroup
+import anhiutangerinee.kittisu.domain.model.SuperUserLoadFailure
+import anhiutangerinee.kittisu.domain.model.SuperUserState
+import anhiutangerinee.kittisu.domain.model.WEBVIEW_ZYGOTE_PROFILE_KEY
+import anhiutangerinee.kittisu.domain.model.WEBVIEW_ZYGOTE_UID
 import com.topjohnwu.superuser.io.SuFile
 import com.topjohnwu.superuser.io.SuFileInputStream
 import kotlinx.coroutines.CancellationException
@@ -21,16 +31,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.profile.AppProfileKey
-import anhiutangerinee.kittisu.data.profile.ProfileRepository
-import anhiutangerinee.kittisu.domain.model.AllowlistOperationResult
-import anhiutangerinee.kittisu.domain.model.AllowlistRestoreResult
-import anhiutangerinee.kittisu.domain.model.InstalledApp
-import anhiutangerinee.kittisu.domain.model.InstalledAppGroup
-import anhiutangerinee.kittisu.domain.model.SuperUserLoadFailure
-import anhiutangerinee.kittisu.domain.model.SuperUserState
-import anhiutangerinee.kittisu.domain.model.WEBVIEW_ZYGOTE_PROFILE_KEY
-import anhiutangerinee.kittisu.domain.model.WEBVIEW_ZYGOTE_UID
 
 class SuperUserRepository(
     private val application: Application,

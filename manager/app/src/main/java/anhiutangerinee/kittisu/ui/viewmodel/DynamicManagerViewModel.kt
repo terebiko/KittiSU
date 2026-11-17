@@ -3,6 +3,13 @@ package anhiutangerinee.kittisu.ui.viewmodel
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.DynamicManagerApp
+import anhiutangerinee.kittisu.domain.model.DynamicManagerConfig
+import anhiutangerinee.kittisu.domain.usecase.ClearDynamicManagerUseCase
+import anhiutangerinee.kittisu.domain.usecase.ObserveDynamicManagerStateUseCase
+import anhiutangerinee.kittisu.domain.usecase.RefreshDynamicManagerUseCase
+import anhiutangerinee.kittisu.domain.usecase.SelectDynamicManagerUseCase
+import anhiutangerinee.kittisu.domain.usecase.SetManualDynamicManagerUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,13 +19,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.domain.model.DynamicManagerApp
-import anhiutangerinee.kittisu.domain.model.DynamicManagerConfig
-import anhiutangerinee.kittisu.domain.usecase.ClearDynamicManagerUseCase
-import anhiutangerinee.kittisu.domain.usecase.ObserveDynamicManagerStateUseCase
-import anhiutangerinee.kittisu.domain.usecase.RefreshDynamicManagerUseCase
-import anhiutangerinee.kittisu.domain.usecase.SelectDynamicManagerUseCase
-import anhiutangerinee.kittisu.domain.usecase.SetManualDynamicManagerUseCase
 
 typealias DynamicManagerAppItem = DynamicManagerApp
 

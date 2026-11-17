@@ -63,12 +63,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.parcelize.Parcelize
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.FlashOperation
 import anhiutangerinee.kittisu.domain.model.FlashOperationUpdate
@@ -96,6 +90,12 @@ import anhiutangerinee.kittisu.ui.viewmodel.FlashingStatus
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleInstallStatus
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleViewModel
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.parcelize.Parcelize
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

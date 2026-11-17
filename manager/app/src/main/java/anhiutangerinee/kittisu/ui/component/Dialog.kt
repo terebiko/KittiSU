@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import anhiutangerinee.kittisu.domain.model.DocumentFormat
+import anhiutangerinee.kittisu.domain.model.ModuleReadme
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TableAwareMovementMethod
 import io.noties.markwon.ext.tables.TablePlugin
@@ -56,8 +58,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.parcelize.Parcelize
-import anhiutangerinee.kittisu.domain.model.DocumentFormat
-import anhiutangerinee.kittisu.domain.model.ModuleReadme
 
 private const val TAG = "DialogComponent"
 

@@ -25,9 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.settings.SegmentedColumn
 import anhiutangerinee.kittisu.ui.component.settings.SegmentedColumnScope
@@ -35,6 +32,9 @@ import anhiutangerinee.kittisu.ui.component.settings.SettingsDropdownWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsJumpPageWidget
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Displays an entry's fields in a read-only dialog with a delete action.

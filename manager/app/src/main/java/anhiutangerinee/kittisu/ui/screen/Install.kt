@@ -64,8 +64,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.LkmSelection
 import anhiutangerinee.kittisu.ui.component.DialogHandle
@@ -87,6 +85,8 @@ import anhiutangerinee.kittisu.ui.util.LocalBlurState
 import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
 import anhiutangerinee.kittisu.ui.viewmodel.InstallUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.InstallViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

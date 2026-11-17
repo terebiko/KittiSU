@@ -38,12 +38,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.webkit.WebViewAssetLoader
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
-import java.util.Base64
-import kotlin.math.abs
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.data.network.WebResourceRepository
 import anhiutangerinee.kittisu.domain.model.DocumentFormat
 import anhiutangerinee.kittisu.domain.model.DocumentNavigation
@@ -55,6 +49,12 @@ import anhiutangerinee.kittisu.ui.activity.util.ensureVisibleByMix
 import anhiutangerinee.kittisu.ui.activity.util.relativeLuminance
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.isInDarkTheme
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.util.Base64
+import kotlin.math.abs
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.commonmark.ext.gfm.tables.TablesExtension
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.AttributeProvider

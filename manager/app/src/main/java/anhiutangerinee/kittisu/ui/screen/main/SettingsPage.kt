@@ -78,11 +78,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.usecase.GenerateBugreportUseCase
@@ -107,6 +102,11 @@ import anhiutangerinee.kittisu.ui.util.showReplacingSnackbar
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsViewModel
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

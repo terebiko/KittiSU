@@ -2,15 +2,6 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import java.util.UUID
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.data.script.ParamError
 import anhiutangerinee.kittisu.data.script.PreparedScript
 import anhiutangerinee.kittisu.data.script.ReleasedException
@@ -22,6 +13,15 @@ import anhiutangerinee.kittisu.domain.usecase.ReleaseScriptUseCase
 import anhiutangerinee.kittisu.domain.usecase.RunScriptUseCase
 import anhiutangerinee.kittisu.domain.usecase.SaveModuleActionLogUseCase
 import anhiutangerinee.kittisu.ui.navigation.Route
+import java.util.UUID
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class ScriptRunPhase { PREPARING, FAILED, READY, RUNNING, FINISHED }
 

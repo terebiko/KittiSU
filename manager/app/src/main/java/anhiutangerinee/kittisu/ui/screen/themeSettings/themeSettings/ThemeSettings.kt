@@ -87,14 +87,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.materialkolor.PaletteStyle
-import com.materialkolor.dynamiccolor.ColorSpec
-import com.yalantis.ucrop.UCrop
-import java.io.File
-import kotlin.math.roundToInt
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.availablePaletteStyles
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
@@ -131,6 +123,14 @@ import anhiutangerinee.kittisu.ui.viewmodel.SettingsUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsUiState
 import anhiutangerinee.kittisu.ui.viewmodel.SettingsViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.dpiFriendlyNameRes
+import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
+import com.yalantis.ucrop.UCrop
+import java.io.File
+import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

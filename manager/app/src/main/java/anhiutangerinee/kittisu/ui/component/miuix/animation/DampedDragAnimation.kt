@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.unit.IntSize
+import anhiutangerinee.kittisu.ui.component.miuix.modifier.inspectDragGestures
 import kotlin.math.abs
 import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
@@ -17,7 +18,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.ui.component.miuix.modifier.inspectDragGestures
 
 class DampedDragAnimation(
     private val animationScope: CoroutineScope,

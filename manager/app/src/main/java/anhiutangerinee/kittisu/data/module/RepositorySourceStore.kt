@@ -2,17 +2,17 @@ package anhiutangerinee.kittisu.data.module
 
 import android.content.Context
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.google.gson.JsonArray
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import kotlinx.coroutines.CancellationException
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.AppSettingsRepository
 import anhiutangerinee.kittisu.domain.model.RepositoryApiType
 import anhiutangerinee.kittisu.domain.model.RepositoryError
 import anhiutangerinee.kittisu.domain.model.RepositoryException
 import anhiutangerinee.kittisu.domain.model.RepositorySource
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import kotlinx.coroutines.CancellationException
 
 class RepositorySourceStore(
     private val settings: AppSettingsRepository,

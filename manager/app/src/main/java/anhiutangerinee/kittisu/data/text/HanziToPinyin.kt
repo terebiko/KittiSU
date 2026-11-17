@@ -18,9 +18,9 @@ package anhiutangerinee.kittisu.data.text
 
 import android.text.TextUtils
 import android.util.Log
+import anhiutangerinee.kittisu.domain.text.TextTransliterator
 import java.text.Collator
 import java.util.Locale
-import anhiutangerinee.kittisu.domain.text.TextTransliterator
 
 class HanziToPinyin private constructor(val hasChinaCollator: Boolean) : TextTransliterator {
 

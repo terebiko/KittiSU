@@ -15,6 +15,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStoreFile
+import anhiutangerinee.kittisu.domain.model.AppPreferences
+import anhiutangerinee.kittisu.domain.model.PreferenceValue
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,8 +25,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.domain.model.AppPreferences
-import anhiutangerinee.kittisu.domain.model.PreferenceValue
 
 class AppSettingsRepository(
     context: Context,

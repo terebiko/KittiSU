@@ -1,16 +1,16 @@
 package anhiutangerinee.kittisu.data.profile
 
+import anhiutangerinee.kittisu.Natives
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.AllowlistRestoreResult
+import anhiutangerinee.kittisu.domain.model.AppControlAction
+import anhiutangerinee.kittisu.domain.model.AppProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.Natives
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.AllowlistRestoreResult
-import anhiutangerinee.kittisu.domain.model.AppControlAction
-import anhiutangerinee.kittisu.domain.model.AppProfile
 
 data class AppProfileKey(
     val packageName: String,

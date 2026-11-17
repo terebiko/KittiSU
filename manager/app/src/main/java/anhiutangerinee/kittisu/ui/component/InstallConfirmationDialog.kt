@@ -45,10 +45,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import java.io.InputStream
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.file.withInstallArchive
 import anhiutangerinee.kittisu.domain.model.CatalogModule
@@ -63,6 +59,10 @@ import anhiutangerinee.kittisu.domain.usecase.ObserveDownloadUseCase
 import anhiutangerinee.kittisu.ui.util.LocalPermissionRequestInterface
 import anhiutangerinee.kittisu.ui.util.downloader.download
 import anhiutangerinee.kittisu.ui.util.downloader.downloadFailureMessage
+import java.io.InputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 val LocalRepositoryModuleInstall = staticCompositionLocalOf<(Uri, CatalogModule, ModuleReleaseAsset, () -> Boolean) -> Unit> {

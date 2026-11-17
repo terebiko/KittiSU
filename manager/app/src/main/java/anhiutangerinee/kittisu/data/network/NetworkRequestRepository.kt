@@ -1,5 +1,7 @@
 package anhiutangerinee.kittisu.data.network
 
+import anhiutangerinee.kittisu.domain.model.DocumentPolicy
+import anhiutangerinee.kittisu.domain.model.HttpStatusException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -7,8 +9,6 @@ import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.Buffer
-import anhiutangerinee.kittisu.domain.model.DocumentPolicy
-import anhiutangerinee.kittisu.domain.model.HttpStatusException
 
 data class NetworkResponse(
     val body: String?,

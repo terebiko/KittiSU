@@ -3,6 +3,9 @@ package anhiutangerinee.kittisu.data.flash
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import anhiutangerinee.kittisu.R
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.FlashProgress
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -10,9 +13,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import anhiutangerinee.kittisu.R
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.FlashProgress
 
 /**
  * @author ShirkNeko

@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.data.startup
 
+import anhiutangerinee.kittisu.domain.model.StartupState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import anhiutangerinee.kittisu.domain.model.StartupState
 
 class StartupRepository {
     private val mutableState = MutableStateFlow<StartupState>(StartupState.Loading)

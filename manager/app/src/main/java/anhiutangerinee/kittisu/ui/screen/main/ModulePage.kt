@@ -116,11 +116,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.kyant.capsule.ContinuousRoundedRectangle
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.settings.SettingsPlatformRepository
 import anhiutangerinee.kittisu.domain.model.DocumentFormat
@@ -170,6 +165,11 @@ import anhiutangerinee.kittisu.ui.viewmodel.ModuleUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleUiState
 import anhiutangerinee.kittisu.ui.viewmodel.ModuleViewModel
 import anhiutangerinee.kittisu.ui.webui.WebUIActivity
+import com.kyant.capsule.ContinuousRoundedRectangle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

@@ -39,10 +39,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.zIndex
-import kotlin.math.roundToInt
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.renderBackgroundBlur
 import anhiutangerinee.kittisu.ui.util.LocalBackgroundBlurProvided
+import kotlin.math.roundToInt
 import org.koin.compose.koinInject
 
 private const val PADDING_HORIZONTAL = 16

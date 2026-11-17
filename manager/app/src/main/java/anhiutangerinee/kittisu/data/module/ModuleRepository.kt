@@ -1,5 +1,12 @@
 package anhiutangerinee.kittisu.data.module
 
+import anhiutangerinee.kittisu.data.network.NetworkRequestRepository
+import anhiutangerinee.kittisu.data.network.NetworkStatusRepository
+import anhiutangerinee.kittisu.data.shell.KsuCliRepository
+import anhiutangerinee.kittisu.domain.model.InstalledModule
+import anhiutangerinee.kittisu.domain.model.InstalledModulesState
+import anhiutangerinee.kittisu.domain.model.MetaModuleStatus
+import anhiutangerinee.kittisu.domain.model.ModuleUpdateMetadata
 import com.topjohnwu.superuser.io.SuFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -12,13 +19,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import anhiutangerinee.kittisu.data.network.NetworkRequestRepository
-import anhiutangerinee.kittisu.data.network.NetworkStatusRepository
-import anhiutangerinee.kittisu.data.shell.KsuCliRepository
-import anhiutangerinee.kittisu.domain.model.InstalledModule
-import anhiutangerinee.kittisu.domain.model.InstalledModulesState
-import anhiutangerinee.kittisu.domain.model.MetaModuleStatus
-import anhiutangerinee.kittisu.domain.model.ModuleUpdateMetadata
 import org.json.JSONArray
 import org.json.JSONObject
 

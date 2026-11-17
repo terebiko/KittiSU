@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.SystemClock
 import android.util.LruCache
+import anhiutangerinee.kittisu.data.module.registry.RegistryUrls
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +14,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import anhiutangerinee.kittisu.data.module.registry.RegistryUrls
 
 /** Bounded raster loading adapted from tiann/KernelSU's ModuleRepoScreen.kt. */
 class ModuleIconRepository(httpClient: OkHttpClient) {

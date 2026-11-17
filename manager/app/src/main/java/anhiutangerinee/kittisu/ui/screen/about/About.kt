@@ -49,7 +49,6 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.WarningCard
@@ -65,6 +64,7 @@ import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.theme.renderBackgroundBlur
 import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
+import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

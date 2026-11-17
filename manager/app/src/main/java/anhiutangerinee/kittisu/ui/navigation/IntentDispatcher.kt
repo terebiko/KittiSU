@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
-import kotlinx.coroutines.channels.ReceiveChannel
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.download.DownloadService
@@ -26,6 +25,7 @@ import anhiutangerinee.kittisu.ui.component.ZipFileDetector
 import anhiutangerinee.kittisu.ui.component.ZipFileInfo
 import anhiutangerinee.kittisu.ui.component.ZipType
 import anhiutangerinee.kittisu.ui.webui.WebUIActivity
+import kotlinx.coroutines.channels.ReceiveChannel
 import org.koin.compose.koinInject
 
 private const val SCHEME_KSU = "ksu"

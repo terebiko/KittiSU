@@ -17,12 +17,6 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.AppSettingsRepository
 import anhiutangerinee.kittisu.data.packageinfo.AppIconDataSource
@@ -30,6 +24,12 @@ import anhiutangerinee.kittisu.data.packageinfo.InstalledPackageRepository
 import anhiutangerinee.kittisu.data.webui.WebUiRepository
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @SuppressLint("SetJavaScriptEnabled")
 internal suspend fun prepareWebView(

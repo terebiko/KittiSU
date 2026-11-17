@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.settings.SettingsJumpPageWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsTextFieldWidget
@@ -40,6 +39,7 @@ import anhiutangerinee.kittisu.ui.viewmodel.SuSFSUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.SuSFSViewModel
 import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSBoolean
 import anhiutangerinee.kittisu.ui.viewmodel.awaitSuSFSConfig
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

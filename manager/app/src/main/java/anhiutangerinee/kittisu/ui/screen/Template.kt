@@ -63,7 +63,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.ProfileTemplate
 import anhiutangerinee.kittisu.ui.component.NetworkRefreshContent
@@ -82,6 +81,7 @@ import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateUiEvent
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateViewModel
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 

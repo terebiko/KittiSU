@@ -22,7 +22,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.domain.model.AppProfile
 import anhiutangerinee.kittisu.ui.component.NetworkRefreshContent
@@ -30,6 +29,7 @@ import anhiutangerinee.kittisu.ui.component.settings.SettingsChooseWidget
 import anhiutangerinee.kittisu.ui.util.ActivityResumeEffect
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateUiAction
 import anhiutangerinee.kittisu.ui.viewmodel.TemplateViewModel
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 /**

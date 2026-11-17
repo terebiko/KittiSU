@@ -47,12 +47,6 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import com.mikepenz.aboutlibraries.Libs
-import com.mikepenz.aboutlibraries.entity.Library
-import com.mikepenz.aboutlibraries.ui.compose.util.author
-import com.mikepenz.aboutlibraries.util.withJson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ui.component.WarningCard
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
@@ -65,6 +59,12 @@ import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.adaptiveScaffoldWindowInsets
+import com.mikepenz.aboutlibraries.Libs
+import com.mikepenz.aboutlibraries.entity.Library
+import com.mikepenz.aboutlibraries.ui.compose.util.author
+import com.mikepenz.aboutlibraries.util.withJson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

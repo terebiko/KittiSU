@@ -2,6 +2,9 @@ package anhiutangerinee.kittisu.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.domain.model.ModuleActionUpdate
+import anhiutangerinee.kittisu.domain.usecase.ExecuteModuleActionUseCase
+import anhiutangerinee.kittisu.domain.usecase.SaveModuleActionLogUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,9 +14,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import anhiutangerinee.kittisu.domain.model.ModuleActionUpdate
-import anhiutangerinee.kittisu.domain.usecase.ExecuteModuleActionUseCase
-import anhiutangerinee.kittisu.domain.usecase.SaveModuleActionLogUseCase
 
 data class ExecuteModuleActionUiState(
     val output: String = "",

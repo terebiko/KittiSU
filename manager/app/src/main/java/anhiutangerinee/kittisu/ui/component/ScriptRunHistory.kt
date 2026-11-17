@@ -2,10 +2,10 @@ package anhiutangerinee.kittisu.ui.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import java.text.DateFormat
-import java.util.Date
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.script.ScriptRunRecord
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun scriptLastRunText(record: ScriptRunRecord?): String {
