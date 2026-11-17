@@ -1,17 +1,17 @@
 define check_ksu_hook
-  ifeq ($$(shell grep -q "$(1)" $(2); echo $$$$?),0)
+  ifeq ($$(shell grep -q -F "$(1)" $(2); echo $$$$?),0)
       $$(info -- $$(REPO_NAME)/manual_hook: $(1) found)
   else
       $$(info -- You lost $(1) hook in your kernel)
-      $$(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
+      $$(info -- Read: https://bakasu.org/guide/manual-integrate.html)
       $$(error You should integrate $$(REPO_NAME) in your kernel. $(3))
   endif
 endef
 
 define check_ksu_hook_incompatible
-  ifeq ($$(shell grep -q "$(1)" $(2); echo $$$$?),0)
+  ifeq ($$(shell grep -q -F "$(1)" $(2); echo $$$$?),0)
       $$(info -- $(1) is incompatible hook)
-      $$(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
+      $$(info -- Read: https://bakasu.org/guide/manual-integrate.html)
       $$(error You should integrate $$(REPO_NAME) in your kernel correctly.)
   endif
 endef
@@ -24,7 +24,7 @@ ifeq ($(CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK), y)
   ifeq ($(shell test \( $(VERSION) -gt 6 -o \( $(VERSION) -eq 6 -a $(PATCHLEVEL) -ge 8 \) \) && echo y),y)
       $(info -- You can't use LSM hooks for kernel version >=6.8)
       $(info -- You should turn off CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK and hook setresuid manually)
-      $(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
+      $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
       $(error You can't use LSM hooks when kernel version >= 6.8)
   endif
 else
@@ -37,7 +37,7 @@ ifeq ($(CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK), y)
   ifeq ($(shell test \( $(VERSION) -gt 6 -o \( $(VERSION) -eq 6 -a $(PATCHLEVEL) -ge 8 \) \) && echo y),y)
       $(info -- You can't use LSM hooks for kernel version >=6.8)
       $(info -- You should turn off CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK and hook sys_read manually.)
-      $(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
+      $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
       $(error You can't use LSM hooks when kernel version >= 6.8)
   endif
 else
@@ -51,25 +51,38 @@ else
   $(eval $(call check_ksu_hook,ksu_handle_input_handle_event,$(srctree)/drivers/input/input.c))
 endif
 
-  ifeq ($(shell grep -q "ksu_handle_execveat" $(srctree)/fs/exec.c; echo $$?),0)
-    $(info -- $(REPO_NAME)/manual_hook: ksu_handle_execveat found)
-  else
-    ifeq ($(shell test \( $(VERSION) -lt 3 -o \( $(VERSION) -eq 3 -a $(PATCHLEVEL) -le 14 \) \) && echo y),y)
-      # https://github.com/torvalds/linux/commit/c4ad8f98bef77c7356aa6a9ad9188a6acc6b849d
-      # when 3.14-, we should use ksu_handle_execve 
-      ifeq ($(shell grep -q "ksu_handle_execve" $(srctree)/fs/exec.c; echo $$?),0)
-        $(info -- $(REPO_NAME)/manual_hook: ksu_handle_execve found)
-      else
-        $(info -- You lost ksu_handle_execve hook in your kernel)
-        $(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
-        $(error You should integrate $(REPO_NAME) in your kernel.)
-      endif
+# ksu_handle_execve / ksu_handle_post_execve -> ksu_handle_execve_common / ksu_handle_post_execve_common
+ifeq ($(shell grep -q -w 'ksu_handle_execve' $(srctree)/fs/exec.c && echo y),y)
+  $(info -- ksu_handle_execve is deprecated, please migrate to ksu_handle_execve_common)
+  $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
+  $(error You should integrate $(REPO_NAME) in your kernel correctly.)
+endif
+
+ifeq ($(shell grep -q -w 'ksu_handle_post_execve' $(srctree)/fs/exec.c && echo y),y)
+  $(info -- ksu_handle_post_execve is deprecated, please migrate to ksu_handle_post_execve_common)
+  $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
+  $(error You should integrate $(REPO_NAME) in your kernel correctly.)
+endif
+
+ifeq ($(shell grep -q "ksu_handle_execveat" $(srctree)/fs/exec.c; echo $$?),0)
+  $(info -- $(REPO_NAME)/manual_hook: ksu_handle_execveat found)
+else
+  ifeq ($(shell test \( $(VERSION) -lt 3 -o \( $(VERSION) -eq 3 -a $(PATCHLEVEL) -le 14 \) \) && echo y),y)
+    # https://github.com/torvalds/linux/commit/c4ad8f98bef77c7356aa6a9ad9188a6acc6b849d
+    # when 3.14-, we should use ksu_handle_execve 
+    ifeq ($(shell grep -q "ksu_handle_execve_common" $(srctree)/fs/exec.c; echo $$?),0)
+      $(info -- $(REPO_NAME)/manual_hook: ksu_handle_execve_common found)
     else
-      $(info -- You lost ksu_handle_execveat hook in your kernel)
-      $(info -- Read: https://resukisu.github.io/guide/manual-integrate.html)
+      $(info -- You lost ksu_handle_execve_common hook in your kernel)
+      $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
       $(error You should integrate $(REPO_NAME) in your kernel.)
     endif
+  else
+    $(info -- You lost ksu_handle_execveat hook in your kernel)
+    $(info -- Read: https://bakasu.org/guide/manual-integrate.html)
+    $(error You should integrate $(REPO_NAME) in your kernel.)
   endif
+endif
 
 $(eval $(call check_ksu_hook,ksu_handle_faccessat,$(srctree)/fs/open.c))
 $(eval $(call check_ksu_hook,ksu_handle_stat,$(srctree)/fs/stat.c))

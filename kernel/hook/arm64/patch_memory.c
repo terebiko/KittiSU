@@ -143,7 +143,7 @@ fail:
 // However, it's backport to android13-5.10 but not to android12-5.10.
 // https://cs.android.com/android/_/android/kernel/common/+/6d9f07d8f1ffc310a6877153fe882f35ae380799
 // So we need to grep kernel source code to detect which one to use.
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0) || defined(KSU_HAS_NEW_DCACHE_FLUSH)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0) || defined(KSU_FLUSH_DCACHE_AREA_NOT_FOUND)
 #define ksu_flush_dcache(start, sz)                                                                                    \
     ({                                                                                                                 \
         unsigned long __start = (start);                                                                               \
@@ -289,6 +289,10 @@ static int ksu_patch_text_nosync(void *dst, void *src, size_t len, int flags)
     void *map = set_fixmap_offset(FIX_TEXT_POKE0, phy);
     pr_info("fixmap addr for patch 0x%lx: 0x%lx\n", p, (unsigned long)map);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+    // bypass some stupid GKI kernel's self protection
+    ret = (int)copy_to_kernel_nofault(map, src, len);
+#else
     memcpy(map, src, len);
 
     if (memcmp(map, src, len) == 0) {
@@ -296,6 +300,7 @@ static int ksu_patch_text_nosync(void *dst, void *src, size_t len, int flags)
     } else {
         ret = -EFAULT;
     }
+#endif
 
     clear_fixmap(FIX_TEXT_POKE0);
 
@@ -367,6 +372,41 @@ int ksu_patch_text(void *dst, void *src, size_t len, int flags)
 #else
     return stop_machine(ksu_patch_text_cb, &info, cpu_online_mask);
 #endif
+}
+
+/*
+ * Scan the memory region [start, start+size) for a BL instruction whose
+ * branch target equals `target`.  Returns the address of the first matching
+ * instruction, or NULL if none is found.
+ *
+ * AArch64 BL encoding: bits[31:26] = 0b100101, bits[25:0] = imm26.
+ * Branch target = PC + SignExtend(imm26, 26) * 4.
+ */
+void *scan_call_to(void *start, size_t size, void *target)
+{
+    const uint32_t *insn = (const uint32_t *)start;
+    size_t count = size / sizeof(uint32_t);
+    size_t i;
+
+    for (i = 0; i < count; i++) {
+        int32_t imm26;
+        void *branch_target;
+
+        /* Check BL opcode: bits[31:26] == 0b100101 */
+        if ((insn[i] & 0xFC000000U) != 0x94000000U)
+            continue;
+
+        /* Sign-extend the 26-bit immediate to 32 bits */
+        imm26 = (int32_t)((insn[i] & 0x03FFFFFFU) << 6) >> 6;
+
+        /* Branch target = PC + imm26 * 4 */
+        branch_target = (void *)((uintptr_t)(&insn[i]) + ((int64_t)imm26 << 2));
+
+        if (branch_target == target)
+            return (void *)&insn[i];
+    }
+
+    return NULL;
 }
 
 #endif /* __aarch64__ */

@@ -2,13 +2,13 @@
 set -eu
 
 GKI_ROOT=$(pwd)
-KITTISU_REPOSITORY=${KITTISU_REPOSITORY:-https://github.com/terebiko/KittiSU}
 
 display_usage() {
 	echo "Usage: $0 [--cleanup | <commit-or-tag>]"
 	echo "  --cleanup:			  Cleans up previous modifications made by the script."
 	echo "  <commit-or-tag>:		Sets up or updates the KernelSU to specified tag or commit."
 	echo "  -h, --help:			 Displays this usage information."
+	echo "  --submodule:		  Resets KernelSU as a submodule."
 	echo "  (no args):			  Sets up or updates the KernelSU environment to the latest tagged version."
 }
 
@@ -35,6 +35,14 @@ perform_cleanup() {
 	if [ -d "$GKI_ROOT/KernelSU" ]; then
 		rm -rf "$GKI_ROOT/KernelSU" && echo "[-] KernelSU directory deleted."
 	fi
+	if [ -f "$GKI_ROOT/.gitmodules" ] && grep -q 'KernelSU' "$GKI_ROOT/.gitmodules"; then
+		echo "[!] KernelSU has been added as a submodule."
+		echo "[!] Please remove it manually."
+		echo "[!] You can run the following commands:"
+		echo "--- git submodule deinit -f KernelSU"
+		echo "--- git rm -f KernelSU"
+		echo "--- git commit -m 'Remove KernelSU submodule'"
+	fi
 }
 
 # Sets up or update KernelSU environment
@@ -42,7 +50,7 @@ setup_kernelsu() {
 	echo "[+] Setting up KernelSU..."
 	# Clone the repository and rename it to KernelSU
 	if [ ! -d "$GKI_ROOT/KernelSU" ]; then
-		git clone "$KITTISU_REPOSITORY" KernelSU
+		git clone https://github.com/Baka-SU/BakaSU KernelSU
 		echo "[+] Repository cloned."
 	fi
 	cd "$GKI_ROOT/KernelSU"
@@ -63,6 +71,36 @@ setup_kernelsu() {
 	grep -q "kernelsu" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
 	grep -q "source \"drivers/kernelsu/Kconfig\"" "$DRIVER_KCONFIG" || sed -i "/endmenu/i\source \"drivers/kernelsu/Kconfig\"" "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
 	echo '[+] Done.'
+	echo '[!] If you want to add submodule in your kernelsource,you can run this setup script with --submodule argument.'
+}
+
+# Setup KernelSU as submodule
+setup_submodule() {
+	cd "$GKI_ROOT"
+
+	if [ ! -d "$GKI_ROOT/KernelSU" ]; then
+		echo '[!] KernelSU directory does not exist. Please run the script without --submodule first.'
+		exit 127
+	fi
+
+    if [ ! -d "$GKI_ROOT/.git" ]; then
+        echo '[!] GKI_ROOT is not a git repository. Skipping submodule setup.'
+        return 0
+    fi
+
+	if [ "${CI:-false}" = "true" ] || [ "${GITHUB_ACTIONS:-false}" = "true" ]; then
+		echo '[!] Running in CI. Skipping submodule setup.'
+		return 0
+	fi
+
+	if [ -f "$GKI_ROOT/.gitmodules" ] && grep -q 'KernelSU' "$GKI_ROOT/.gitmodules"; then
+		echo '[!] KernelSU is already a submodule. Skipping submodule setup.'
+		return 0
+	fi
+
+    echo '[+] Setting up KernelSU as submodule...'
+    git submodule add https://github.com/Baka-SU/BakaSU KernelSU || echo '[!] Failed to add KernelSU as a submodule.'
+    echo '[+] Done.'
 }
 
 # Process command-line arguments
@@ -71,6 +109,9 @@ if [ "$#" -eq 0 ]; then
 	setup_kernelsu
 elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 	display_usage
+elif [ "$1" = "--submodule" ]; then
+	initialize_variables
+	setup_submodule
 elif [ "$1" = "--cleanup" ]; then
 	initialize_variables
 	perform_cleanup

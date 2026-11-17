@@ -17,39 +17,24 @@ struct SlotInfo {
 
 pub fn show_slot_info_json() -> Result<()> {
     log::debug!("Starting slot_info enumeration from /dev/block/by-name");
-
-    let mut jobs = Vec::<std::thread::JoinHandle<_>>::new();
+    let mut result = Vec::new();
 
     for (slot_name, slot_path) in list_boot_slots() {
-        jobs.push(
-            std::thread::Builder::new()
-                .name(format!("analyze_{slot_name}"))
-                .spawn(move || {
-                    log::debug!("Processing slot: {} at {}", slot_name, slot_path.display());
+        log::debug!("Processing slot: {} at {}", slot_name, slot_path.display());
 
-                    match extract_slot_kernel_info(&slot_path) {
-                        Ok((uname, build_time)) => {
-                            log::info!("Successfully extracted info from {}", slot_name);
-                            log::debug!("  build_time: {}", build_time);
-                            Some(SlotInfo {
-                                slot_name,
-                                uname,
-                                build_time,
-                            })
-                        }
-                        Err(e) => {
-                            log::warn!("Failed to extract info from {}: {}", slot_name, e);
-                            None
-                        }
-                    }
-                })?,
-        );
-    }
-
-    let mut result = Vec::new();
-    for job in jobs {
-        if let Ok(Some(slot)) = job.join() {
-            result.push(slot);
+        match extract_slot_kernel_info(&slot_path) {
+            Ok((uname, build_time)) => {
+                log::info!("Successfully extracted info from {}", slot_name);
+                log::debug!("  build_time: {}", build_time);
+                result.push(SlotInfo {
+                    slot_name,
+                    uname,
+                    build_time,
+                });
+            }
+            Err(e) => {
+                log::warn!("Failed to extract info from {}: {}", slot_name, e);
+            }
         }
     }
 
@@ -203,7 +188,7 @@ fn extract_linux_version_line(buf: &[u8]) -> Option<(String, String)> {
 }
 
 fn find_all(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
-    if needle.is_empty() || haystack.len() < needle.len() {
+    /*if needle.is_empty() || haystack.len() < needle.len() {
         return Vec::new();
     }
     let mut result = Vec::<usize>::new();
@@ -215,6 +200,6 @@ fn find_all(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
         } else {
             i += 1;
         }
-    }
-    result
+    }*/
+    memchr::memmem::find_iter(haystack, needle).collect()
 }

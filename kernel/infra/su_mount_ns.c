@@ -37,54 +37,6 @@
 extern int path_mount(const char *dev_name, struct path *path, const char *type_page, unsigned long flags,
                       void *data_page);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
-
-// RKSU: tiny arch.h, avoid depending on real arch.h
-#ifndef __PT_REGS_CAST
-#define __PT_REGS_CAST(x) (x)
-#endif
-
-#if defined(__aarch64__)
-#define PT_PARM1(x) (__PT_REGS_CAST(x)->regs[0])
-#define PT_PARM2(x) (__PT_REGS_CAST(x)->regs[1])
-extern long __arm64_sys_setns(const struct pt_regs *regs);
-#define do_sys_setns(regs) (__arm64_sys_setns(regs))
-#elif defined(__x86_64__)
-#define PT_PARM1(x) (__PT_REGS_CAST(x)->di)
-#define PT_PARM2(x) (__PT_REGS_CAST(x)->si)
-extern long __x64_sys_setns(const struct pt_regs *regs);
-#define do_sys_setns(regs) (__x64_sys_setns(regs))
-#elif defined(__arm__) // https://syscalls.mebeim.net/?table=arm/32/eabi/latest
-// taken from:
-// https://github.com/backslashxx/KernelSU/blob/8b71e8bce199e8ac44538648e298092a9b3ef42b/kernel/arch.h#L29
-#define PT_PARM1(x) (__PT_REGS_CAST(x)->uregs[0])
-#define PT_PARM2(x) (__PT_REGS_CAST(x)->uregs[1])
-extern long sys_setns(const struct pt_regs *regs);
-#define do_sys_setns(regs) (sys_setns(regs))
-#endif
-
-static long ksu_sys_setns(int fd, int flags)
-{
-    struct pt_regs regs;
-    memset(&regs, 0, sizeof(regs));
-
-    PT_PARM1(&regs) = fd;
-    PT_PARM2(&regs) = flags;
-
-    return do_sys_setns(&regs);
-}
-#else
-static long ksu_sys_setns(int fd, int flags)
-{
-    return sys_setns(fd, flags);
-}
-
-int ksys_unshare(unsigned long unshare_flags)
-{
-    return sys_unshare(unshare_flags);
-}
-#endif
-
 // global mode , need CAP_SYS_ADMIN and CAP_SYS_CHROOT to perform setns
 static void ksu_mnt_ns_global(void)
 {
@@ -174,9 +126,9 @@ try_setns:
     }
 
     fd_install(fd, ns_file);
-    ret = ksu_sys_setns(fd, CLONE_NEWNS);
+    ret = ksyscall(setns, fd, CLONE_NEWNS);
 
-    do_close_fd(fd);
+    ksu_close_fd(fd);
 
     if (ret) {
         pr_warn("call setns failed: %ld\n", ret);
@@ -200,9 +152,9 @@ out:
 // individual mode , need CAP_SYS_ADMIN to perform unshare and remount
 static void ksu_mnt_ns_individual(void)
 {
-    long ret = ksys_unshare(CLONE_NEWNS);
+    long ret = ksyscall(unshare, CLONE_NEWNS);
     if (ret) {
-        pr_warn("call ksys_unshare failed: %ld\n", ret);
+        pr_warn("call sys_unshare failed: %ld\n", ret);
         return;
     }
 
@@ -227,11 +179,6 @@ void setup_mount_ns(int32_t ns_mode)
 
     if (ns_mode != KSU_NS_GLOBAL && ns_mode != KSU_NS_INDIVIDUAL) {
         pr_warn("pid: %d ,unknown mount namespace mode: %d\n", current->pid, ns_mode);
-        return;
-    }
-
-    if (!ksu_cred) {
-        pr_err("no ksu cred! skip mnt_ns magic for pid: %d.\n", current->pid);
         return;
     }
 

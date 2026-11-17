@@ -15,14 +15,15 @@
 #include <linux/version.h>
 #include <linux/mount.h>
 
-#include "compat/kernel_compat.h"
 #include "objsec.h"
 
+#include "ksu.h"
 #include "klog.h" // IWYU pragma: keep
 #include "selinux/selinux.h"
 #include "runtime/ksud_boot.h"
 
 #include "infra/file_wrapper.h"
+#include "compat/kernel_compat.h"
 
 struct ksu_file_wrapper {
     struct file *orig;
@@ -584,6 +585,8 @@ struct file *ksu_anon_inode_create_getfile_compat(const char *name, const struct
 int ksu_install_file_wrapper(int fd)
 {
     int out_fd, ret;
+    const struct cred *old_cred;
+    struct file *wrapper_file;
     struct file *orig_file = fget(fd);
     if (!orig_file) {
         return -EBADF;
@@ -601,8 +604,18 @@ int ksu_install_file_wrapper(int fd)
         goto out_put_fd;
     }
 
-    struct file *wrapper_file = ksu_anon_inode_create_getfile_compat("[ksu_fdwrapper]", &file_wrapper_data->ops,
-                                                                     file_wrapper_data, orig_file->f_flags, NULL);
+    /*
+     * security_inode_init_security_anon() checks FILE__CREATE against the
+     * current SELinux domain. A custom root profile may have already moved
+     * this task into a restricted domain (for example shell), so create the
+     * private wrapper inode with KernelSU's authorized credentials. The file
+     * is not published until the caller's credentials have been restored and
+     * its inode has been relabeled below.
+    */
+    old_cred = override_creds(ksu_cred);
+    wrapper_file = ksu_anon_inode_create_getfile_compat("[ksu_fdwrapper]", &file_wrapper_data->ops, file_wrapper_data,
+                                                        orig_file->f_flags, NULL);
+    revert_creds(old_cred);
     if (IS_ERR(wrapper_file)) {
         pr_err("ksu_fdwrapper: getfile failed: %ld\n", PTR_ERR(wrapper_file));
         ret = PTR_ERR(wrapper_file);
@@ -615,12 +628,17 @@ int ksu_install_file_wrapper(int fd)
     struct inode *wrapper_inode = file_inode(wrapper_file);
     // libc's stdio relies on the fstat() result of the fd to determine its buffer type.
     wrapper_inode->i_mode = file_inode(orig_file)->i_mode;
-    struct inode_security_struct *wrapper_sec = selinux_inode(wrapper_inode);
-    // Use ksu_file_sid to bypass SELinux check.
-    // When we call `su` from terminal app, this is useful.
-    if (wrapper_sec) {
-        wrapper_sec->sid = ksu_file_sid;
+    // Use ksu_file_sid to bypass SELinux check
+
+    // We use ksu_selinux_inode and lookup btf to workaround 6.6's ABI changes
+    // See more: https://android.googlesource.com/kernel/common/+/41c5b269af8b1f0bffcab7766a793f294ae6764e
+    struct inode_security_struct *wrapper_sec = ksu_selinux_inode(wrapper_inode);
+    if (IS_ERR(wrapper_sec)) {
+        ret = PTR_ERR(wrapper_sec);
+        goto out_put_wrapper_file;
     }
+    if (wrapper_sec)
+        wrapper_sec->sid = ksu_file_sid;
     // Install open file operation for inode.
     wrapper_inode->i_fop = &ksu_file_wrapper_inode_fops;
 

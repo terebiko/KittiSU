@@ -134,19 +134,30 @@ void ksu_unregister_manager_by_signature_index(u8 signature_index)
             }
 
             list_del_rcu(&pos->list);
-            spin_unlock(&ksu_manager_list_write_lock);
             kfree_rcu(pos, rcu);
-            return;
+        } else {
+            last_each_alive_appid = pos->appid;
         }
-
-        last_each_alive_appid = pos->appid;
     }
 
     spin_unlock(&ksu_manager_list_write_lock);
 
     if (mark_another_manager)
         ksu_last_manager_appid = last_each_alive_appid;
-    return;
+}
+
+void ksu_unregister_all_manager(void)
+{
+    struct ksu_manager_node *node, *pos, *tmp;
+
+    spin_lock(&ksu_manager_list_write_lock);
+
+    list_for_each_entry_safe (pos, tmp, &ksu_manager_appid_list, list) {
+        list_del_rcu(&pos->list);
+        kfree_rcu(pos, rcu);
+    }
+
+    spin_unlock(&ksu_manager_list_write_lock);
 }
 
 bool ksu_has_manager(void)
@@ -168,7 +179,6 @@ int ksu_handle_get_managers_cmd(struct ksu_get_managers_cmd __user *arg, struct 
     int count = 0;
     int copy_count;
 
-    // ponytail: allocate temp buffer outside RCU to avoid sleep-in-atomic with copy_to_user
     entries = kcalloc(max_allowed, sizeof(*entries), GFP_KERNEL);
     if (!entries && max_allowed)
         return -ENOMEM;
@@ -179,11 +189,13 @@ int ksu_handle_get_managers_cmd(struct ksu_get_managers_cmd __user *arg, struct 
             entries[count].uid = pos->appid;
             entries[count].signature_index = pos->signature_index;
         }
+
         count++;
     }
     rcu_read_unlock();
 
     cmd->total_count = count;
+
     copy_count = min_t(int, count, max_allowed);
 
     if (copy_count && copy_to_user((char __user *)arg + sizeof(*cmd), entries, copy_count * sizeof(*entries))) {

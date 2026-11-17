@@ -1,11 +1,117 @@
 #ifndef __KSU_H_KERNEL_COMPAT
 #define __KSU_H_KERNEL_COMPAT
 
+#include <linux/namei.h>
+#include <linux/cred.h>
 #include <linux/fs.h>
+#include <linux/err.h>
 #include <linux/version.h>
 #include <linux/fdtable.h>
 #include "ss/policydb.h"
-#include "linux/key.h"
+#include <linux/key.h>
+#include <linux/ptrace.h>
+#include <linux/syscalls.h>
+#ifdef CONFIG_COMPAT
+#include <asm/compat.h>
+#endif
+#include "arch.h"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+#if defined(__aarch64__)
+#define KSU_SYS_PREFIX(name) __arm64_sys_##name
+#elif defined(__x86_64__)
+#define KSU_SYS_PREFIX(name) __x64_sys_##name
+#elif defined(__riscv)
+#define KSU_SYS_PREFIX(name) __riscv_sys_##name
+#elif defined(__arm__)
+#define KSU_SYS_PREFIX(name) sys_##name
+#else // wire up your arch here.
+static_assert(1 == 0, "Unsupported architecture!");
+#define KSU_SYS_PREFIX(name) sys_##name
+#endif
+
+/**
+ * ksyscall: call syscalls from kernelspace
+ * - tries to copy unistd's syscall()
+ *
+ * usage: ksyscall(close, fd);
+ */
+#define __ksyscall(name, a, b, c, d, e, f)                                                                             \
+    ({                                                                                                                 \
+        extern long KSU_SYS_PREFIX(name)(const struct pt_regs *);                                                      \
+        struct pt_regs __ksu_regs = { 0 };                                                                             \
+        PT_REGS_NATIVE_PARM1(&__ksu_regs) = (unsigned long)(a);                                                        \
+        PT_REGS_NATIVE_PARM2(&__ksu_regs) = (unsigned long)(b);                                                        \
+        PT_REGS_NATIVE_PARM3(&__ksu_regs) = (unsigned long)(c);                                                        \
+        PT_REGS_NATIVE_SYSCALL_PARM4(&__ksu_regs) = (unsigned long)(d);                                                \
+        PT_REGS_NATIVE_PARM5(&__ksu_regs) = (unsigned long)(e);                                                        \
+        PT_REGS_NATIVE_PARM6(&__ksu_regs) = (unsigned long)(f);                                                        \
+        (long)KSU_SYS_PREFIX(name)(&__ksu_regs);                                                                       \
+    })
+
+// https://elixir.bootlin.com/musl/v1.2.6/source/src/internal/syscall.h#L45
+#define ksyscall_0(name) __ksyscall(name, 0, 0, 0, 0, 0, 0)
+#define ksyscall_1(name, a) __ksyscall(name, a, 0, 0, 0, 0, 0)
+#define ksyscall_2(name, a, b) __ksyscall(name, a, b, 0, 0, 0, 0)
+#define ksyscall_3(name, a, b, c) __ksyscall(name, a, b, c, 0, 0, 0)
+#define ksyscall_4(name, a, b, c, d) __ksyscall(name, a, b, c, d, 0, 0)
+#define ksyscall_5(name, a, b, c, d, e) __ksyscall(name, a, b, c, d, e, 0)
+#define ksyscall_6(name, a, b, c, d, e, f) __ksyscall(name, a, b, c, d, e, f)
+
+#else
+#define KSU_SYS_PREFIX(name) sys_##name
+
+#define ksyscall_0(name)                                                                                               \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)();                                                                                  \
+    })
+
+#define ksyscall_1(name, a)                                                                                            \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a);                                                                                 \
+    })
+
+#define ksyscall_2(name, a, b)                                                                                         \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a, b);                                                                              \
+    })
+
+#define ksyscall_3(name, a, b, c)                                                                                      \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a, b, c);                                                                           \
+    })
+
+#define ksyscall_4(name, a, b, c, d)                                                                                   \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a, b, c, d);                                                                        \
+    })
+
+#define ksyscall_5(name, a, b, c, d, e)                                                                                \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a, b, c, d, e);                                                                     \
+    })
+
+#define ksyscall_6(name, a, b, c, d, e, f)                                                                             \
+    ({                                                                                                                 \
+        extern typeof(KSU_SYS_PREFIX(name)) KSU_SYS_PREFIX(name);                                                      \
+        (long)KSU_SYS_PREFIX(name)(a, b, c, d, e, f);                                                                  \
+    })
+#endif
+
+#define __ksyscall_arg_n(_1, _2, _3, _4, _5, _6, _7, N, ...) N
+#define __ksyscall_count_args(...) __ksyscall_arg_n(__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
+#define __ksyscall_concat(a, b) a##b
+#define __ksyscall_exp(func, arg) __ksyscall_concat(func, arg)
+#define ksyscall(...) __ksyscall_exp(ksyscall_, __ksyscall_count_args(__VA_ARGS__))(__VA_ARGS__)
+
+#define ksu_close_fd(fd) ({ ksyscall(close, fd); })
+#define ksu_sys_umount(mnt, flags) ({ ksyscall(umount, (char __user *)mnt, flags); })
 
 /*
  * Leagcy Huawei Hisi Devices info Start
@@ -70,15 +176,6 @@ extern ssize_t ksu_kernel_write_compat(struct file *p, const void *buf, size_t c
 #endif
 #endif
 
-static inline int do_close_fd(unsigned int fd)
-{
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
-    return close_fd(fd);
-#else
-    return __close_fd(current->files, fd);
-#endif
-}
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 9, 0) && !defined(KSU_UL_HAS_FILE_INODE)
 static inline struct inode *file_inode(struct file *f)
 {
@@ -102,25 +199,6 @@ static inline struct task_security_struct *selinux_cred(const struct cred *cred)
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
 extern void *ksu_compat_kvrealloc(const void *p, size_t oldsize, size_t newsize, gfp_t flags);
-#endif
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 19, 0)
-// kernel below 4.19 maybe not have 3 helper, but impl that is very easy
-// copy from https://github.com/torvalds/linux/commit/c42b65e363ce97a828f81b59033c3558f8fa7f70
-__weak unsigned long *bitmap_alloc(unsigned int nbits, gfp_t flags)
-{
-    return kmalloc_array(BITS_TO_LONGS(nbits), sizeof(unsigned long), flags);
-}
-
-__weak unsigned long *bitmap_zalloc(unsigned int nbits, gfp_t flags)
-{
-    return bitmap_alloc(nbits, flags | __GFP_ZERO);
-}
-
-__weak void bitmap_free(const unsigned long *bitmap)
-{
-    kfree(bitmap);
-}
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
@@ -285,11 +363,18 @@ static inline u64 ksu_ktime_get_ns(void)
 
 extern void ksu_run_in_init_if_possible(void (*callback)(void *), void *data);
 
-#if defined(CONFIG_KEYS) && (LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) || defined(KSU_COMPAT_IS_HISI_LEGACY) ||    \
-                             defined(KSU_COMPAT_IS_HISI_LEGACY_HM2))
-#define KSU_COMPAT_REQUIRE_SESSION_KEYRING
+extern struct key *init_session_keyring;
 extern void setup_ksu_cred_session_keyring(void);
+
+static inline struct key *ksu_get_session_keyring(const struct cred *cred)
+{
+// https://github.com/torvalds/linux/commit/3a50597de8635cd05133bd12c95681c82fe7b878
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+    return rcu_dereference(cred->session_keyring);
+#else
+    return rcu_dereference(current->cred->tgcred->session_keyring);
 #endif
+}
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0) || defined(KSU_HAS_MODERN_STATIC_KEY_INTERFACE)
 #define KSU_COMPAT_USE_STATIC_KEY
@@ -316,4 +401,195 @@ __weak long copy_from_kernel_nofault(void *dst, const void *src, size_t size)
 #define __nocfi
 #endif
 
+// https://github.com/torvalds/linux/commit/294f69e662d1570703e9b56e95be37a9fd3afba5
+// f**k old compiler, thx for your notices, but better don't notice next time
+#ifndef __GCC4_has_attribute___fallthrough__
+#define __GCC4_has_attribute___fallthrough__ 0
+#endif
+
+#ifndef __has_attribute
+#define __has_attribute(x) __GCC4_has_attribute_##x
+#endif
+/*
+ * Add the pseudo keyword 'fallthrough' so case statement blocks
+ * must end with any of these keywords:
+ *   break;
+ *   fallthrough;
+ *   continue;
+ *   goto <label>;
+ *   return [expression];
+ *
+ *  gcc: https://gcc.gnu.org/onlinedocs/gcc/Statement-Attributes.html#Statement-Attributes
+ */
+#if __has_attribute(__fallthrough__)
+#define fallthrough __attribute__((__fallthrough__))
+#else
+#define fallthrough                                                                                                    \
+    do {                                                                                                               \
+    } while (0) /* fallthrough */
+#endif
+
+#ifdef KSU_COMPAT_SYM_NAME_NOT_FOUND
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && !defined(KSU_COMPAT_HAS_MODERN_POLICYDB)
+#include <linux/flex_array.h>
+#endif
+
+static inline char *sym_name(struct policydb *p, unsigned int sym_num, unsigned int element_nr)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) || defined(KSU_COMPAT_HAS_MODERN_POLICYDB)
+    return p->sym_val_to_name[sym_num][element_nr];
+#else
+    struct flex_array *fa = p->sym_val_to_name[sym_num];
+
+    return flex_array_get_ptr(fa, element_nr);
+#endif
+}
+#endif
+
+static inline struct file *ksu_filp_open_nonotify(const char *path, int flags)
+{
+    struct path p;
+    struct file *f;
+    int ret;
+    ret = kern_path(path, (flags & O_NOFOLLOW) ? 0 : LOOKUP_FOLLOW, &p);
+    if (ret) {
+        return ERR_PTR(ret);
+    }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)
+    f = dentry_open_nonotify(&p, flags, current_cred());
+    // https://github.com/torvalds/linux/commit/765927b2d508712d320c8934db963bbe14c3fcec
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0) || defined(KSU_COMPAT_HAS_MODERN_DENTRY_OPEN)
+    f = dentry_open(&p, flags | __FMODE_NONOTIFY, current_cred());
+#else
+    // clang-format off
+
+    // Old dentry_open consumes dentry / mnt!
+    // We have 2 choice
+    // 1. path_get or dget and mntget before call dentry_open
+    // 2. don't path_put when it happen
+    //
+    // I choose #2, because it can optimize 1 dentry / mnt get and put
+    // Because stupid compiler's dead code warning, we can't directly return f when this case end
+    // define DENTRY_OPEN_COSUME_CONTEXT and ifdef for path_put to let them shut up
+    #define DENTRY_OPEN_CONSUME_CONTEXT
+    // clang-format on
+    f = dentry_open(p.dentry, p.mnt, flags | __FMODE_NONOTIFY, current_cred());
+    // return f;
+#endif
+
+#ifndef DENTRY_OPEN_CONSUME_CONTEXT
+    path_put(&p);
+#endif
+    return f;
+}
+
+// use in sepolicy.c and selinux_hide.c
+
+// symtab_search is introduced on 5.9.0:
+// https://elixir.bootlin.com/linux/v5.9-rc1/source/security/selinux/ss/symtab.h
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) && !defined(KSU_COMPAT_HAS_SYMTAB_SEARCH)
+#define symtab_search(s, name) hashtab_search((s)->table, name)
+#define symtab_insert(s, name, datum) hashtab_insert((s)->table, name, datum)
+#endif
+
+// Add in 3.16, https://github.com/torvalds/linux/commit/11d200e95f3e84c1102e4cc9863a3614fd41f3ad
+/**
+ * strchrnul - Find and return a character in a string, or end of string
+ * @s: The string to be searched
+ * @c: The character to search for
+ *
+ * Returns pointer to first occurrence of 'c' in s. If c is not found, then
+ * return a pointer to the null byte at the end of s.
+ */
+__weak char *strchrnul(const char *s, int c)
+{
+    while (*s && *s != (char)c)
+        s++;
+    return (char *)s;
+}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+static void __user *userspace_stack_buffer(const void *d, size_t len)
+{
+    // To avoid having to mmap a page in userspace, just write below the stack
+    // pointer.
+    char __user *p = (void __user *)current_user_stack_pointer() - len;
+
+    return copy_to_user(p, d, len) ? NULL : p;
+}
+#else
+static void __user *userspace_stack_buffer(const void *d, size_t len)
+{
+    if (!current->mm)
+        return NULL;
+
+    volatile unsigned long start_stack = current->mm->start_stack;
+    unsigned int step = 32;
+    char __user *p = NULL;
+
+    do {
+        p = (void __user *)(start_stack - step - len);
+        if (!copy_to_user(p, d, len)) {
+            /* pr_info("%s: start_stack: %lx p: %lx len: %zu\n",
+                                __func__, start_stack, (unsigned long)p, len ); */
+            return p;
+        }
+        step = step + step;
+    } while (step <= 2048);
+    return NULL;
+}
+#endif
+
+#define MAX_ARG_STRINGS 0x7FFFFFFF
+struct user_arg_ptr {
+#ifdef CONFIG_COMPAT
+    bool is_compat;
+#endif
+    union {
+        const char __user *const __user *native;
+#ifdef CONFIG_COMPAT
+        const compat_uptr_t __user *compat;
+#endif
+    } ptr;
+};
+
+static const char __user *get_user_arg_ptr(struct user_arg_ptr argv, int nr)
+{
+    const char __user *native;
+
+#ifdef CONFIG_COMPAT
+    if (unlikely(argv.is_compat)) {
+        compat_uptr_t compat;
+
+        if (get_user(compat, argv.ptr.compat + nr))
+            return ERR_PTR(-EFAULT);
+
+        return compat_ptr(compat);
+    }
+#endif
+
+    if (get_user(native, argv.ptr.native + nr))
+        return ERR_PTR(-EFAULT);
+
+    return native;
+}
+
+static struct user_arg_ptr ksu_take_user_argv(const char __user *const __user *argv_user)
+{
+    struct user_arg_ptr argv;
+
+#ifdef CONFIG_COMPAT
+    if (in_compat_syscall()) {
+        argv.is_compat = true;
+        argv.ptr.compat = (const compat_uptr_t __user *)argv_user;
+        return argv;
+    }
+
+    argv.is_compat = false;
+#endif
+    argv.ptr.native = argv_user;
+    return argv;
+}
 #endif

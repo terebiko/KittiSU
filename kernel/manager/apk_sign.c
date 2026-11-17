@@ -32,12 +32,16 @@ struct sdesc {
 };
 
 static apk_sign_key_t apk_sign_keys[] = {
-    { EXPECTED_SIZE_KITTISU, EXPECTED_HASH_KITTISU }, /* KittiSU/KittiSU */
+    { EXPECTED_SIZE_BAKASU, EXPECTED_HASH_BAKASU }, /* Baka-SU/BakaSU */
+#ifdef CONFIG_KSU_MULTI_MANAGER_SUPPORT
+    { EXPECTED_SIZE_OFFICIAL, EXPECTED_HASH_OFFICIAL }, // tiann/KernelSU
+    { EXPECTED_SIZE_KOWX712, EXPECTED_HASH_KOWX712 }, // KOWX712/KernelSU
 #ifdef EXPECTED_SIZE
-    { EXPECTED_SIZE, EXPECTED_HASH }, /* Custom */
+    { EXPECTED_SIZE, EXPECTED_HASH }, // Custom
 #endif
 #ifdef EXPECTED_PR_BUILD_SIZE
-    { EXPECTED_PR_BUILD_SIZE, EXPECTED_PR_BUILD_HASH }, /* Custom 2 (For PR build) */
+    { EXPECTED_PR_BUILD_SIZE, EXPECTED_PR_BUILD_HASH }, // Custom 2 (For PR build)
+#endif
 #endif
 };
 
@@ -238,18 +242,13 @@ static __always_inline bool check_v2_signature(char *path, u8 *signature_index)
 
     bool v2_signing_valid = false;
     int v2_signing_blocks = 0;
-    bool v3_signing_exist = false;
-    bool v3_1_signing_exist = false;
     u8 matched_index = -1;
     int i;
-    struct file *fp = filp_open(path, O_RDONLY, 0);
+    struct file *fp = ksu_filp_open_nonotify(path, O_RDONLY | O_NOATIME);
     if (IS_ERR(fp)) {
         pr_err("open %s error.\n", path);
         return false;
     }
-
-    // disable inotify for this file
-    fp->f_mode |= FMODE_NONOTIFY;
 
     file_size = generic_file_llseek(fp, 0, SEEK_END);
     if (file_size < 0)
@@ -321,18 +320,13 @@ static __always_inline bool check_v2_signature(char *path, u8 *signature_index)
 
         if (id == 0x7109871au) {
             v2_signing_blocks++;
-
             v2_signing_valid = check_block(fp, &pos, pair_end, &matched_index);
-        } else if (id == 0xf05368c0u) {
-            // http://aospxref.com/android-14.0.0_r2/xref/frameworks/base/core/java/android/util/apk/ApkSignatureSchemeV3Verifier.java#73
-            v3_signing_exist = true;
-        } else if (id == 0x1b93ad61u) {
-            // http://aospxref.com/android-14.0.0_r2/xref/frameworks/base/core/java/android/util/apk/ApkSignatureSchemeV3Verifier.java#74
-            v3_1_signing_exist = true;
-        } else {
+        } else if (id != 0x42726577u) { // APK verity padding
+            // https://cs.android.com/android/platform/superproject/+/android-latest-release:tools/apksig/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java;l=102;drc=ebe4dfd4fd6550c949a6c7c2427484bf5e96500b
 #ifdef CONFIG_KSU_DEBUG
-            pr_info("Unknown id: 0x%08x\n", id);
+            pr_info("Unexpected signature block id: 0x%08x\n", id);
 #endif
+            goto invalid;
         }
         pos = pair_end;
     }
@@ -357,11 +351,6 @@ invalid:
     v2_signing_valid = false;
 clean:
     filp_close(fp, 0);
-
-    if (v2_signing_valid && (v3_signing_exist || v3_1_signing_exist)) {
-        pr_err("Unexpected v3 signature scheme found!\n");
-        return false;
-    }
 
     if (v2_signing_valid) {
         if (signature_index) {
