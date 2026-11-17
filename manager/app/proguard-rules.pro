@@ -44,4 +44,4 @@
 -keep class com.yalantis.ucrop** { *; }
 -keep interface com.yalantis.ucrop** { *; }
 
--keep interface org.bakasu.rootService.** { *; }
+-keep interface anhiutangerinee.kittisu.rootService.** { *; }

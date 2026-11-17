@@ -19,7 +19,7 @@ identify the nearest existing implementation pattern and preserve the project st
 
 ## Repository package layout
 
-The application code is rooted at `org.bakasu.bakasu`.
+The application code is rooted at `anhiutangerinee.kittisu`.
 
 * `data/` — data repositories and related data-layer implementation.
 * `ui/` — user-interface code, including pages, state, and reusable Compose components.
@@ -29,13 +29,13 @@ complete a change faster.
 
 ### Data layer
 
-Repository implementations belong under `org.bakasu.bakasu.data` and its subpackages. Keep
+Repository implementations belong under `anhiutangerinee.kittisu.data` and its subpackages. Keep
 persistence, data loading, mapping, and repository concerns in this layer. Do not embed UI
 composition or presentation-only behavior in repositories.
 
 ### Koin dependency injection
 
-Dependency injection is configured in `org.bakasu.bakasu.di.AppModules` and started by the
+Dependency injection is configured in `anhiutangerinee.kittisu.di.AppModules` and started by the
 application. Keep registrations in the existing module groups:
 
 * `coreModule` contains process-wide infrastructure and qualified shared scopes;
@@ -56,9 +56,9 @@ domain and data layers remain directly testable.
 
 ### Repository and use-case boundaries
 
-Repositories live under `org.bakasu.bakasu.data` and own persistence, platform access,
+Repositories live under `anhiutangerinee.kittisu.data` and own persistence, platform access,
 networking, caching, and data-source coordination. Use cases live under
-`org.bakasu.bakasu.domain.usecase` and expose one focused domain operation by composing
+`anhiutangerinee.kittisu.domain.usecase` and expose one focused domain operation by composing
 repositories and other domain dependencies. ViewModels orchestrate use cases and expose UI state;
 screens and reusable components render that state and send intents back to the ViewModel.
 
@@ -74,7 +74,7 @@ repository depend on a ViewModel or UI component, and do not move repository wor
 All reusable UI components must be placed under:
 
 ```text
-org.bakasu.bakasu.ui.component
+anhiutangerinee.kittisu.ui.component
 ```
 
 Do not create parallel reusable-component packages inside individual pages, features, or view
@@ -84,16 +84,16 @@ components intended for reuse must live in `ui.component`.
 ### Dialog
 
 Every custom dialog should manage by
-`org.bakasu.bakasu.ui.component.Dialog#rememberCustomDialog`,
-if you need confirmDialog, use `org.bakasu.bakasu.ui.component.Dialog#rememberConfirmDialog`,
-if you need loadingDialog, use `org.bakasu.bakasu.ui.component.Dialog#rememberLoadingDialog`
+`anhiutangerinee.kittisu.ui.component.Dialog#rememberCustomDialog`,
+if you need confirmDialog, use `anhiutangerinee.kittisu.ui.component.Dialog#rememberConfirmDialog`,
+if you need loadingDialog, use `anhiutangerinee.kittisu.ui.component.Dialog#rememberLoadingDialog`
 
 ### Settings UI
 
 Use the settings component system under:
 
 ```text
-org.bakasu.bakasu.ui.component.settings
+anhiutangerinee.kittisu.ui.component.settings
 ```
 
 Do not hand-build settings rows, dividers, switch rows, page-navigation rows, or similar settings
@@ -132,7 +132,7 @@ handler, divider, shape, and trailing icon/switch just to reproduce a standard s
 When a component needs a dynamic rounded-corner animation, use the implementation in:
 
 ```text
-org.bakasu.bakasu.ui.component.settings.material3internal.AnimatedShape.kt
+anhiutangerinee.kittisu.ui.component.settings.material3internal.AnimatedShape.kt
 ```
 
 Do not introduce duplicate animated-shape implementations or manually interpolate equivalent corner
@@ -182,7 +182,7 @@ instead.
   surfaces.
 * Extend the nearest existing pattern before creating a new abstraction.
 * Avoid duplicating existing widgets, shapes, or resource-access patterns.
-* Use `org.bakasu.bakasu.ui.component.HorizontalPagerWithInteraction` for every pager. Do not
+* Use `anhiutangerinee.kittisu.ui.component.HorizontalPagerWithInteraction` for every pager. Do not
   call
   `HorizontalPager` directly from screens; pager gesture arbitration belongs in this component.
 
@@ -216,9 +216,9 @@ For implementation tasks:
 
 Before completing a UI or settings task, verify:
 
-* Reusable components are under `org.bakasu.bakasu.ui.component`, unless it from library, if so,
+* Reusable components are under `anhiutangerinee.kittisu.ui.component`, unless it from library, if so,
   you MUST keep the original copyright notice.
-* Settings screens use `org.bakasu.bakasu.ui.component.settings` components.
+* Settings screens use `anhiutangerinee.kittisu.ui.component.settings` components.
 * Static settings groups use `SegmentedColumn`; runtime-changing groups use `LazySegmentedColumn`.
 * Standard settings rows use the relevant `SettingsBaseWidget` wrapper instead of a hand-built
   equivalent.
