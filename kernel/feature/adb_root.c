@@ -8,6 +8,12 @@
 #include <linux/ptrace.h>
 #include <linux/static_key.h>
 #include <linux/slab.h>
+#include <linux/version.h>
+
+// https://github.com/torvalds/linux/commit/68db0cf10678630d286f4bbbbdfa102951a35faa
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+#include <linux/sched/task_stack.h>
+#endif
 
 #include "adb_root.h"
 #include "arch.h"
@@ -214,8 +220,8 @@ long ksu_adb_root_handle_execve_tracepoint(struct pt_regs *regs)
     // Tracepoint Syscall Redirect hook always in GKI2
     // So there no need to check for modern static key interface
     if (static_branch_unlikely(&ksu_adb_root)) {
-        return do_ksu_adb_root_handle_execve((const char __user *)PT_REGS_PARM1(regs), regs,
-                                             (unsigned long *)&PT_REGS_PARM3(regs));
+        return do_ksu_adb_root_handle_execve((const char __user *)PT_REGS_SYSCALL_PARM1_USER_PTR(regs), regs,
+                                             (unsigned long *)&PT_REGS_NATIVE_PARM3(regs));
     }
     return 0;
 }
@@ -223,8 +229,8 @@ long ksu_adb_root_handle_execve_tracepoint(struct pt_regs *regs)
 long ksu_adb_root_handle_execveat_tracepoint(struct pt_regs *regs)
 {
     if (static_branch_unlikely(&ksu_adb_root)) {
-        return do_ksu_adb_root_handle_execve((const char __user *)PT_REGS_PARM2(regs), regs,
-                                             (unsigned long *)&PT_REGS_SYSCALL_PARM4(regs));
+        return do_ksu_adb_root_handle_execve((const char __user *)PT_REGS_USER_PTR(regs, 2), regs,
+                                             (unsigned long *)&PT_REGS_NATIVE_SYSCALL_PARM4(regs));
     }
     return 0;
 }

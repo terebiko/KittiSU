@@ -13,7 +13,13 @@
     static const type name##_RUST = (val);
 
 #define KSU_FULL_VERSION_STRING 255
-static const __u32 KERNEL_SU_UAPI_VERSION = 1;
+
+// 2: allowlist v4 root profile flags
+// 3: scoped su-session driver fd
+// 4: add KSU_GET_INFO_FLAG_BUNDLED
+// 5: add EVENT_SERVICES with a start/skip result
+// 6: add KSU_IOCTL_LOOKUP_SYMBOLS and KSU_GET_INFO_FLAG_PREINIT; modules.rc and preinit may live under /metadata/vold/ksu
+static const __u32 KERNEL_SU_UAPI_VERSION = 6;
 
 /* Magic numbers for reboot hook to install fd */
 DEFINE_KSU_UAPI_CONST(__u32, KSU_INSTALL_MAGIC1, 0xDEADBEEF)
@@ -26,11 +32,14 @@ struct ksu_become_daemon_cmd {
 DEFINE_KSU_UAPI_CONST(__u32, EVENT_POST_FS_DATA, 1)
 DEFINE_KSU_UAPI_CONST(__u32, EVENT_BOOT_COMPLETED, 2)
 DEFINE_KSU_UAPI_CONST(__u32, EVENT_MODULE_MOUNTED, 3)
+DEFINE_KSU_UAPI_CONST(__u32, EVENT_SERVICES, 4)
 
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_LKM, (1U << 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_MANAGER, (1U << 1))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_LATE_LOAD, (1U << 2))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_PR_BUILD, (1U << 3))
+DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_BUNDLED, (1U << 4))
+DEFINE_KSU_UAPI_CONST(__u32, KSU_GET_INFO_FLAG_PREINIT, (1U << 5))
 
 struct ksu_get_info_cmd {
     __u32 version; /* Output: KERNEL_SU_VERSION */
@@ -40,9 +49,9 @@ struct ksu_get_info_cmd {
 };
 
 struct ksu_get_info_legacy_cmd {
-    __u32 version;
-    __u32 flags;
-    __u32 features;
+    __u32 version; /* Output: KERNEL_SU_VERSION */
+    __u32 flags; /* Output: KSU_GET_INFO_FLAG_* bits */
+    __u32 features; /* Output: max feature ID supported */
 };
 
 struct ksu_report_event_cmd {
@@ -112,8 +121,12 @@ struct ksu_set_app_profile_cmd {
 struct ksu_get_feature_cmd {
     __u32 feature_id; /* Input: feature ID (enum ksu_feature_id) */
     __u64 value; /* Output: feature value/state */
-    __u8 supported; /* Output: true if feature is supported, false otherwise */
+    __u8 supported; /* Output: KSU_FEATURE_FLAG_* bits, 0 if feature is not supported */
 };
+
+#define KSU_FEATURE_FLAG_SUPPORTED (1 << 0)
+/* Value is forced by boot config (force_feature param), SET_FEATURE is refused */
+#define KSU_FEATURE_FLAG_FORCED (1 << 1)
 
 struct ksu_set_feature_cmd {
     __u32 feature_id; /* Input: feature ID (enum ksu_feature_id) */
@@ -161,6 +174,22 @@ DEFINE_KSU_UAPI_CONST(__u8, KSU_UMOUNT_GETLIST_LEGACY, 108) // get list (legacy)
 DEFINE_KSU_UAPI_CONST(__u8, KSU_UMOUNT_GETSIZE_NEW, 200) // get list size (new (with flags))
 DEFINE_KSU_UAPI_CONST(__u8, KSU_UMOUNT_GETLIST_NEW, 201) // get list (new (with flags))
 
+/*
+ * Batch kernel image symbol lookup. Returns the number of symbols found; the
+ * address of a symbol that does not exist in the running kernel is set to 0.
+ * Matches like ksuinit's /proc/kallsyms walk: a kernel symbol name is cut at
+ * its first '$', else at ".llvm.", and the first match in kallsyms order wins.
+ * Module symbols are never returned.
+ */
+struct ksu_lookup_symbols_cmd {
+    __aligned_u64 names; /* Input: user pointer to `count` user pointers to null-terminated names */
+    __aligned_u64 addrs; /* Output: user pointer to `count` __u64 symbol addresses */
+    __u32 count; /* Input: number of symbols, at most KSU_LOOKUP_SYMBOLS_MAX */
+    __u32 flags; /* Input: reserved for future use, must be 0 */
+};
+
+DEFINE_KSU_UAPI_CONST(__u32, KSU_LOOKUP_SYMBOLS_MAX, 1024)
+
 // Downstream supercall struct
 struct ksu_get_full_version_cmd {
     char version_full[KSU_FULL_VERSION_STRING]; // Output: full version string
@@ -173,6 +202,7 @@ struct ksu_hook_type_cmd {
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SET, 0)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_GET, 1)
 DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_WIPE, 2)
+DEFINE_KSU_UAPI_CONST(__u8, DYNAMIC_MANAGER_OP_SET_SYNCHRONOUS, 3)
 
 struct ksu_dynamic_manager_cmd {
     __u8 operation;
@@ -203,6 +233,7 @@ struct ksu_get_kernel_patch_implement {
 /* IOCTL command definitions */
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GRANT_ROOT, _IOC(_IOC_NONE, 'K', 1, 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_INFO, _IOR('K', 2, struct ksu_get_info_cmd))
+// deprecated
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_INFO_LEGACY, _IOC(_IOC_READ, 'K', 2, 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_REPORT_EVENT, _IOC(_IOC_WRITE, 'K', 3, 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_SET_SEPOLICY, _IOC(_IOC_READ | _IOC_WRITE, 'K', 4, 0))
@@ -227,13 +258,16 @@ DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_MANAGE_TRY_UMOUNT, _IOC(_IOC_WRITE, 'K', 
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_SET_INIT_PGRP, _IO('K', 19))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_SULOG_FD, _IOW('K', 20, struct ksu_get_sulog_fd_cmd))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT, _IO('K', 21))
+DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_LOOKUP_SYMBOLS, _IOW('K', 22, struct ksu_lookup_symbols_cmd))
 
 // Downstream add IOCTL command definitions
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_FULL_VERSION, _IOC(_IOC_READ, 'K', 100, 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_HOOK_TYPE, _IOC(_IOC_READ, 'K', 101, 0))
+// 102 = ENABLE_KPM (KernelPatch Module),deprecated
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_DYNAMIC_MANAGER, _IOC(_IOC_READ | _IOC_WRITE, 'K', 103, 0))
 // 104 = old get_managers, deprecated
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_MANAGERS, _IOC(_IOC_READ | _IOC_WRITE, 'K', 105, 0))
 DEFINE_KSU_UAPI_CONST(__u32, KSU_IOCTL_GET_KERNEL_PATCH_IMPLEMENT, _IOC(_IOC_READ, 'K', 106, 0))
+// 200 = MANAGE_KPM,deprecated
 #undef DEFINE_KSU_UAPI_CONST
 #endif

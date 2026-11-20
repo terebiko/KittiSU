@@ -34,7 +34,7 @@ config KSU_TOOLKIT_SUPPORT
 config KSU_FULL_NAME_FORMAT
       string "KernelSU full name format"
       depends on KSU
-      default "%TAG_NAME%-%COMMIT_SHA%@%REPO_NAME%"
+      default "%TAG_NAME%-%COMMIT_SHA%"
       help
         Change the build time full name format.
         It is displayed in KernelSU manager under "Version".
@@ -62,28 +62,20 @@ config KSU_DISABLE_POLICY
 	  Escalation will always use the default full root profile, and
 	  non-root handling will follow the global umount policy only.
 
+config KSU_X86_PATCH_SYSCALL_DISPATCHER
+	bool "Dynamically patch x64's hardened syscall dispatcher to support syscall hooks"
+	depends on KSU && X86_64
+	default n
+	help
+	  Dynamically patch x64's hardened syscall dispatcher to support syscall hooks. This is a
+	  replacement for a kernel source code patch, and is useful for x86_64 LKM mode.
+
 config KSU_MULTI_MANAGER_SUPPORT
 	bool "Multi KernelSU manager support"
 	depends on KSU && !KSU_DISABLE_MANAGER
 	default y
 	help
 		Enable multi KernelSU manager support
-
-config KSU_X86_PATCH_SYSCALL_DISPATCHER
-	bool "Patch the hardened x86_64 syscall dispatcher"
-	depends on KSU && X86_64 && KSU_TRACEPOINT_HOOK
-	default n
-	help
-	  Patch the x86_64 dispatcher at runtime so tracepoint syscall
-	  redirection also works for kernels without the indirect-safe bypass.
-	  This is intended for x86_64 LKM builds.
-
-config KPM
-	bool "Enable SukiSU KPM (stub / deprecated)"
-	depends on KSU
-	default n
-	help
-	  Deprecated stub for builder compatibility. KPM is removed from KittiSU.
 
 choice
 	prompt "KernelSU Hooking Method"
@@ -111,7 +103,7 @@ config KSU_MANUAL_HOOK
 
 config KSU_SUSFS
 	bool "SUSFS Inline Hook"
-	depends on THREAD_INFO_IN_TASK
+	depends on THREAD_INFO_IN_TASK && 64BIT
 	help
 	  Patch and Enable SUSFS to kernel with KernelSU.
 	  SuSFS Officially support kernel 5.10+

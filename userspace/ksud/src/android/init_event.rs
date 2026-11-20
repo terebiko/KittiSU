@@ -1,26 +1,24 @@
-use std::{path::Path, process::Command};
+use std::{path::Path, time::Instant};
 
 use anyhow::{Context, Result};
-use libc::_exit;
-use log::{info, warn};
-use prop_rs_android::{resetprop::ResetProp, sys_prop};
-use rustix::process::chdir;
+use log::{error, info, warn};
 
 use crate::{
     android::{
-        dynamic_manager, ksucalls,
-        module::{self, handle_updated_modules, metamodule, prune_modules},
+        dynamic_manager, feature, ksucalls,
+        module::{self, ScriptWait, handle_updated_modules, metamodule, prune_modules},
         restorecon,
-        utils::{self, is_safe_mode, switch_mnt_ns},
+        utils::{self, is_safe_mode},
     },
     assets, defs,
 };
 
-pub fn on_post_data_fs() -> Result<()> {
-    if ksucalls::is_uapi_version_mismatch() {
-        warn!("Kernel/userspace UAPI mismatch; skipping post-fs-data");
+pub fn on_post_fs_data() -> Result<()> {
+    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
+        error!("{e:#}, skip on_post_fs_data");
         return Ok(());
     }
+
     ksucalls::report_post_fs_data();
 
     utils::umask(0);
@@ -34,11 +32,8 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("clear temp configs failed: {e}");
     }
 
-    #[cfg(unix)]
-    {
-        let _ = catch_bootlog("logcat", &["logcat", "-b", "all"]);
-        let _ = catch_bootlog("dmesg", &["dmesg", "-w", "-r"]);
-    }
+    let _ = catch_bootlog("logcat", &["logcat", "-b", "all"]);
+    let _ = catch_bootlog("dmesg", &["dmesg", "-w", "-r"]);
 
     if utils::has_magisk() {
         warn!("Magisk detected, skip post-fs-data!");
@@ -46,6 +41,7 @@ pub fn on_post_data_fs() -> Result<()> {
     }
 
     let safe_mode = crate::android::utils::is_safe_mode();
+    let wait = ScriptWait::Until(Instant::now() + defs::BOOT_STAGE_TIMEOUT);
 
     if safe_mode {
         // we should still ensure module directory exists in safe mode
@@ -53,7 +49,7 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("safe mode, skip common post-fs-data.d scripts");
     } else {
         // Then exec common post-fs-data scripts
-        if let Err(e) = crate::android::module::exec_common_scripts("post-fs-data.d", true) {
+        if let Err(e) = crate::android::module::exec_common_scripts("post-fs-data.d", wait) {
             warn!("exec common post-fs-data scripts failed: {e}");
         }
         if let Err(e) = dynamic_manager::booted_load() {
@@ -64,6 +60,8 @@ pub fn on_post_data_fs() -> Result<()> {
     let module_dir = defs::MODULE_DIR;
 
     assets::ensure_binaries(true).with_context(|| "Failed to extract bin assets")?;
+
+    crate::android::hot_install::clean_trash();
 
     // if we are in safe mode, we should disable all modules
     if safe_mode {
@@ -82,6 +80,13 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("prune modules failed: {e}");
     }
 
+    // Refresh /metadata/watchdog/ksu/{modules.rc,preinit/} so the next boot's kernel hook sees the
+    // current module set. Acts as a safety net when state was changed outside
+    // of ksud's normal mutation commands.
+    if let Err(e) = crate::android::module::regenerate_preinit() {
+        warn!("regenerate preinit failed: {e}");
+    }
+
     if let Err(e) = restorecon::restorecon() {
         warn!("restorecon failed: {e}");
     }
@@ -95,6 +100,8 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("apply root profile sepolicy failed: {e}");
     }
 
+    feature::init_forced_features();
+
     // load feature config
     if is_safe_mode() {
         warn!("safe mode, skip load feature config");
@@ -102,17 +109,16 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("init features failed: {e}");
     }
 
-    // Apply metadata-sensitive entries before modules alter mounts and overlays.
+    // Load susfs config entries that must capture metadata before mounts/overlays.
     crate::android::susfs::init_event::on_post_fs_data();
 
     // execute metamodule post-fs-data script first (priority)
-    if let Err(e) = metamodule::exec_stage_script("post-fs-data", true) {
+    if let Err(e) = metamodule::exec_stage_script("post-fs-data", wait) {
         warn!("exec metamodule post-fs-data script failed: {e}");
     }
 
     // exec modules post-fs-data scripts
-    // TODO: Add timeout
-    if let Err(e) = module::exec_stage_script("post-fs-data", true) {
+    if let Err(e) = module::exec_stage_script("post-fs-data", wait) {
         warn!("exec post-fs-data scripts failed: {e}");
     }
 
@@ -131,14 +137,14 @@ pub fn on_post_data_fs() -> Result<()> {
         warn!("load umount config failed: {e}");
     }
 
-    run_stage("post-mount", true);
+    run_stage("post-mount", wait);
 
     std::env::set_current_dir("/").with_context(|| "failed to chdir to /")?;
 
     Ok(())
 }
 
-pub fn run_stage(stage: &str, block: bool) {
+pub fn run_stage(stage: &str, wait: ScriptWait) {
     utils::umask(0);
 
     if utils::has_magisk() {
@@ -151,73 +157,64 @@ pub fn run_stage(stage: &str, block: bool) {
         return;
     }
 
-    if let Err(e) = module::exec_common_scripts(&format!("{stage}.d"), block) {
+    if let Err(e) = module::exec_common_scripts(&format!("{stage}.d"), wait) {
         warn!("Failed to exec common {stage} scripts: {e}");
     }
 
     // execute metamodule stage script first (priority)
-    if let Err(e) = metamodule::exec_stage_script(stage, block) {
+    if let Err(e) = metamodule::exec_stage_script(stage, wait) {
         warn!("Failed to exec metamodule {stage} script: {e}");
     }
 
     // execute regular modules stage scripts
-    if let Err(e) = module::exec_stage_script(stage, block) {
+    if let Err(e) = module::exec_stage_script(stage, wait) {
         warn!("Failed to exec {stage} scripts: {e}");
     }
 }
 
 pub fn on_services() {
-    if ksucalls::is_uapi_version_mismatch() {
-        warn!("Kernel/userspace UAPI mismatch; skipping services");
+    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
+        error!("{e:#}, skip on_services");
         return;
     }
+
+    match ksucalls::report_services() {
+        Ok(true) => {}
+        Ok(false) => {
+            info!("services already started, skipping");
+            return;
+        }
+        Err(e) => {
+            error!("Failed to report services: {e:#}");
+            return;
+        }
+    }
+
     info!("on_services triggered!");
-    run_stage("service", false);
+    run_stage("service", ScriptWait::NoWait);
 }
 
 pub fn on_boot_completed() {
+    if let Err(e) = ksucalls::ensure_uapi_version_matched() {
+        error!("{e:#}, skip on_boot_completed");
+        return;
+    }
+
     ksucalls::report_boot_complete();
     info!("on_boot_completed triggered!");
 
-    run_stage("boot-completed", false);
+    crate::android::preinit::on_boot_completed();
+
+    run_stage("boot-completed", ScriptWait::NoWait);
+    // Load susfs boot-completed
     if !is_safe_mode() {
         crate::android::susfs::init_event::on_boot_completed();
     }
 
-    // ponytail: mark recovery boot_completed after all stage scripts finish
+    // mark recovery boot_completed after all stage scripts finish
     crate::android::recovery::boot_completed();
 }
 
-const fn resetprop() -> ResetProp {
-    ResetProp {
-        skip_svc: true,
-        persistent: false,
-        persist_only: false,
-        verbose: false,
-        show_context: false,
-    }
-}
-
-fn reset_boot_completed() -> Result<()> {
-    sys_prop::init().context("Failed to initialize system property API")?;
-    let rp = resetprop();
-    // Set prop value to 0 in advance to ensure resetprop -w works
-    info!("reset boot complete prop to 0");
-    rp.set("sys.boot_completed", "0")
-        .context("Failed to set sys.boot_completed to 0")?;
-    Ok(())
-}
-
-fn wait_for_boot_completed() -> Result<()> {
-    sys_prop::init().context("Failed to initialize system property API")?;
-    let rp = resetprop();
-    info!("waiting for boot complete");
-    rp.wait("sys.boot_completed", Some("0"), None)
-        .context("wait for sys.boot_completed failed")?;
-    Ok(())
-}
-
-#[cfg(unix)]
 fn catch_bootlog(logname: &str, command: &[&str]) -> Result<()> {
     use std::{os::unix::process::CommandExt, process::Stdio};
 
@@ -232,7 +229,7 @@ fn catch_bootlog(logname: &str, command: &[&str]) -> Result<()> {
 
     let bootlog = std::fs::File::create(bootlog)?;
 
-    let mut args = vec!["-s", "9", "30s"];
+    let mut args = vec!["-s", "9", defs::BOOTLOG_TIMEOUT];
     args.extend_from_slice(command);
     // timeout -s 9 30s logcat > boot.log
     let result = unsafe {
@@ -252,40 +249,4 @@ fn catch_bootlog(logname: &str, command: &[&str]) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub fn soft_reboot() -> Result<()> {
-    utils::daemonize_with(true, || -> Result<()> {
-        switch_mnt_ns(1)?;
-        chdir("/")?;
-        Ok(())
-    })?;
-
-    info!("emulating soft_reboot!");
-    if let Err(e) = reset_boot_completed() {
-        warn!("reset boot completed failed: {e}");
-    }
-    run_stage("emulated-soft-reboot", true);
-    info!("stop");
-    let status = Command::new("stop").status().context("stop failed")?;
-    if !status.success() {
-        warn!("stop exited with status: {status}");
-    }
-    info!("post-fs-data");
-    on_post_data_fs()?;
-    info!("start");
-    let status = Command::new("start").status().context("start failed")?;
-    if !status.success() {
-        warn!("start exited with status: {status}");
-    }
-    info!("services");
-    on_services();
-    if let Err(e) = wait_for_boot_completed() {
-        warn!("wait for boot completed failed: {e}");
-    }
-    on_boot_completed();
-
-    unsafe {
-        _exit(0);
-    }
 }
