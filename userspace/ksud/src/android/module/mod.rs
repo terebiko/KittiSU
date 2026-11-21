@@ -17,7 +17,7 @@ use crate::{
     android::{
         hot_install, ksucalls,
         module::ModuleType::{Active, All},
-        restorecon::{lsetfilecon, restore_syscon, setsyscon},
+        restorecon::{restore_syscon, setsyscon},
         sepolicy,
         utils::{
             detach_process_group, ensure_clean_dir, ensure_dir_exists, ensure_file_exists,
@@ -35,7 +35,6 @@ use log::{debug, error, info, warn};
 use regex_lite::Regex;
 
 const INSTALLER_CONTENT: &str = include_str!("./installer.sh");
-const METADATA_FILE_CON: &str = "u:object_r:metadata_file:s0";
 const INSTALL_MODULE_SCRIPT: &str = concatcp!(
     INSTALLER_CONTENT,
     "\n",

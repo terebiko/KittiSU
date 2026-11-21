@@ -19,17 +19,9 @@ on:
         default: ''
         type: string
   push:
-    paths:
-      - '.github/workflows/build-manager.yml'
-      - '.github/workflows/build-lkm.yml'
-      - '.github/workflows/ddk-lkm.yml'
-      - '.github/workflows/ksud.yml'
-      - '.github/workflows/ksuinit.yml'
-      - '.github/riscv64-cargo.toml'
-      - 'manager/**'
-      - 'kernel/**'
-      - 'userspace/**'
-      - 'scripts/ksubot.py'
+    branches: [ "**" ]
+    tags:
+      - '*'
   pull_request:
   workflow_call:
     inputs:
@@ -163,11 +155,18 @@ jobs:
   build-manager:
     needs: [prepare]
     runs-on: ubuntu-latest
-    if: always() && needs.prepare.result == 'success'
+    if: always() && needs.prepare.result == 'success' && (inputs.build_manager != false && github.event.inputs.build_manager != 'false')
     strategy:
       fail-fast: false
       matrix:
-        build_type: [ "release", "debug" ]
+        include:
+          - manager_type: "spoofed"
+            build_type: "release"
+
+          - manager_type: "normal"
+            build_type: "release"
+          - manager_type: "normal"
+            build_type: "debug"
     defaults:
       run:
         working-directory: ./manager
@@ -186,6 +185,21 @@ jobs:
           else
             echo "COMMIT_SHA=${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Determine manager variant
+        id: determine
+        run: |
+          if [ "${{ matrix.manager_type }}" == "spoofed" ]; then
+            echo "title=Spoofed-Manager" >> $GITHUB_OUTPUT
+          else
+            echo "title=Manager" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run randomizer
+        if: ${{ matrix.manager_type == 'spoofed' }}
+        run: |
+          chmod +x randomizer
+          ./randomizer
 
       - name: Write key
         if: ${{ github.event_name == 'workflow_dispatch' || ( github.event_name != 'pull_request') || github.ref_type == 'tag' }}
@@ -227,11 +241,13 @@ jobs:
       - name: Build APK
         run: |
           export BUILD_EXTRA_ARGS=""
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            export KSU_PACKAGE_NAME="com.resukisu.resukisu.pr${{github.event.pull_request.number}}"
+          # The spoofed variant already randomizes applicationId in-tree; a
+          # -PKSU_PACKAGE_NAME override would defeat that.
+          if [ "${{ matrix.manager_type }}" != "spoofed" ] && [ "${{ github.event_name }}" == "pull_request" ]; then
+            export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.pr${{github.event.pull_request.number}}"
             export BUILD_EXTRA_ARGS="-PKSU_PACKAGE_NAME=$KSU_PACKAGE_NAME"
-          elif [ "${{ github.ref_type }}" != "tag" ] && [ "${{ github.ref_name }}" != "main" ]; then
-            export KSU_PACKAGE_NAME="com.resukisu.resukisu.dev"
+          elif [ "${{ matrix.manager_type }}" != "spoofed" ] && [ "${{ github.ref_type }}" != "tag" ] && [ "${{ github.ref_name }}" != "main" ]; then
+            export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.dev"
             export KSU_NAME="KittiSU-DEV"
             export BUILD_EXTRA_ARGS="-PKSU_PACKAGE_NAME=$KSU_PACKAGE_NAME -PKSU_NAME=$KSU_NAME"
           fi
@@ -245,7 +261,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: Manager-gradle-${{ matrix.build_type }}
+          name: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
           path: |
             manager/app/build/outputs/apk/release/*.apk
             manager/app/build/outputs/apk/debug/*.apk
@@ -253,7 +269,7 @@ jobs:
       - name: Upload mappings
         uses: actions/upload-artifact@v7
         with:
-          name: "Manager-mappings"
+          name: "${{ steps.determine.outputs.title }}-mappings"
           path: "manager/app/build/outputs/mapping/release/"
           if-no-files-found: ignore
 
@@ -267,18 +283,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build_type: [ "release", "debug" ]
+        include:
+          - manager_type: "spoofed"
+            build_type: "release"
+          - manager_type: "normal"
+            build_type: "release"
+          - manager_type: "normal"
+            build_type: "debug"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      - name: Determine manager variant
+        id: determine
+        run: |
+          if [ "${{ matrix.manager_type }}" == "spoofed" ]; then
+            echo "title=Spoofed-Manager" >> $GITHUB_OUTPUT
+          else
+            echo "title=Manager" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download artifact
         uses: actions/download-artifact@v8
         with:
-            name: Manager-gradle-${{ matrix.build_type }}
-            path: artifacts/Manager-gradle-${{ matrix.build_type }}
+            name: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
+            path: artifacts/${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
       
       - name: Download arm64 ksud
         uses: actions/download-artifact@v8
@@ -308,7 +339,7 @@ jobs:
       - name: Place manager apk and ksud artifacts
         run: |
           mkdir -p manager/app/build/outputs/apk/${{ matrix.build_type }}
-          APKS=$(find artifacts/Manager-gradle-${{ matrix.build_type }} -type f -name "*.apk")
+          APKS=$(find artifacts/${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }} -type f -name "*.apk")
           APKS=$(echo "$APKS" | tr '\n' ' ')
           test -n "$APKS"
           cp -f $APKS manager/app/build/outputs/apk/${{ matrix.build_type }}/
@@ -373,12 +404,12 @@ jobs:
       - name: Delete gradle build
         uses: GeekyEggo/delete-artifact@v6
         with:
-          name: Manager-gradle-${{ matrix.build_type }}
+          name: ${{ steps.determine.outputs.title }}-gradle-${{ matrix.build_type }}
         
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: Manager-${{ matrix.build_type }}
+          name: ${{ steps.determine.outputs.title }}-${{ matrix.build_type }}
           path: dist/*.apk
 
   telegram-bot-api:
@@ -420,8 +451,12 @@ jobs:
 
   upload-telegram:
     needs: [repack-manager, telegram-bot-api]
-    if: github.event_name != 'pull_request' && github.event_name != 'workflow_call'
+    if: github.event_name != 'pull_request' && github.event_name != 'workflow_call' && needs.repack-manager.result == 'success'
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        manager_type: [ "spoofed", "normal" ]
 
     steps:
       - name: Checkout
@@ -437,19 +472,32 @@ jobs:
             echo "UPLOAD=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Determine topicid
+      - name: Determine manager variant
         id: determine
         run: |
-          echo "topicid=${{ vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+          if [ "${{ matrix.manager_type }}" == "spoofed" ]; then
+            echo "title=Spoofed-Manager" >> $GITHUB_OUTPUT
+            echo "topicid=${{ vars.MESSAGE_SPOOFED_THREAD_ID || vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+          else
+            echo "title=Manager" >> $GITHUB_OUTPUT
+            echo "topicid=${{ vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+          fi
 
           if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref_type }}" != "tag" ]]; then
-            echo "topicid=${{ vars.MESSAGE_DEVELOPING_MANAGER_THREAD_ID }}" >> $GITHUB_OUTPUT
+            echo "topicid=${{ vars.MESSAGE_DEVELOPING_MANAGER_THREAD_ID || vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
           fi
+
+      - name: Download Debug artifact
+        if: ${{ matrix.manager_type != 'spoofed' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.determine.outputs.title }}-debug
+          path: ./apk/debug
 
       - name: Download Release artifact
         uses: actions/download-artifact@v8
         with:
-          name: Manager-release
+          name: ${{ steps.determine.outputs.title }}-release
           path: ./apk/release
 
       - name: Download Telegram Bot API Binary
@@ -466,11 +514,161 @@ jobs:
           MESSAGE_THREAD_ID: ${{ steps.determine.outputs.topicid }}
           DEVELOPING_THREAD_ID: ${{ vars.MESSAGE_DEVELOPING_MANAGER_THREAD_ID }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: Manager
+          TITLE: ${{ steps.determine.outputs.title }}
           BRANCH: ${{ github.ref_name }}
         run: |
           pip3 install python-telegram-bot
           export VERSION=$(git rev-list --count HEAD)
+          if [ "${{ matrix.manager_type }}" == "spoofed" ]; then
+            APK_DEBUG=""
+          else
+            APK_DEBUG=apk/debug/*.apk
+          fi
           APK_RELEASE=apk/release/*.apk
           chmod +x telegram-bot-api-binary
-          python3 $GITHUB_WORKSPACE/scripts/ksubot.py $APK_RELEASE
+          python3 $GITHUB_WORKSPACE/scripts/ksubot.py $APK_DEBUG $APK_RELEASE
+
+  release:
+    needs: [build-lkm, build-ksuinit, build-ksud, build-ksud-linux-host, repack-manager]
+    if: |
+      always() &&
+      github.event_name != 'pull_request' &&
+      (inputs.publish_release == true || github.event.inputs.publish_release == 'true' || startsWith(github.ref, 'refs/tags/')) &&
+      !contains(needs.build-lkm.result, 'failure') &&
+      !contains(needs.build-ksuinit.result, 'failure') &&
+      !contains(needs.build-ksud.result, 'failure') &&
+      !contains(needs.build-ksud-linux-host.result, 'failure') &&
+      !contains(needs.repack-manager.result, 'failure') &&
+      !contains(needs.build-lkm.result, 'cancelled') &&
+      !contains(needs.build-ksud.result, 'cancelled')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: downloaded-artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+
+          # 1. Manager APKs
+          if [ -d "downloaded-artifacts" ]; then
+            find downloaded-artifacts -type f -name "*.apk" -exec cp -f {} release-assets/ \;
+          fi
+
+          # 2. Kernel LKMs: zip into KittiSU-LKM-modules.zip
+          mkdir -p /tmp/lkm-modules
+          find downloaded-artifacts -type f -name "*_kernelsu.ko" -exec cp -f {} /tmp/lkm-modules/ \; 2>/dev/null || true
+          if compgen -G "/tmp/lkm-modules/*.ko" > /dev/null; then
+            (cd /tmp/lkm-modules && zip -r9 "$GITHUB_WORKSPACE/release-assets/KittiSU-LKM-modules.zip" ./*.ko)
+          fi
+
+          # 3. Ksud binaries
+          find downloaded-artifacts/ksud-aarch64-linux-android -type f -name "ksud" -exec cp -f {} release-assets/ksud-aarch64-linux-android \; 2>/dev/null || true
+          find downloaded-artifacts/ksud-armv7-linux-androideabi -type f -name "ksud" -exec cp -f {} release-assets/ksud-armv7-linux-androideabi \; 2>/dev/null || true
+          find downloaded-artifacts/ksud-x86_64-linux-android -type f -name "ksud" -exec cp -f {} release-assets/ksud-x86_64-linux-android \; 2>/dev/null || true
+          find downloaded-artifacts/ksud-x86_64-linux-host -type f -name "ksud" -exec cp -f {} release-assets/ksud-x86_64-linux-host \; 2>/dev/null || true
+
+          # 4. Ksuinit binaries
+          find downloaded-artifacts/ksuinit-aarch64 -type f -name "ksuinit" -exec cp -f {} release-assets/ksuinit-aarch64 \; 2>/dev/null || true
+          find downloaded-artifacts/ksuinit-x86_64 -type f -name "ksuinit" -exec cp -f {} release-assets/ksuinit-x86_64 \; 2>/dev/null || true
+
+          # 5. Checksums
+          cd release-assets
+          sha256sum * > SHA256SUMS.txt 2>/dev/null || true
+          echo "Prepared release assets:"
+          ls -la
+          cd -
+
+      - name: Determine Release Metadata
+        id: meta
+        run: |
+          BUILD_DATE=$(date -u +'%Y%m%d')
+          REF_NAME="${{ github.ref_name }}"
+          IS_MAIN=false
+          if [ "$REF_NAME" = "main" ]; then
+            IS_MAIN=true
+          fi
+
+          CUSTOM_TAG="${{ inputs.custom_tag || github.event.inputs.custom_tag }}"
+          if [ -n "$CUSTOM_TAG" ]; then
+            TAG_NAME="$CUSTOM_TAG"
+          elif [ "$IS_MAIN" = "true" ]; then
+            TAG_NAME="$BUILD_DATE"
+            if git rev-parse "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+              TAG_NAME="${BUILD_DATE}.${{ github.run_number }}"
+            fi
+          else
+            TAG_NAME="pre-${REF_NAME}-${BUILD_DATE}.${{ github.run_number }}"
+          fi
+
+          if [ "$IS_MAIN" = "true" ]; then
+            PRERELEASE=false
+            RELEASE_TITLE="KittiSU $BUILD_DATE"
+          else
+            PRERELEASE=true
+            RELEASE_TITLE="KittiSU Pre-release [${REF_NAME}] - $BUILD_DATE"
+          fi
+
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$PRERELEASE" >> $GITHUB_OUTPUT
+          echo "release_title=$RELEASE_TITLE" >> $GITHUB_OUTPUT
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: ${{ steps.meta.outputs.release_title }}
+          prerelease: ${{ steps.meta.outputs.is_prerelease == 'true' }}
+          draft: false
+          files: release-assets/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prune old releases and tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - << 'EOF'
+          import json, subprocess, os, sys
+
+          repo = os.environ.get("GITHUB_REPOSITORY")
+          if not repo:
+              sys.exit(0)
+
+          try:
+              cmd = ["gh", "release", "list", "--repo", repo, "--limit", "100", "--json", "tagName,isPrerelease,createdAt"]
+              output = subprocess.check_output(cmd, text=True)
+              releases = json.loads(output)
+              releases.sort(key=lambda r: r.get("createdAt", ""), reverse=True)
+
+              official = [r for r in releases if not r.get("isPrerelease", False)]
+              prereleases = [r for r in releases if r.get("isPrerelease", False)]
+
+              # Keep max 3 official releases
+              if len(official) > 3:
+                  for r in official[3:]:
+                      tag = r.get("tagName")
+                      print(f"Pruning old official release: {tag}")
+                      subprocess.run(["gh", "release", "delete", tag, "--repo", repo, "--cleanup-tag", "-y"], check=False)
+
+              # Keep max 5 pre-releases
+              if len(prereleases) > 5:
+                  for r in prereleases[5:]:
+                      tag = r.get("tagName")
+                      print(f"Pruning old pre-release: {tag}")
+                      subprocess.run(["gh", "release", "delete", tag, "--repo", repo, "--cleanup-tag", "-y"], check=False)
+
+          except Exception as e:
+              print(f"Warning: Failed to prune old releases: {e}", file=sys.stderr)
+          EOF

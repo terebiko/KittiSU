@@ -1,4 +1,4 @@
-#[cfg(unix)]
+#[cfg(target_os = "android")]
 use std::os::unix::fs::PermissionsExt;
 use std::{
     fs::File,

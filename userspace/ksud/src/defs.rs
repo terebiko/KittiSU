@@ -93,6 +93,7 @@ mod android {
     }
 }
 
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
 pub const VERSION_CODE: &str = env!("VERSION_CODE");
 pub const VERSION_NAME: &str = env!("VERSION_NAME");
 #[cfg(target_os = "android")]

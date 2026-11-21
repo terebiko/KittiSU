@@ -1,4 +1,4 @@
-#![feature(decl_macro)]
+#![cfg_attr(target_os = "android", feature(decl_macro))]
 
 #[cfg(target_os = "android")]
 mod android;

@@ -173,11 +173,6 @@ pub fn get_info() -> uapi::ksu_get_info_cmd {
     })
 }
 
-pub fn is_uapi_version_mismatch() -> bool {
-    let info = get_info();
-    info.uapi_version != 0 && info.uapi_version != 1
-}
-
 pub fn get_version() -> i32 {
     get_info().version as i32
 }

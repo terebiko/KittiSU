@@ -367,7 +367,7 @@ fn main() {
     let out_dir = env::var("OUT_DIR").expect("Failed to get $OUT_DIR");
     let out_dir = Path::new(&out_dir);
     if env::var("KSU_PACKAGE_NAME").is_err() {
-        println!("cargo:rustc-env=KSU_PACKAGE_NAME=com.resukisu.resukisu");
+        println!("cargo:rustc-env=KSU_PACKAGE_NAME=anhiutangerinee.kittisu");
     }
     println!("cargo:rustc-env=VERSION_CODE={code}");
     println!("cargo:rustc-env=VERSION_NAME={name}");
