@@ -281,11 +281,7 @@ object BackgroundManager {
         transformation: BackgroundTransformation? = null
     ) {
         try {
-            val finalUri = if (transformation != null) {
-                context.saveTransformedBackground(uri, transformation)
-            } else {
-                copyImageToInternalStorage(context, uri)
-            }
+            val finalUri = copyImageToInternalStorage(context, uri, transformation)
 
             saveBackgroundUri(context, finalUri)
             ThemeConfig.customBackgroundUri = finalUri
@@ -324,21 +320,35 @@ object BackgroundManager {
         ThemeConfig.backgroundDim = prefs.getFloat("background_dim", 0f).coerceIn(0f, 1f)
         ThemeConfig.isEnableBlur = prefs.getBoolean("enable_blur", false)
         ThemeConfig.isEnableBlurExp = prefs.getBoolean("enable_blur_exp", false)
-        ThemeConfig.isUseBackgroundSeedColor = prefs.getBoolean("use_background_seed_color", false)
+        ThemeConfig.isUseBackgroundSeedColor = prefs.getBoolean("use_background_seed_color", true)
         ThemeConfig.isHighContrastMode = prefs.getBoolean("high_contrast_mode", false)
     }
 
-    fun saveFullScreenBackground(context: Context, uri: Uri?) {
-        val finalUri = uri?.let { copyFullScreenImageToInternalStorage(context, it) }
+    fun saveFullScreenBackground(
+        context: Context,
+        uri: Uri?,
+        transformation: BackgroundTransformation? = null
+    ) {
+        val finalUri = uri?.let { copyFullScreenImageToInternalStorage(context, it, transformation) }
+        val enabled = finalUri != null
         context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit(commit = true) {
             putString("full_screen_background", finalUri?.toString())
         }
         ThemeConfig.fullScreenBackgroundUri = finalUri
         ThemeConfig.fullScreenRefreshTick++
-        ThemeConfig.isFullScreenBackgroundEnabled = finalUri != null
+        ThemeConfig.isFullScreenBackgroundEnabled = enabled
+        CardConfig.updateFullScreenBackground(enabled)
+        if (enabled && !CardConfig.isCustomAlphaSet) {
+            CardConfig.updateAlpha(0.74f, isCustom = false)
+        }
+        CardConfig.save(context)
     }
 
-    private fun copyFullScreenImageToInternalStorage(context: Context, uri: Uri): Uri? {
+    private fun copyFullScreenImageToInternalStorage(
+        context: Context,
+        uri: Uri,
+        transformation: BackgroundTransformation? = null
+    ): Uri? {
         return try {
             val fileName = "fullscreen_background.jpg"
             val file = File(context.filesDir, fileName)
@@ -351,7 +361,8 @@ object BackgroundManager {
                 aspectX = screenW,
                 aspectY = screenH,
                 maxWidth = screenW,
-                maxHeight = screenH
+                maxHeight = screenH,
+                transformation = transformation
             )
             if (cropped != null) {
                 return Uri.fromFile(file)
@@ -393,11 +404,16 @@ object BackgroundManager {
     fun loadFullScreenBackground(context: Context) {
         val prefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
         val uriString = prefs.getString("full_screen_background", null)
+        val enabled = uriString != null
         ThemeConfig.fullScreenBackgroundUri = uriString?.toUri()
-        ThemeConfig.isFullScreenBackgroundEnabled = uriString != null
+        ThemeConfig.isFullScreenBackgroundEnabled = enabled
         ThemeConfig.fullScreenBackgroundDim = prefs.getFloat("full_screen_background_dim", 0f).coerceIn(0f, 0.9f)
         ThemeConfig.fullScreenBackgroundBlur = prefs.getBoolean("full_screen_background_blur", false)
         ThemeConfig.fullScreenBackgroundImageLoaded = false
+        CardConfig.updateFullScreenBackground(enabled)
+        if (enabled && !CardConfig.isCustomAlphaSet && CardConfig.cardAlpha >= 0.98f) {
+            CardConfig.updateAlpha(0.74f, isCustom = false)
+        }
     }
 
     fun clearFullScreenBackground(context: Context) {
@@ -419,7 +435,11 @@ object BackgroundManager {
         }
     }
 
-    private fun copyImageToInternalStorage(context: Context, uri: Uri): Uri? {
+    private fun copyImageToInternalStorage(
+        context: Context,
+        uri: Uri,
+        transformation: BackgroundTransformation? = null
+    ): Uri? {
         return try {
             val fileName = "custom_background.jpg"
             val file = File(context.filesDir, fileName)
@@ -431,7 +451,8 @@ object BackgroundManager {
                 aspectX = 16,
                 aspectY = 9,
                 maxWidth = screenW,
-                maxHeight = (screenW * 9) / 16
+                maxHeight = (screenW * 9) / 16,
+                transformation = transformation
             )
             if (cropped != null) {
                 return Uri.fromFile(file)
@@ -723,6 +744,36 @@ private fun BackgroundInitializer(uri: Uri) {
             "${uri}_$tick"
         }
     }
+    LaunchedEffect(uri, tick) {
+        ThemeConfig.backgroundImageLoaded = true
+        ThemeConfig.isThemeChanging = false
+        if (ThemeConfig.fullScreenBackgroundUri == null) {
+            val prefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+            val fallbackSeed = ThemeConfig.currentTheme.primaryLight.toArgb()
+            val seed = withContext(Dispatchers.IO) {
+                runCatching {
+                    val bmp = if (uri.scheme == "file" && uri.path != null) {
+                        android.graphics.BitmapFactory.decodeFile(uri.path)
+                    } else {
+                        context.contentResolver.openInputStream(uri)?.use {
+                            android.graphics.BitmapFactory.decodeStream(it)
+                        }
+                    }
+                    bmp?.let {
+                        val extracted = it.extractSeedColor(fallbackColorArgb = fallbackSeed)
+                        it.recycle()
+                        extracted
+                    }
+                }.getOrNull()
+            }
+            if (seed != null && seed != 0) {
+                backgroundSeedColor = seed
+                prefs.edit(commit = true) {
+                    putInt("cached_seed_color", seed)
+                }
+            }
+        }
+    }
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context)
             .data(dataModel)
@@ -730,16 +781,7 @@ private fun BackgroundInitializer(uri: Uri) {
             .diskCacheKey(cacheKey)
             .allowHardware(false)
             .crossfade(true)
-            .build(),
-        onError = { error ->
-            Log.e("ThemeSystem", "背景加载失败: ${error.result.throwable.message}")
-            ThemeConfig.customBackgroundUri = null
-        },
-        onSuccess = {
-            Log.d("ThemeSystem", "背景加载成功")
-            ThemeConfig.backgroundImageLoaded = true
-            ThemeConfig.isThemeChanging = false
-        }
+            .build()
     )
     SideEffect {
         backgroundImagePainter = painter
@@ -750,7 +792,6 @@ private fun BackgroundInitializer(uri: Uri) {
 private fun FullScreenBackgroundInitializer(uri: Uri) {
     val context = LocalContext.current
     val tick = ThemeConfig.fullScreenRefreshTick
-    val coroutineScope = rememberCoroutineScope()
 
     val dynamicColorFromSystem =
         if (Build.VERSION.SDK_INT >= 31)
@@ -776,6 +817,33 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
         }
     }
 
+    LaunchedEffect(uri, tick) {
+        ThemeConfig.fullScreenBackgroundImageLoaded = true
+        backgroundSeedColor = calcedCachedSeedColor
+        val seed = withContext(Dispatchers.IO) {
+            runCatching {
+                val bmp = if (uri.scheme == "file" && uri.path != null) {
+                    android.graphics.BitmapFactory.decodeFile(uri.path)
+                } else {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        android.graphics.BitmapFactory.decodeStream(it)
+                    }
+                }
+                bmp?.let {
+                    val extracted = it.extractSeedColor(fallbackColorArgb = calcedCachedSeedColor)
+                    it.recycle()
+                    extracted
+                }
+            }.getOrNull()
+        }
+        if (seed != null && seed != 0) {
+            backgroundSeedColor = seed
+            prefs.edit(commit = true) {
+                putInt("cached_seed_color", seed)
+            }
+        }
+    }
+
     val painter = rememberAsyncImagePainter(
         model = ImageRequest.Builder(context)
             .data(dataModel)
@@ -783,26 +851,7 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
             .diskCacheKey(cacheKey)
             .allowHardware(false)
             .crossfade(true)
-            .build(),
-        onError = { error ->
-            Log.e("ThemeSystem", "Full-screen background load failed: ${error.result.throwable.message}")
-            ThemeConfig.fullScreenBackgroundUri = null
-            ThemeConfig.isFullScreenBackgroundEnabled = false
-        },
-        onSuccess = {
-            Log.d("ThemeSystem", "Full-screen background loaded")
-            ThemeConfig.fullScreenBackgroundImageLoaded = true
-            backgroundSeedColor = calcedCachedSeedColor
-            coroutineScope.launch {
-                backgroundSeedColor = it.result.drawable.toBitmap().extractSeedColor(
-                    fallbackColorArgb = calcedCachedSeedColor
-                )
-
-                prefs.edit(commit = true) {
-                    putInt("cached_seed_color", backgroundSeedColor)
-                }
-            }
-        }
+            .build()
     )
     SideEffect {
         fullScreenBackgroundPainter = painter

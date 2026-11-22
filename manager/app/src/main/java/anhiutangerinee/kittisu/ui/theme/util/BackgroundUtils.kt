@@ -49,13 +49,13 @@ fun Context.getImageBitmap(uri: Uri): Bitmap? {
 }
 
 /**
- * Decodes an image from [uri], center-crops it to the given aspect ratio
- * ([aspectX] : [aspectY]), scales it to fit within [maxWidth] x [maxHeight]
- * while preserving quality, and writes it as a JPEG to [destFile].
- *
- * Used as an internal cropper fallback on AOSP ROMs where no external app
- * supports `com.android.camera.action.CROP` or where the system gallery
- * rejects `FileProvider` URIs with "editing is not supported for this image".
+ * Decodes an image from [uri], crops it to the given aspect ratio
+ * ([aspectX] : [aspectY]) applying the user's interactive [transformation]
+ * (where [BackgroundTransformation.scale] >= 1f and
+ * [BackgroundTransformation.offsetX] / [BackgroundTransformation.offsetY]
+ * are normalized pan values in `-1f..1f`), scales it to fit within
+ * [maxWidth] x [maxHeight] while preserving quality, and writes it as a JPEG
+ * to [destFile].
  */
 fun Context.cropAndSaveImage(
     uri: Uri,
@@ -63,7 +63,8 @@ fun Context.cropAndSaveImage(
     aspectX: Int,
     aspectY: Int,
     maxWidth: Int = 2160,
-    maxHeight: Int = 3840
+    maxHeight: Int = 3840,
+    transformation: BackgroundTransformation? = null
 ): Uri? {
     return try {
         val original = contentResolver.openInputStream(uri)?.use { stream ->
@@ -77,18 +78,31 @@ fun Context.cropAndSaveImage(
         val targetRatio = aspectX.toFloat() / aspectY.toFloat()
         val srcRatio = srcW.toFloat() / srcH.toFloat()
 
-        val cropW: Int
-        val cropH: Int
+        // Base crop window at scale = 1f (center-crop to target aspect ratio)
+        val baseCropW: Float
+        val baseCropH: Float
         if (srcRatio > targetRatio) {
-            cropH = srcH
-            cropW = (srcH * targetRatio).toInt().coerceIn(1, srcW)
+            baseCropH = srcH.toFloat()
+            baseCropW = (srcH * targetRatio).coerceIn(1f, srcW.toFloat())
         } else {
-            cropW = srcW
-            cropH = (srcW / targetRatio).toInt().coerceIn(1, srcH)
+            baseCropW = srcW.toFloat()
+            baseCropH = (srcW / targetRatio).coerceIn(1f, srcH.toFloat())
         }
 
-        val cropX = ((srcW - cropW) / 2).coerceAtLeast(0)
-        val cropY = ((srcH - cropH) / 2).coerceAtLeast(0)
+        val userScale = (transformation?.scale ?: 1f).coerceIn(1f, 5f)
+        val normOffX = (transformation?.offsetX ?: 0f).coerceIn(-1f, 1f)
+        val normOffY = (transformation?.offsetY ?: 0f).coerceIn(-1f, 1f)
+
+        val cropW = (baseCropW / userScale).toInt().coerceIn(1, srcW)
+        val cropH = (baseCropH / userScale).toInt().coerceIn(1, srcH)
+
+        val slackX = (srcW - cropW).coerceAtLeast(0)
+        val slackY = (srcH - cropH).coerceAtLeast(0)
+
+        // Positive offsetX in the UI means user dragged the image to the right,
+        // which shifts the crop window to the left on the source bitmap.
+        val cropX = ((slackX / 2f) - normOffX * (slackX / 2f)).toInt().coerceIn(0, slackX)
+        val cropY = ((slackY / 2f) - normOffY * (slackY / 2f)).toInt().coerceIn(0, slackY)
 
         val cropped = Bitmap.createBitmap(original, cropX, cropY, cropW, cropH)
         if (cropped !== original) {

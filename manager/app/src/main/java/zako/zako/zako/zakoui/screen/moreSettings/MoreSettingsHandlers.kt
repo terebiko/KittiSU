@@ -22,6 +22,7 @@ import anhiutangerinee.kittisu.ui.theme.saveDynamicColorState
 import anhiutangerinee.kittisu.ui.theme.saveDynamicPaletteStyle
 import anhiutangerinee.kittisu.ui.theme.saveThemeColors
 import anhiutangerinee.kittisu.ui.theme.saveThemeMode
+import anhiutangerinee.kittisu.ui.theme.util.BackgroundTransformation
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import kotlinx.coroutines.launch
@@ -195,9 +196,12 @@ class MoreSettingsHandlers(
      * 处理自定义背景
      */
     @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-    fun handleCustomBackground(transformedUri: Uri) {
+    fun handleCustomBackground(
+        transformedUri: Uri,
+        transformation: BackgroundTransformation? = null
+    ) {
         kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            BackgroundManager.saveAndApplyCustomBackground(activity, transformedUri)
+            BackgroundManager.saveAndApplyCustomBackground(activity, transformedUri, transformation)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 state.isCustomBackgroundEnabled = true
                 CardConfig.cardAlpha = 0.55f
@@ -263,9 +267,12 @@ class MoreSettingsHandlers(
      * 处理全屏背景
      */
     @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
-    fun handleFullScreenBackground(uri: Uri) {
+    fun handleFullScreenBackground(
+        uri: Uri,
+        transformation: BackgroundTransformation? = null
+    ) {
         kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            BackgroundManager.saveFullScreenBackground(activity, uri)
+            BackgroundManager.saveFullScreenBackground(activity, uri, transformation)
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 state.isFullScreenBackgroundEnabled = true
                 state.fullScreenBackgroundDim = 0.3f

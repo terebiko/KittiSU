@@ -1127,7 +1127,10 @@ private fun TopBar(
         modifier = Modifier.blurEffect(
         ),
         title = {
-            Text(text = stringResource(R.string.settings))
+            Text(
+                text = stringResource(R.string.settings),
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor =

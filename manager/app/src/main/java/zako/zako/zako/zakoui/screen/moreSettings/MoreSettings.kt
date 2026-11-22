@@ -73,8 +73,10 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -114,6 +116,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import zako.zako.zako.zakoui.screen.moreSettings.component.ColorCircle
+import zako.zako.zako.zakoui.screen.moreSettings.component.ImageCropDialog
 import zako.zako.zako.zakoui.screen.moreSettings.component.LanguageSelectionDialog
 import zako.zako.zako.zakoui.screen.moreSettings.component.MoreSettingsDialogs
 import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
@@ -159,14 +162,26 @@ fun MoreSettingsScreen() {
     val activity = LocalActivity.current as MainActivity
     val settingsHandlers = remember { MoreSettingsHandlers(activity, prefs, settingsState) }
 
-    // Pick image directly and crop in-app to avoid AOSP Gallery/Google Photos
-    // "Editing is not supported for this image" errors and missing CROP activity crashes.
+    // Pending URI for interactive in-app cropping (Working card 16:9)
+    var pendingWorkingCropUri by remember { mutableStateOf<Uri?>(null) }
+
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            settingsHandlers.handleCustomBackground(it)
-        }
+        pendingWorkingCropUri = uri
+    }
+
+    pendingWorkingCropUri?.let { cropUri ->
+        ImageCropDialog(
+            imageUri = cropUri,
+            aspectRatio = 16f / 9f,
+            title = stringResource(id = R.string.settings_custom_background),
+            onDismiss = { pendingWorkingCropUri = null },
+            onConfirm = { transformation ->
+                pendingWorkingCropUri = null
+                settingsHandlers.handleCustomBackground(cropUri, transformation)
+            }
+        )
     }
 
     // 初始化设置
@@ -912,12 +927,29 @@ private fun FullScreenBackgroundSettings(
     state: MoreSettingsState,
     handlers: MoreSettingsHandlers,
 ) {
+    val context = LocalContext.current
+    var pendingFullScreenCropUri by remember { mutableStateOf<Uri?>(null) }
+
     val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            handlers.handleFullScreenBackground(it)
-        }
+        pendingFullScreenCropUri = uri
+    }
+
+    pendingFullScreenCropUri?.let { cropUri ->
+        val dm = context.resources.displayMetrics
+        val screenRatio = (dm.widthPixels.toFloat().coerceAtLeast(720f)) /
+            (dm.heightPixels.toFloat().coerceAtLeast(1280f))
+        ImageCropDialog(
+            imageUri = cropUri,
+            aspectRatio = screenRatio,
+            title = stringResource(id = R.string.full_screen_background),
+            onDismiss = { pendingFullScreenCropUri = null },
+            onConfirm = { transformation ->
+                pendingFullScreenCropUri = null
+                handlers.handleFullScreenBackground(cropUri, transformation)
+            }
+        )
     }
 
     SettingsSwitchWidget(

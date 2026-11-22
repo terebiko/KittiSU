@@ -362,16 +362,18 @@ private fun TopBar(
 fun LabelText(
     label: String,
     containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
-    contentColor: Color = contentColorFor(containerColor)
+    contentColor: Color = contentColorFor(containerColor),
+    border: androidx.compose.foundation.BorderStroke? = null
 ) {
     Surface(
         shape = MaterialTheme.shapes.extraSmall,
-        color = containerColor
+        color = containerColor,
+        border = border
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmallEmphasized,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

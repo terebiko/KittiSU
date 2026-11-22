@@ -28,11 +28,15 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
   2. Ngay cả khi trình crop lưu trực tiếp vào `MediaStore.EXTRA_OUTPUT`, nhiều app Gallery trên AOSP trả về `intent?.data == null` trong `onActivityResult`, khiến callback bị bỏ qua.
   3. Trong `Theme.kt`, `rememberAsyncImagePainter` được khởi tạo trong `BackgroundLayer()` nhưng không được gắn trực tiếp vào lệnh vẽ trong cùng scope nên Coil 2.x không kích hoạt `onRemembered()` để tải ảnh.
 - **Giải pháp đã áp dụng**:
-  - Viết hàm xử lý cắt & nén ảnh nội bộ `Context.cropAndSaveImage(...)` trong `manager/app/src/main/java/anhiutangerinee/kittisu/ui/theme/util/BackgroundUtils.kt`:
-    - Tự động center-crop theo đúng tỉ lệ khung hình (`16:9` cho thẻ Working `custom_background.jpg`; tỉ lệ màn hình thật `screenW : screenH` cho `fullscreen_background.jpg`).
+  - Tạo hộp thoại cắt ảnh tương tác trực tiếp trong ứng dụng **`ImageCropDialog`** (`manager/app/src/main/java/zako/zako/zako/zakoui/screen/moreSettings/component/ImageCropDialog.kt`) theo phong cách Material Design 3 Expressive:
+    - Hiển thị khung cắt bo góc với lưới bố cục 1/3 (rule-of-thirds) đúng theo tỉ lệ đích (`16:9` cho thẻ Working và `screenW : screenH` cho hình nền toàn màn hình), làm tối vùng ngoài khung cắt.
+    - Hỗ trợ cử chỉ **kéo để di chuyển (drag-to-pan)**, **chụm 2 ngón để thu phóng (pinch-to-zoom)**, kết hợp **thanh trượt Zoom (`100%` – `400%`)** và nút **Reset** về vị trí chuẩn.
+    - Giải mã bitmap preview an toàn (`inSampleSize` giới hạn `maxDimension = 1600`) trên `Dispatchers.IO` để không gây giật lag trên máy yếu / máy ảo.
+  - Viết hàm xử lý cắt & nén ảnh nội bộ `Context.cropAndSaveImage(uri, isFullScreen, transformation)` trong `manager/app/src/main/java/anhiutangerinee/kittisu/ui/theme/util/BackgroundUtils.kt`:
+    - Nhận `BackgroundTransformation(scale, offsetX, offsetY)` từ `ImageCropDialog` để tính chính xác tọa độ hình chữ nhật (`cropLeft`, `cropTop`, `cropWidth`, `cropHeight`) trên ảnh gốc.
     - Scale an toàn để tránh tràn bộ nhớ (OOM) với ảnh độ phân giải lớn và nén JPEG chất lượng cao (`92`).
   - Cập nhật `MoreSettings.kt`, `MoreSettingsHandlers.kt`, `Theme.kt`, `HomePage.kt` và `MainActivity.kt`:
-    - Bỏ sự phụ thuộc vào `com.android.camera.action.CROP` bên ngoài. Ngay khi chọn ảnh từ `ActivityResultContracts.GetContent()`, app xử lý crop trên background thread (`Dispatchers.IO`).
+    - Bỏ hoàn toàn sự phụ thuộc vào `com.android.camera.action.CROP` bên ngoài. Khi chọn ảnh từ `ActivityResultContracts.GetContent()`, app mở ngay `ImageCropDialog` để người dùng tự căn chỉnh khung cắt rồi mới lưu trên `Dispatchers.IO`.
     - Sử dụng trực tiếp `AsyncImage` với `java.io.File` và `memoryCacheKey`/`diskCacheKey` gắn với `backgroundRefreshTick` / `fullScreenRefreshTick` để ảnh hiển thị ngay lập tức trên thẻ Working và hình nền toàn màn hình.
 
 ### B. Tăng tốc độ tải danh sách SuperUser & Tối ưu hiệu năng cho máy yếu / máy ảo (`SuperUserViewModel.kt`, `KsuCli.kt`, `SuSFSConfigHelper.kt`, `SettingsBaseWidget.kt`, `KernelSUApplication.kt`)
@@ -80,6 +84,11 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 ---
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
+- **[2026-11-23 - Antigravity]**:
+  - Thêm hộp thoại cắt ảnh tương tác trực tiếp trong app (`ImageCropDialog.kt`) cho phép người dùng tự căn chỉnh vùng cắt (kéo di chuyển, chụm 2 ngón thu phóng, thanh trượt zoom 100%–400%, lưới 1/3 và khung bo góc đúng tỉ lệ thẻ Working `16:9` hoặc toàn màn hình) trước khi lưu.
+  - Cập nhật `BackgroundUtils.cropAndSaveImage` để áp dụng chính xác `BackgroundTransformation(scale, offsetX, offsetY)` do người dùng chọn.
+  - Nâng cấp thanh tiêu đề trang chủ (`HomePage.kt`) sang `LargeFlexibleTopAppBar` đồng bộ với toàn app, kết hợp typography M3 Expressive (`ExtraBold`/`Black` với điểm nhấn màu `primary` cho hậu tố `"SU"`, kerning `-0.5sp` và `subtitle` hiển thị phiên bản sắc nét).
+  - Làm trong suốt / hiệu ứng kính mờ (frosted glass) cho badge `Built-in` / `LKM` / `x86_64` (`LabelText` trong `Template.kt` & `HomePage.kt`) kèm viền mảnh bán trong suốt, thêm lớp phủ gradient đồng bộ tông màu (`statusContainer` + `backgroundDim`) trên thẻ Working và trích xuất tự động `backgroundSeedColor` + `cardAlpha = 0.74f` trong `Theme.kt` để thẻ Working và Hình nền toàn màn hình hòa quyện màu sắc với nhau.
 - **[2026-11-22 - Antigravity]**:
   - Nghiên cứu toàn bộ codebase (`kernel`, `userspace`, `manager`).
   - Fix lỗi chọn ảnh thẻ Working & Fullscreen Background trên ROM AOSP bằng bộ crop nội bộ `cropAndSaveImage`.

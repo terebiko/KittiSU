@@ -239,7 +239,8 @@ fun SearchAppBar(
             scrollBehavior = scrollBehavior,
             title = {
                 Text(
-                    text = title
+                    text = title,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
             },
             navigationIcon = {

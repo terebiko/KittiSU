@@ -13,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -456,25 +457,62 @@ private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val navigator = LocalNavigator.current
+    val appName = stringResource(R.string.app_name)
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    androidx.compose.material3.CenterAlignedTopAppBar(
+    LargeFlexibleTopAppBar(
         modifier = Modifier.blurEffect(),
         title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                if (viewModel.isExtendedDataLoaded) {
-                    Text(
-                        text = "${viewModel.systemInfo.managerVersion.first} (${viewModel.systemInfo.managerVersion.second.toInt()})",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            val styledTitle = remember(appName, primaryColor) {
+                androidx.compose.ui.text.buildAnnotatedString {
+                    if (appName.endsWith("SU", ignoreCase = true) && appName.length > 2) {
+                        val prefix = appName.dropLast(2)
+                        val suffix = appName.takeLast(2)
+                        pushStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                            )
+                        )
+                        append(prefix)
+                        pop()
+                        pushStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                color = primaryColor,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                            )
+                        )
+                        append(suffix)
+                        pop()
+                    } else {
+                        pushStyle(
+                            androidx.compose.ui.text.SpanStyle(
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                            )
+                        )
+                        append(appName)
+                        pop()
+                    }
                 }
             }
+            Text(
+                text = styledTitle,
+                letterSpacing = androidx.compose.ui.unit.TextUnit(
+                    -0.5f,
+                    androidx.compose.ui.unit.TextUnitType.Sp
+                )
+            )
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+        subtitle = {
+            if (viewModel.isExtendedDataLoaded) {
+                Text(
+                    text = "${viewModel.systemInfo.managerVersion.first} (${viewModel.systemInfo.managerVersion.second.toInt()})",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
@@ -555,11 +593,24 @@ private fun StatusCard(
     } else {
         MaterialTheme.colorScheme.onErrorContainer
     }
+    val hasCustomCardBg = ThemeConfig.customBackgroundUri != null
+    val hasAnyCustomBg = hasCustomCardBg || ThemeConfig.isFullScreenBackgroundEnabled
+    val badgeContainerColor = if (hasAnyCustomBg) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.34f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.50f)
+    }
+    val badgeBorder = remember(statusOnContainer, hasAnyCustomBg) {
+        androidx.compose.foundation.BorderStroke(
+            width = 0.8.dp,
+            color = statusOnContainer.copy(alpha = if (hasAnyCustomBg) 0.28f else 0.18f)
+        )
+    }
 
     ElevatedCard(
         shape = MaterialTheme.shapes.extraLarge,
         colors = getCardColors(statusContainer).let {
-            if (ThemeConfig.customBackgroundUri != null) {
+            if (hasCustomCardBg) {
                 CardDefaults.elevatedCardColors(
                     containerColor = Color.Transparent,
                     contentColor = statusOnContainer
@@ -602,6 +653,23 @@ private fun StatusCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.matchParentSize(),
                 )
+                val dimAlpha = ThemeConfig.backgroundDim.coerceIn(0f, 0.85f)
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                colors = listOf(
+                                    statusContainer.copy(
+                                        alpha = (0.24f + dimAlpha * 0.50f).coerceIn(0f, 0.88f)
+                                    ),
+                                    statusContainer.copy(
+                                        alpha = (0.44f + dimAlpha * 0.45f).coerceIn(0f, 0.92f)
+                                    )
+                                )
+                            )
+                        )
+                )
             }
             
             Column(
@@ -637,20 +705,26 @@ private fun StatusCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LabelText(
                                 label = workingModeSurfaceText,
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = badgeContainerColor,
+                                contentColor = statusOnContainer,
+                                border = badgeBorder
                             )
                             if (isLateLoadMode) {
                                 Spacer(Modifier.width(6.dp))
                                 LabelText(
                                     label = stringResource(id = R.string.jailbreak_mode),
-                                    containerColor = MaterialTheme.colorScheme.surface
+                                    containerColor = badgeContainerColor,
+                                    contentColor = statusOnContainer,
+                                    border = badgeBorder
                                 )
                             }
                             if (machine != "aarch64") {
                                 Spacer(Modifier.width(6.dp))
                                 LabelText(
                                     label = machine,
-                                    containerColor = MaterialTheme.colorScheme.surface
+                                    containerColor = badgeContainerColor,
+                                    contentColor = statusOnContainer,
+                                    border = badgeBorder
                                 )
                             }
                         }
@@ -676,7 +750,9 @@ private fun StatusCard(
                         Spacer(Modifier.height(8.dp))
                         LabelText(
                             label = "Legacy",
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = badgeContainerColor,
+                            contentColor = statusOnContainer,
+                            border = badgeBorder
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
