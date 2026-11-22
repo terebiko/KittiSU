@@ -1,4 +1,4 @@
-# KittiSU
+# SovaSU
 <p align="center">
   <img src="assets/kittisu_logo.jpg" width="220px" alt="KittiSU Logo">
 </p>
