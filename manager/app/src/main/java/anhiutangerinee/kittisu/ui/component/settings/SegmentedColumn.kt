@@ -45,8 +45,8 @@ import kotlin.math.roundToInt
 private const val PADDING_HORIZONTAL = 16
 private const val PADDING_VERTICAL = 8
 
-private const val bouncyStiffness = 800f
-private const val bouncyDamping = 0.5f
+private const val bouncyStiffness = 500f
+private const val bouncyDamping = 0.72f
 
 @DslMarker
 annotation class SegmentedColumnDsl
@@ -191,8 +191,8 @@ fun SegmentedColumn(
                         val isLast =
                             index == lastVisibleIndex || (index == allItems.lastIndex && !itemData.visible)
 
-                        val baseTopRadius = if (isFirst) 16.dp else 5.dp
-                        val baseBottomRadius = if (isLast) 16.dp else 5.dp
+                        val baseTopRadius = if (isFirst) 24.dp else 8.dp
+                        val baseBottomRadius = if (isLast) 24.dp else 8.dp
 
                         val targetTopRadius = if (itemData.forceFlatTop) 0.dp else baseTopRadius
                         val targetBottomRadius =

@@ -39,7 +39,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material.icons.twotone.Add
@@ -84,6 +83,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -103,6 +103,7 @@ import coil.request.ImageRequest
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ksuApp
+import anhiutangerinee.kittisu.ui.component.EmptyState
 import anhiutangerinee.kittisu.ui.component.FabMenuPresets
 import anhiutangerinee.kittisu.ui.component.SearchAppBar
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -179,7 +180,7 @@ fun SuperUserPage(bottomPadding: Dp) {
             AppCategory.DEFAULT -> groups.filter { !it.allowSu && !it.hasCustomProfile }
         }
 
-        // 排序
+            // 排序
         groups.sortedWith { group1, group2 ->
             val priority1 = when {
                 group1.allowSu -> AppPriority.ROOT
@@ -197,16 +198,16 @@ fun SuperUserPage(bottomPadding: Dp) {
                 priorityComparison
             } else {
                 when (viewModel.currentSortType) {
-                    SortType.NAME_ASC -> group1.mainApp.label.lowercase()
-                        .compareTo(group2.mainApp.label.lowercase())
-                    SortType.NAME_DESC -> group2.mainApp.label.lowercase()
-                        .compareTo(group1.mainApp.label.lowercase())
+                    SortType.NAME_ASC -> group1.mainApp.lowerLabel
+                        .compareTo(group2.mainApp.lowerLabel)
+                    SortType.NAME_DESC -> group2.mainApp.lowerLabel
+                        .compareTo(group1.mainApp.lowerLabel)
                     SortType.INSTALL_TIME_NEW -> group2.mainApp.packageInfo.firstInstallTime
                         .compareTo(group1.mainApp.packageInfo.firstInstallTime)
                     SortType.INSTALL_TIME_OLD -> group1.mainApp.packageInfo.firstInstallTime
                         .compareTo(group2.mainApp.packageInfo.firstInstallTime)
-                    else -> group1.mainApp.label.lowercase()
-                        .compareTo(group2.mainApp.label.lowercase())
+                    else -> group1.mainApp.lowerLabel
+                        .compareTo(group2.mainApp.lowerLabel)
                 }
             }
         }
@@ -348,45 +349,24 @@ private fun SuperUserContent(
     val pullRefreshState = rememberPullToRefreshState()
 
     if (filteredAndSortedAppGroups.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        if (viewModel.isRefreshing && viewModel.search.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if ((viewModel.isRefreshing || viewModel.appGroupList.isEmpty()) && viewModel.search.isEmpty()) {
-                    LoadingIndicator()
-                }
-                else {
-                    val selectedCategory = viewModel.selectedCategory
-                    val isSearchEmpty = viewModel.search.isNotEmpty()
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            imageVector = if (isSearchEmpty) Icons.TwoTone.SearchOff else Icons.TwoTone.Archive,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(96.dp)
-                                .padding(bottom = 16.dp)
-                        )
-                        Text(
-                            text = if (isSearchEmpty || selectedCategory == AppCategory.ALL) {
-                                stringResource(R.string.no_apps_found)
-                            } else {
-                                stringResource(R.string.no_apps_in_category)
-                            },
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
+                LoadingIndicator()
             }
+        } else {
+            val selectedCategory = viewModel.selectedCategory
+            val isSearchEmpty = viewModel.search.isNotEmpty()
+            EmptyState(
+                icon = if (isSearchEmpty) Icons.TwoTone.SearchOff else Icons.TwoTone.Archive,
+                title = if (isSearchEmpty || selectedCategory == AppCategory.ALL) {
+                    stringResource(R.string.no_apps_found)
+                } else {
+                    stringResource(R.string.no_apps_in_category)
+                },
+            )
         }
         return
     }
@@ -518,7 +498,7 @@ private fun SuperUserBottomSheet(
             Surface(
                 modifier = Modifier.padding(vertical = 11.dp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(16.dp)
+                shape = MaterialTheme.shapes.large
             ) {
                 Box(Modifier.size(width = 32.dp, height = 4.dp))
             }
@@ -650,11 +630,11 @@ private fun CategoryChip(
             .fillMaxWidth()
             .scale(scale)
             .clickable(interactionSource = interactionSource, indication = null) { onClick() },
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         color = if (isSelected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
-            MaterialTheme.colorScheme.surfaceVariant
+            MaterialTheme.colorScheme.surfaceContainerHigh
         },
         tonalElevation = if (isSelected) 4.dp else 0.dp
     ) {
@@ -783,13 +763,11 @@ private fun AppGroupItem(
             ) {
                 if (appGroup.allowSu) {
                     LabelText(label = "ROOT")
-                } else {
-                    if (Natives.uidShouldUmount(appGroup.uid)) {
-                        LabelText(
-                            label = "UMOUNT",
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        )
-                    }
+                } else if (appGroup.shouldUmount) {
+                    LabelText(
+                        label = "UMOUNT",
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    )
                 }
                 if (appGroup.hasCustomProfile) {
                     LabelText(
@@ -799,7 +777,7 @@ private fun AppGroupItem(
                 } else if (!appGroup.allowSu) {
                     LabelText(
                         label = "DEFAULT",
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                 }
                 if (appGroup.apps.size > 1) {
@@ -813,16 +791,21 @@ private fun AppGroupItem(
             }
         },
         leadingContent = {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+            val context = LocalContext.current
+            val imageRequest = remember(mainApp.packageName) {
+                ImageRequest.Builder(context)
                     .data(mainApp.packageInfo)
-                    .crossfade(true)
+                    .crossfade(false)
                     .memoryCachePolicy(CachePolicy.ENABLED)
-                    .build(),
+                    .build()
+            }
+            AsyncImage(
+                model = imageRequest,
                 contentDescription = mainApp.label,
                 modifier = Modifier
                     .padding(4.dp)
                     .size(48.dp)
+                    .clip(MaterialTheme.shapes.medium)
             )
         },
         iconPlaceholder = false,

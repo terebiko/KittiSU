@@ -89,7 +89,7 @@ fun NavigationBar(
                 if (ThemeConfig.isEnableBlur)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainerHigh.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
             contentColor = MaterialTheme.colorScheme.onSurface,
             modalContainerColor = WideNavigationRailDefaults.colors().modalContainerColor,
             modalScrimColor = WideNavigationRailDefaults.colors().modalScrimColor,

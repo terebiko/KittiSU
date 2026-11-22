@@ -181,7 +181,7 @@ fun UmountManagerScreen() {
                         WarningCard(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             message = stringResource(R.string.changes_take_effect_immediately),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = MaterialTheme.shapes.large,
                             color = MaterialTheme.colorScheme.primaryContainer,
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -192,7 +192,7 @@ fun UmountManagerScreen() {
                             WarningCard(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 message = stringResource(R.string.no_any_umount_path),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = MaterialTheme.shapes.large,
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                             )
                             Spacer(modifier = Modifier.height(16.dp))

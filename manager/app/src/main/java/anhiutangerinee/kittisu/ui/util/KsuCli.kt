@@ -32,10 +32,16 @@ private fun getKsuDaemonPath(): String {
     return ksuApp.applicationInfo.nativeLibraryDir + File.separator + "libksud.so"
 }
 
+internal fun hasKsuDaemon(): Boolean {
+    return File(getKsuDaemonPath()).isFile
+}
+
 @SuppressLint("RestrictedApi")
 object KsuCli {
-    var SHELL: Shell = createRootShell()
-    val GLOBAL_MNT_SHELL: Shell = createRootShell(true)
+    // Create shells lazily: the old eager init spawned two root shells as soon as
+    // this object was touched, which could happen on the main thread at startup.
+    val SHELL: Shell by lazy { createRootShell() }
+    val GLOBAL_MNT_SHELL: Shell by lazy { createRootShell(true) }
 }
 
 fun getRootShell(globalMnt: Boolean = false): Shell {
@@ -45,22 +51,12 @@ fun getRootShell(globalMnt: Boolean = false): Shell {
 }
 
 fun generateMainShellBuilder(): Shell.Builder {
+    // Called from Application.onCreate on the main thread. The old version spawned
+    // up to three shell processes here just to probe which one works, which cost
+    // hundreds of ms at every cold start. Pick the command list without spawning;
+    // MainShell will fall back on its own if the first command fails.
     val builder = Shell.Builder.create()
-    try {
-        builder.setCommands(getKsuDaemonPath(), "debug", "su")
-        builder.build()
-    } catch (e: Throwable) {
-        Log.w(TAG, "ksu failed: ", e)
-        try {
-            builder.setCommands("su")
-            builder.build()
-        } catch (e: Throwable) {
-            Log.e(TAG, "su failed: ", e)
-            builder.setCommands("sh")
-            builder.build()
-        }
-    }
-
+    builder.setCommands(getKsuDaemonPath(), "debug", "su")
     return builder
 }
 
@@ -72,7 +68,9 @@ inline fun <T> withNewRootShell(
 }
 
 fun createRootShell(globalMnt: Boolean = false): Shell {
-    Shell.enableVerboseLogging = BuildConfig.DEBUG
+    // Verbose libsu logging is extremely chatty and adds measurable overhead to
+    // every shell command. Keep it opt-in instead of enabling it for all debug builds.
+    Shell.enableVerboseLogging = false
     val builder = Shell.Builder.create()
     return try {
         if (globalMnt) {
@@ -96,6 +94,7 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
 }
 
 fun execKsud(args: String, newShell: Boolean = false): Boolean {
+    if (!hasKsuDaemon()) return false
     return if (newShell) {
         withNewRootShell {
             ShellUtils.fastCmdResult(this, "${getKsuDaemonPath()} $args")
@@ -106,12 +105,14 @@ fun execKsud(args: String, newShell: Boolean = false): Boolean {
 }
 
 fun backupModules(path: String): Boolean {
+    if (!hasKsuDaemon()) return false
     val quoted = path.shellQuote()
     return execKsud("module backup $quoted", true) &&
         ShellUtils.fastCmdResult(getRootShell(), "chmod 0644 $quoted")
 }
 
 fun inspectModuleBackup(path: String): List<String>? {
+    if (!hasKsuDaemon()) return null
     val output = mutableListOf<String>()
     val result = getRootShell().newJob()
         .add("${getKsuDaemonPath()} module inspect-backup ${path.shellQuote()}")
@@ -125,6 +126,7 @@ fun inspectModuleBackup(path: String): List<String>? {
 }
 
 fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): Boolean {
+    if (!hasKsuDaemon()) return false
     val ids = moduleIds.joinToString(" ") { it.shellQuote() }
     return execKsud("module restore ${path.shellQuote()} $ids", true)
 }
@@ -132,6 +134,7 @@ fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): B
 data class BootRecoveryState(val failures: Int, val modules: List<String>)
 
 fun getBootRecoveryState(): BootRecoveryState? {
+    if (!hasKsuDaemon()) return null
     val output = mutableListOf<String>()
     val result = getRootShell().newJob()
         .add("${getKsuDaemonPath()} recovery")
@@ -157,6 +160,7 @@ fun clearDynamicManager(): Boolean =
     execKsud("kernel dynamic-manager clear", true)
 
 suspend fun getDynamicManagerConfig(): Natives.DynamicManagerConfig? = withContext(Dispatchers.IO) {
+    if (!hasKsuDaemon()) return@withContext null
     val result = getRootShell().newJob()
         .add("${getKsuDaemonPath()} kernel dynamic-manager get")
         .to(ArrayList<String>(), null).exec()
@@ -175,6 +179,7 @@ internal fun parseDynamicManagerConfig(output: String): Natives.DynamicManagerCo
 }
 
 suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.IO) {
+    if (!hasKsuDaemon()) return@withContext "unsupported"
     val shell = getRootShell()
     val out = shell.newJob()
         .add("${getKsuDaemonPath()} feature check $feature").to(ArrayList<String>(), null).exec().out
@@ -182,6 +187,7 @@ suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.
 }
 
 suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatchers.IO) {
+    if (!hasKsuDaemon()) return@withContext null
     val shell = getRootShell()
     val out = shell.newJob()
         .add("${getKsuDaemonPath()} feature get --config $feature").to(ArrayList<String>(), null)
@@ -190,6 +196,11 @@ suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatc
     valueLine.substringAfter("Value:").trim().toLongOrNull()
 }
 fun install() {
+    // Test/fake-root builds have no bundled ksud; don't pay for a failing shell.
+    if (!File(getKsuDaemonPath()).isFile) {
+        Log.w(TAG, "skip install: libksud.so is missing")
+        return
+    }
     val start = SystemClock.elapsedRealtime()
     val libadbroot = File(ksuApp.applicationInfo.nativeLibraryDir, "libadbroot.so").absolutePath
     val dataPath = ksuApp.applicationInfo.deviceProtectedDataDir
@@ -205,6 +216,7 @@ fun hasMetaModule(): Boolean {
 }
 
 fun listModules(): String {
+    if (!hasKsuDaemon()) return "[]"
     val shell = getRootShell()
 
     val out = shell.newJob()
@@ -470,6 +482,9 @@ fun reboot(reason: String = "") {
 }
 
 fun rootAvailable(): Boolean {
+    // TEST BUILD ONLY: fake APK always claims root so the UI is browsable
+    // on a non-rooted device. Delete this early return to restore detection.
+    if (BuildConfig.FAKE_ROOT) return true
     val shell = getRootShell()
     return shell.isRoot
 }
@@ -522,6 +537,7 @@ suspend fun getAvailablePartitions(): List<String> = withContext(Dispatchers.IO)
 }
 
 fun hasMagisk(): Boolean {
+    if (BuildConfig.FAKE_ROOT && !hasKsuDaemon()) return false
     val shell = getRootShell(true)
     val result = shell.newJob().add("which magisk").exec()
     Log.i(TAG, "has magisk: ${result.isSuccess}")
@@ -612,23 +628,27 @@ fun restartApp(packageName: String) {
 }
 
 fun getSuSFSStatus(): String {
+    if (!hasKsuDaemon()) return ""
     val shell = getRootShell()
     return ShellUtils.fastCmd(shell, "${getKsuDaemonPath()} susfs show variant").trim()
 }
 
 fun getSuSFSVersion(): String {
+    if (!hasKsuDaemon()) return ""
     val shell = getRootShell()
     val result = ShellUtils.fastCmd(shell, "${getKsuDaemonPath()} susfs show version")
     return result
 }
 
 fun getSuSFSFeatures(): String {
+    if (!hasKsuDaemon()) return ""
     val shell = getRootShell()
     val cmd = "${getKsuDaemonPath()} susfs show enabled_features"
     return runCmd(shell, cmd)
 }
 
 fun getMetaModuleImplement(): String {
+    if (BuildConfig.FAKE_ROOT && !hasKsuDaemon()) return "None"
     try {
         val metaModuleProp = SuFile.open("/data/adb/metamodule/module.prop")
         if (!metaModuleProp.isFile) {
@@ -649,6 +669,7 @@ fun getMetaModuleImplement(): String {
 }
 
 fun getZygiskImplement(): String {
+    if (BuildConfig.FAKE_ROOT && !hasKsuDaemon()) return "None"
     val zygiskModuleIds = listOf(
         "zygisksu",
         "rezygisk",

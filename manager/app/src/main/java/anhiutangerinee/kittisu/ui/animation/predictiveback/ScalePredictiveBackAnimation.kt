@@ -6,13 +6,18 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -179,17 +184,43 @@ class ScalePredictiveBackAnimation(
         sizeTransform = null
     )
 
+    private val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f)
+
     override fun AnimatedContentTransitionScope<Scene<NavKey>>.onPopTransitionSpec(): ContentTransform =
         ContentTransform(
-            targetContentEnter = slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn(),
-            initialContentExit = scaleOut(targetScale = 0.9f) + fadeOut(),
+            targetContentEnter = slideInHorizontally(
+                initialOffsetX = { -it / 5 },
+                animationSpec = tween(320, easing = emphasizedDecelerate)
+            ) + scaleIn(
+                initialScale = 0.94f,
+                animationSpec = tween(320, easing = emphasizedDecelerate)
+            ) + fadeIn(animationSpec = tween(220)),
+            initialContentExit = slideOutHorizontally(
+                targetOffsetX = { it / 5 },
+                animationSpec = tween(280, easing = emphasizedDecelerate)
+            ) + scaleOut(
+                targetScale = 0.92f,
+                animationSpec = tween(280, easing = emphasizedDecelerate)
+            ) + fadeOut(animationSpec = tween(200)),
             sizeTransform = null
         )
 
     override fun AnimatedContentTransitionScope<Scene<NavKey>>.onTransitionSpec(): ContentTransform =
         ContentTransform(
-            targetContentEnter = slideInHorizontally(initialOffsetX = { it }),
-            initialContentExit = fadeOut(),
+            targetContentEnter = slideInHorizontally(
+                initialOffsetX = { (it * 0.25f).toInt() },
+                animationSpec = tween(340, easing = emphasizedDecelerate)
+            ) + scaleIn(
+                initialScale = 0.96f,
+                animationSpec = tween(340, easing = emphasizedDecelerate)
+            ) + fadeIn(animationSpec = tween(220)),
+            initialContentExit = slideOutHorizontally(
+                targetOffsetX = { -(it * 0.12f).toInt() },
+                animationSpec = tween(320, easing = emphasizedDecelerate)
+            ) + scaleOut(
+                targetScale = 0.95f,
+                animationSpec = tween(320, easing = emphasizedDecelerate)
+            ) + fadeOut(animationSpec = tween(240)),
             sizeTransform = null
         )
 }

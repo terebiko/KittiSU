@@ -1,6 +1,5 @@
 package anhiutangerinee.kittisu.ui.component.settings
 
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,10 +23,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocal
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -37,7 +33,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.disabled
@@ -51,7 +46,7 @@ import anhiutangerinee.kittisu.ui.theme.CardConfig
  * A [CompositionLocal] that provides the dynamically calculated [Shape] for items
  * inside a [SegmentedColumn]. Defaults to a rounded corner shape with 16.dp.
  */
-val LocalSegmentedItemShape = compositionLocalOf<Shape> { RoundedCornerShape(16.dp) }
+val LocalSegmentedItemShape = compositionLocalOf<Shape> { RoundedCornerShape(24.dp) }
 
 /**
  * A base widget component designed for setting items and list entries.
@@ -178,7 +173,7 @@ fun SettingsBaseWidget(
 
     val shapes = ListItemDefaults.shapes(
         shape = baseShape,
-        pressedShape = RoundedCornerShape(16.dp),
+        pressedShape = RoundedCornerShape(28.dp),
         selectedShape = baseShape,
         focusedShape = baseShape,
         hoveredShape = baseShape
@@ -265,31 +260,21 @@ fun SettingsBaseWidget(
     }
 
     if (onClick != null || onLongClick != null) {
-        var touchPoint by remember { mutableStateOf(Offset.Zero) }
-
         ListItem(
             selected = selected,
-            modifier = itemModifier
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitFirstDown(requireUnconsumed = false)
-                            touchPoint = event.position
-                        }
-                    }
-                },
+            modifier = itemModifier,
             onClick = {
                 if (clickHaptic != null) {
                     hapticFeedback.performHapticFeedback(clickHaptic)
                 }
-                onClick?.invoke(touchPoint)
+                onClick?.invoke(Offset.Zero)
             },
             onLongClick = if (onLongClick != null) {
                 {
                     if (clickHaptic != null) {
                         hapticFeedback.performHapticFeedback(clickHaptic)
                     }
-                    onLongClick(touchPoint)
+                    onLongClick(Offset.Zero)
                 }
             } else null,
             enabled = enabled,

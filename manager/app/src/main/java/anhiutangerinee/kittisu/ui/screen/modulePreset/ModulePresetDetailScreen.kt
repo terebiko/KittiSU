@@ -223,7 +223,7 @@ fun ModulePresetDetailScreen(preset: LoadedPreset) {
 
 @Composable
 private fun PresetHeaderCard(preset: LoadedPreset) {
-    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(shape = MaterialTheme.shapes.extraLarge, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             preset.presetEntry.committer?.takeIf { it.isNotBlank() }?.let { committer ->
@@ -273,7 +273,7 @@ private fun PresetHeaderCard(preset: LoadedPreset) {
 @Composable
 private fun PostInstallSection(postInstalls: List<PostInstallScript>, baseUrl: String) {
     val navigator = LocalNavigator.current
-    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 text = stringResource(R.string.preset_post_install_scripts),
@@ -349,7 +349,7 @@ private fun ModuleRowCard(pm: PresetModule) {
     val installed = isModuleInstalled(pm.moduleId)
     val req = checkPresetRequirements(pm.requirement)
     val depsOk = areDependenciesSatisfied(pm.dependsOn)
-    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(pm.moduleName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))

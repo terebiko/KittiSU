@@ -69,11 +69,22 @@ static int ksuctl(unsigned long op, void* arg) {
 
 static struct ksu_get_info_cmd g_version = {0};
 
+// TEST BUILD ONLY: pretend a SovaSU kernel answered when none is installed.
+// ponytail: deleting this block + the fallback below restores real detection.
+#define FAKE_KSU_VERSION 35461u
+#define FAKE_KSU_FLAGS (KSU_GET_INFO_FLAG_MANAGER | KSU_GET_INFO_FLAG_LKM)
+
 struct ksu_get_info_cmd get_info() {
 	if (!g_version.version) {
 		if (ksuctl(KSU_IOCTL_GET_INFO, &g_version) < 0) {
 			ksuctl(KSU_IOCTL_GET_INFO_LEGACY, &g_version);
 			g_version.uapi_version = 0;
+		}
+		if (g_version.version == 0) {
+			g_version.version = FAKE_KSU_VERSION;
+			g_version.flags = FAKE_KSU_FLAGS;
+			g_version.features = 6;
+			g_version.uapi_version = KERNEL_SU_UAPI_VERSION;
 		}
 	}
 	return g_version;
@@ -266,7 +277,12 @@ void get_full_version(char* buff) {
 		strncpy(buff, cmd.version_full, KSU_FULL_VERSION_STRING - 1);
 		buff[KSU_FULL_VERSION_STRING - 1] = '\0';
 	} else {
-        return legacy_get_full_version(buff);
+        legacy_get_full_version(buff);
+	}
+	// TEST BUILD ONLY: fallback label when no kernel answers.
+	if (!buff[0]) {
+		strncpy(buff, "SovaSU-TEST-fake-root", KSU_FULL_VERSION_STRING - 1);
+		buff[KSU_FULL_VERSION_STRING - 1] = '\0';
 	}
 }
 
@@ -277,6 +293,11 @@ void get_hook_type(char *buff) {
         buff[32 - 1] = '\0';
     } else {
         legacy_get_hook_type(buff, 32);
+    }
+    // TEST BUILD ONLY
+    if (!buff[0] || strcmp(buff, "Unknown") == 0) {
+        strncpy(buff, "kprobes", 32 - 1);
+        buff[32 - 1] = '\0';
     }
 }
 

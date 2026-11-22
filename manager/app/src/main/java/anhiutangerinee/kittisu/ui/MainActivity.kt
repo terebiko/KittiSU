@@ -83,6 +83,7 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
 import anhiutangerinee.kittisu.ui.activity.component.BottomBar
+import anhiutangerinee.kittisu.ui.activity.component.BottomBarHeight
 import anhiutangerinee.kittisu.ui.activity.component.NavigationBar
 import anhiutangerinee.kittisu.ui.activity.util.ThemeChangeContentObserver
 import anhiutangerinee.kittisu.ui.activity.util.ThemeUtils
@@ -135,8 +136,6 @@ import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.install
 import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
 import anhiutangerinee.kittisu.ui.util.rootAvailable
-import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
-import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
 import anhiutangerinee.kittisu.ui.webui.WebUIActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -189,8 +188,7 @@ fun rememberScrollConnection(
 }
 
 class MainActivity : ComponentActivity() {
-    private lateinit var superUserViewModel: SuperUserViewModel
-    private lateinit var homeViewModel: HomeViewModel
+
     internal val settingsStateFlow = MutableStateFlow(SettingsState())
 
     data class SettingsState(
@@ -255,7 +253,10 @@ class MainActivity : ComponentActivity() {
 
             val isManager = Natives.isManager
             if (isManager && !Natives.requireNewKernel()) {
-                install()
+                // install() runs a blocking shell command; never do that on the main thread.
+                lifecycleScope.launch(Dispatchers.IO) {
+                    install()
+                }
             }
 
             // 使用标记控制初始化流程
@@ -590,25 +591,49 @@ class MainActivity : ComponentActivity() {
                                                     ),
                                                     LocalSnackbarHost provides snackBarHostState,
                                                 ) {
-                                                    if (ThemeConfig.fullScreenBackgroundUri != null && fullScreenBackgroundPainter != null) {
-                                                        val it = fullScreenBackgroundPainter!!
+                                                    val fullBgUri = ThemeConfig.fullScreenBackgroundUri
+                                                    if (fullBgUri != null) {
+                                                        val tick = ThemeConfig.fullScreenRefreshTick
+                                                        val bgModel = remember(fullBgUri, tick) {
+                                                            if (fullBgUri.scheme == "file" && fullBgUri.path != null) {
+                                                                java.io.File(fullBgUri.path!!)
+                                                            } else {
+                                                                fullBgUri
+                                                            }
+                                                        }
+                                                        val cacheKey = remember(fullBgUri, tick) {
+                                                            if (bgModel is java.io.File) {
+                                                                "${bgModel.absolutePath}_${bgModel.lastModified()}_${bgModel.length()}_$tick"
+                                                            } else {
+                                                                "${fullBgUri}_$tick"
+                                                            }
+                                                        }
                                                         Box(
                                                             modifier = Modifier
                                                                 .fillMaxSize()
                                                                 .zIndex(-1f)
-                                                                .paint(
-                                                                    painter = it,
-                                                                    contentScale = ContentScale.Crop,
-                                                                )
-                                                                .drawWithContent {
-                                                                    drawContent()
-                                                                    drawRect(
-                                                                        color = Color.Black.copy(
+                                                        ) {
+                                                            coil.compose.AsyncImage(
+                                                                model = coil.request.ImageRequest.Builder(LocalContext.current)
+                                                                    .data(bgModel)
+                                                                    .memoryCacheKey(cacheKey)
+                                                                    .diskCacheKey(cacheKey)
+                                                                    .crossfade(true)
+                                                                    .build(),
+                                                                contentDescription = null,
+                                                                contentScale = ContentScale.Crop,
+                                                                modifier = Modifier.fillMaxSize()
+                                                            )
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .fillMaxSize()
+                                                                    .background(
+                                                                        Color.Black.copy(
                                                                             alpha = ThemeConfig.fullScreenBackgroundDim
                                                                         )
                                                                     )
-                                                                }
-                                                        )
+                                                            )
+                                                        }
                                                     }
                                                     content.Content()
                                                 }
@@ -731,22 +756,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initializeViewModels() {
-        superUserViewModel = SuperUserViewModel()
-        homeViewModel = HomeViewModel()
+        // ViewModels are owned by the Application (see KernelSUApplication) and shared
+        // with every page through viewModelStoreOwner = ksuApp. Creating fresh ones
+        // here only duplicated the package scan.
 
         // 设置主题变化监听器
         themeChangeObserver = ThemeUtils.registerThemeChangeObserver(this)
     }
 
     private fun initializeData() {
-        lifecycleScope.launch {
-            try {
-                superUserViewModel.fetchAppList()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
         // 初始化主题相关设置
         ThemeUtils.initializeThemeSettings(this, settingsStateFlow)
     }
@@ -818,16 +836,7 @@ fun MainScreen() {
     // 页面隐藏处理
     val activity = LocalActivity.current as MainActivity
 
-    var savedPages by rememberSaveable<MutableState<List<BottomBarDestination>>> {
-        mutableStateOf(emptyList())
-    }
-
-    val pages by produceState(initialValue = savedPages) {
-        value = withContext(Dispatchers.IO) {
-            savedPages = BottomBarDestination.getPages()
-            return@withContext savedPages
-        }
-    }
+    val pages = remember { BottomBarDestination.getPages() }
 
     val coroutineScope = rememberCoroutineScope()
     var uiSelectedPage by rememberSaveable { mutableIntStateOf(0) }
@@ -863,7 +872,13 @@ fun MainScreen() {
                     userScrollEnabled = false
                     val job = coroutineScope.launch {
                         try {
-                            pagerState.animateScrollToPage(page)
+                            pagerState.animateScrollToPage(
+                                page = page,
+                                animationSpec = androidx.compose.animation.core.spring(
+                                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                                    stiffness = 450f
+                                )
+                            )
                         } finally {
                             if (animateJob === this) {
                                 userScrollEnabled = true
@@ -901,9 +916,11 @@ fun MainScreen() {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
         ) {
-            val isPortrait = maxWidth < maxHeight || (maxHeight / maxWidth > 1.4f)
+            // M3 adaptive: navigate by width size class, not by orientation guess.
+            // Compact (< 600dp) -> navigation bar; medium/expanded -> navigation rail.
+            val isCompactWidth = maxWidth < 600.dp
 
-            if (isPortrait) {
+            if (isCompactWidth) {
                 val bottomBarScrollConnection = rememberScrollConnection(
                     isScrollingDown = isScrollingDown,
                     scrollOffset = scrollOffset,
@@ -922,6 +939,7 @@ fun MainScreen() {
                                 .blurSource()
                                 .nestedScroll(bottomBarScrollConnection),
                             state = pagerState,
+                            beyondViewportPageCount = 1,
                             userScrollEnabled = userScrollEnabled,
                         ) { pageIndex ->
                             if (pages.isEmpty()) return@HorizontalPager
@@ -932,7 +950,9 @@ fun MainScreen() {
                                 LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
                             ) {
                                 val destination = pages[pageIndex]
-                                destination.direction(innerPadding.calculateBottomPadding())
+                                destination.direction(
+                                    innerPadding.calculateBottomPadding() + BottomBarHeight
+                                )
                             }
                         }
 
@@ -960,6 +980,7 @@ fun MainScreen() {
                             .fillMaxSize()
                             .blurSource(),
                         state = pagerState,
+                        beyondViewportPageCount = 1,
                         userScrollEnabled = userScrollEnabled,
                     ) { pageIndex ->
                         if (pages.isEmpty()) return@HorizontalPager

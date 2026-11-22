@@ -244,7 +244,7 @@ private fun AppProfileInner(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                     alpha = CardConfig.cardAlpha
                 ),
@@ -284,7 +284,7 @@ private fun AppProfileInner(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = MaterialTheme.shapes.large,
                             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                                 alpha = CardConfig.cardAlpha
                             ),
@@ -319,7 +319,7 @@ private fun AppProfileInner(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                                            shape = RoundedCornerShape(16.dp),
+                                            shape = MaterialTheme.shapes.large,
                                             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                                                 alpha = CardConfig.cardAlpha
                                             ),
@@ -355,7 +355,7 @@ private fun AppProfileInner(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                                 .padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = MaterialTheme.shapes.large,
                             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                                 alpha = CardConfig.cardAlpha
                             ),
@@ -376,7 +376,7 @@ private fun AppProfileInner(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                                     .padding(top = 8.dp),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = MaterialTheme.shapes.large,
                                 color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
                                     alpha = CardConfig.cardAlpha
                                 ),

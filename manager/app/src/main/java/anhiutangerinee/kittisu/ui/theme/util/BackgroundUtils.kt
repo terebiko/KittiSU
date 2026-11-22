@@ -12,6 +12,7 @@ import androidx.core.graphics.createBitmap
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import kotlin.math.min
 
 data class BackgroundTransformation(
     val scale: Float = 1f,
@@ -43,6 +44,80 @@ fun Context.getImageBitmap(uri: Uri): Bitmap? {
         bitmap
     } catch (e: Exception) {
         Log.e("BackgroundUtils", "Failed to get image bitmap: ${e.message}")
+        null
+    }
+}
+
+/**
+ * Decodes an image from [uri], center-crops it to the given aspect ratio
+ * ([aspectX] : [aspectY]), scales it to fit within [maxWidth] x [maxHeight]
+ * while preserving quality, and writes it as a JPEG to [destFile].
+ *
+ * Used as an internal cropper fallback on AOSP ROMs where no external app
+ * supports `com.android.camera.action.CROP` or where the system gallery
+ * rejects `FileProvider` URIs with "editing is not supported for this image".
+ */
+fun Context.cropAndSaveImage(
+    uri: Uri,
+    destFile: File,
+    aspectX: Int,
+    aspectY: Int,
+    maxWidth: Int = 2160,
+    maxHeight: Int = 3840
+): Uri? {
+    return try {
+        val original = contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream)
+        } ?: return null
+
+        val srcW = original.width
+        val srcH = original.height
+        if (srcW <= 0 || srcH <= 0) return null
+
+        val targetRatio = aspectX.toFloat() / aspectY.toFloat()
+        val srcRatio = srcW.toFloat() / srcH.toFloat()
+
+        val cropW: Int
+        val cropH: Int
+        if (srcRatio > targetRatio) {
+            cropH = srcH
+            cropW = (srcH * targetRatio).toInt().coerceIn(1, srcW)
+        } else {
+            cropW = srcW
+            cropH = (srcW / targetRatio).toInt().coerceIn(1, srcH)
+        }
+
+        val cropX = ((srcW - cropW) / 2).coerceAtLeast(0)
+        val cropY = ((srcH - cropH) / 2).coerceAtLeast(0)
+
+        val cropped = Bitmap.createBitmap(original, cropX, cropY, cropW, cropH)
+        if (cropped !== original) {
+            original.recycle()
+        }
+
+        val scaleFactor = min(
+            1f,
+            min(maxWidth.toFloat() / cropW.toFloat(), maxHeight.toFloat() / cropH.toFloat())
+        )
+        val finalBitmap = if (scaleFactor < 1f) {
+            val outW = (cropW * scaleFactor).toInt().coerceAtLeast(1)
+            val outH = (cropH * scaleFactor).toInt().coerceAtLeast(1)
+            Bitmap.createScaledBitmap(cropped, outW, outH, true).also {
+                if (it !== cropped) cropped.recycle()
+            }
+        } else {
+            cropped
+        }
+
+        destFile.parentFile?.mkdirs()
+        FileOutputStream(destFile).use { out ->
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+            out.flush()
+        }
+        finalBitmap.recycle()
+        Uri.fromFile(destFile)
+    } catch (e: Exception) {
+        Log.e("BackgroundUtils", "cropAndSaveImage failed: ${e.message}", e)
         null
     }
 }

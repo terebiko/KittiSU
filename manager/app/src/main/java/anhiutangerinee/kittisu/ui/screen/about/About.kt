@@ -211,7 +211,7 @@ private fun StatusCard() {
         color = MaterialTheme.colorScheme.secondaryContainer.copy(
             alpha = CardConfig.cardAlpha
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = MaterialTheme.shapes.extraLarge
     ) {
         Column(
             modifier = Modifier
@@ -224,7 +224,7 @@ private fun StatusCard() {
                     Image(
                         modifier = Modifier
                             .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp)),
+                            .clip(MaterialTheme.shapes.medium),
                         painter = rememberDrawablePainter(
                             drawable = ContextCompat.getDrawable(
                                 LocalContext.current,

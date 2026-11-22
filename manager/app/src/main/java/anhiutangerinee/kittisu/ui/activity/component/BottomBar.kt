@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,6 +49,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import anhiutangerinee.kittisu.ui.screen.BottomBarDestination
 import kotlin.math.roundToInt
+
+/**
+ * Vertical space the floating bottom bar occupies: 72.dp pill + 14.dp padding on
+ * each side. Pages add this to their scaffold insets so FABs and list content
+ * clear the bar instead of sliding underneath it.
+ */
+val BottomBarHeight = 100.dp
 
 @Composable
 fun BottomBar(
@@ -93,15 +99,27 @@ fun BottomBar(
         animationSpec = if (isDraggingPill) {
             spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
         } else {
-            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
+            spring(dampingRatio = 0.72f, stiffness = 420f)
         },
         label = "bottom_bar_selected_index"
     )
 
+    val pillScale by animateFloatAsState(
+        targetValue = if (isDraggingPill) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "bottom_bar_pill_scale"
+    )
+
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        enter = slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow)
+        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+        exit = slideOutVertically(
+            targetOffsetY = { it },
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+        ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMedium))
     ) {
         BoxWithConstraints(
             modifier = Modifier
@@ -122,10 +140,10 @@ fun BottomBar(
             ) {
                 Surface(
                     modifier = Modifier.wrapContentWidth(),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
                     tonalElevation = 3.dp,
-                    shadowElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh
+                    shadowElevation = 6.dp,
+                    color = MaterialTheme.colorScheme.surfaceContainer
                 ) {
                     Box(
                         modifier = Modifier
@@ -216,8 +234,8 @@ fun BottomBar(
                                         .offset { IntOffset(x = indicatorOffset.roundToInt(), y = 0) }
                                         .width(itemSize)
                                         .graphicsLayer {
-                                            scaleX = if (isDraggingPill) 1.1f else 1f
-                                            scaleY = if (isDraggingPill) 1.1f else 1f
+                                            scaleX = pillScale
+                                            scaleY = pillScale
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -226,7 +244,7 @@ fun BottomBar(
                                             .size(itemSize)
                                             .background(
                                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                                shape = RoundedCornerShape(16.dp)
+                                                shape = MaterialTheme.shapes.large
                                             )
                                     )
                                 }
@@ -243,7 +261,7 @@ fun BottomBar(
                                     Box(
                                         modifier = Modifier
                                             .size(itemSize)
-                                            .clip(RoundedCornerShape(16.dp)),
+                                            .clip(MaterialTheme.shapes.large),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(

@@ -45,7 +45,7 @@ class ModulePresetViewModel : ViewModel() {
         private const val KEY_CUSTOM_SOURCES = "custom_sources_json"
         private const val LOCAL_PRESETS_DIR = "presets"
         const val OFFICIAL_SOURCE_ID = "official"
-        const val OFFICIAL_SOURCE_NAME = "KittiSU Official"
+        const val OFFICIAL_SOURCE_NAME = "SovaSU Official"
     }
 
     var presets by mutableStateOf<List<LoadedPreset>>(emptyList())

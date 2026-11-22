@@ -38,7 +38,7 @@ import anhiutangerinee.kittisu.ui.theme.getCardElevation
 @Composable
 fun WarningCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = MaterialTheme.shapes.large,
     message: String,
     content: (@Composable () -> Unit) = {},
     color: Color? = null,
@@ -69,7 +69,7 @@ fun WarningCard(
 @Composable
 fun WarningCard(
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(16.dp),
+    shape: Shape = MaterialTheme.shapes.large,
     message: AnnotatedString,
     content: (@Composable () -> Unit) = {},
     color: Color? = null,

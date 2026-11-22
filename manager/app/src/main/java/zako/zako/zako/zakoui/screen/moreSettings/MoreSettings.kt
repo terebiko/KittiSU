@@ -159,69 +159,13 @@ fun MoreSettingsScreen() {
     val activity = LocalActivity.current as MainActivity
     val settingsHandlers = remember { MoreSettingsHandlers(activity, prefs, settingsState) }
 
-    // TODO Add In app crop as fallback
-    // 图片选择器
-    val cropImageLauncher = rememberLauncherForActivityResult(
-        object : ActivityResultContract<Uri, Uri?>() {
-            override fun createIntent(context: Context, input: Uri): Intent {
-                val tempFile = File(context.cacheDir, "background_crop_cache").apply {
-                    parentFile?.mkdirs()
-                    delete()
-                    createNewFile()
-                    deleteOnExit()
-                }
-
-                context.contentResolver.openInputStream(input)?.use { inputStream ->
-                    tempFile.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-
-                val tempUri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    tempFile
-                )
-
-                return Intent("com.android.camera.action.CROP").apply {
-                    setDataAndType(tempUri, "image/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    putExtra("crop", "true")
-
-                    val displayMetrics = context.resources.displayMetrics
-                    val screenWidth = displayMetrics.widthPixels
-                    val screenHeight = displayMetrics.heightPixels
-
-                    putExtra("aspectX", 16)
-                    putExtra("aspectY", 9)
-                    putExtra("outputX", screenWidth)
-                    putExtra("outputY", (screenWidth * 9) / 16)
-
-                    putExtra("return-data", false)
-
-                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
-                }
-            }
-
-            override fun parseResult(
-                resultCode: Int,
-                intent: Intent?
-            ): Uri? {
-                return intent?.data
-            }
-        }
-    ) { uri: Uri? ->
-        uri?.let {
-            settingsHandlers.handleCustomBackground(it)
-        }
-    }
-
+    // Pick image directly and crop in-app to avoid AOSP Gallery/Google Photos
+    // "Editing is not supported for this image" errors and missing CROP activity crashes.
     val pickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            cropImageLauncher.launch(uri)
+            settingsHandlers.handleCustomBackground(it)
         }
     }
 
@@ -968,70 +912,11 @@ private fun FullScreenBackgroundSettings(
     state: MoreSettingsState,
     handlers: MoreSettingsHandlers,
 ) {
-    val context = LocalContext.current
-
-    val fullScreenCropLauncher = rememberLauncherForActivityResult(
-        object : ActivityResultContract<Uri, Uri?>() {
-            override fun createIntent(context: Context, input: Uri): Intent {
-                val tempFile = File(context.cacheDir, "fullscreen_background_crop_cache").apply {
-                    parentFile?.mkdirs()
-                    delete()
-                    createNewFile()
-                    deleteOnExit()
-                }
-
-                context.contentResolver.openInputStream(input)?.use { inputStream ->
-                    tempFile.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-
-                val tempUri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    tempFile
-                )
-
-                return Intent("com.android.camera.action.CROP").apply {
-                    setDataAndType(tempUri, "image/*")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    putExtra("crop", "true")
-
-                    val displayMetrics = context.resources.displayMetrics
-                    val screenWidth = displayMetrics.widthPixels
-                    val screenHeight = displayMetrics.heightPixels
-                    val divisor = gcd(screenWidth, screenHeight)
-                    val aspectX = screenWidth / divisor
-                    val aspectY = screenHeight / divisor
-
-                    putExtra("aspectX", aspectX)
-                    putExtra("aspectY", aspectY)
-                    putExtra("outputX", screenWidth)
-                    putExtra("outputY", screenHeight)
-                    putExtra("return-data", false)
-                    putExtra(MediaStore.EXTRA_OUTPUT, tempUri)
-                }
-            }
-
-            override fun parseResult(
-                resultCode: Int,
-                intent: Intent?
-            ): Uri? {
-                return intent?.data
-            }
-        }
-    ) { uri: Uri? ->
-        uri?.let {
-            handlers.handleFullScreenBackground(it)
-        }
-    }
-
     val fullScreenPickImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            fullScreenCropLauncher.launch(uri)
+            handlers.handleFullScreenBackground(it)
         }
     }
 

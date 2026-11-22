@@ -336,7 +336,19 @@ fun HomePage(
                 }
 
                 AnimatedVisibility(
-                    visible = viewModel.isExtendedDataLoaded
+                    visible = viewModel.isExtendedDataLoaded,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) + expandVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
                     InfoCard(
                         systemInfo = viewModel.systemInfo,
@@ -525,15 +537,32 @@ private fun StatusCard(
     onClickInstall: () -> Unit = {},
     onClickJailbreak: () -> Unit = {}
 ) {
+    // These values are static for the lifetime of the process; read them once
+    // instead of doing JNI/uname work on every recomposition.
+    val isSafeMode = remember { Natives.isSafeMode }
+    val isLateLoadMode = remember { Natives.isLateLoadMode }
+    val machine = remember { Os.uname().machine }
+
+    // Container role drives the content role: secondaryContainer -> onSecondaryContainer,
+    // errorContainer -> onErrorContainer. Using onSurface here broke contrast in dark mode.
+    val statusContainer = if (systemStatus.ksuVersion != null) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.errorContainer
+    }
+    val statusOnContainer = if (systemStatus.ksuVersion != null) {
+        MaterialTheme.colorScheme.onSecondaryContainer
+    } else {
+        MaterialTheme.colorScheme.onErrorContainer
+    }
+
     ElevatedCard(
-        colors = getCardColors(
-            if (systemStatus.ksuVersion != null) MaterialTheme.colorScheme.secondaryContainer
-            else MaterialTheme.colorScheme.errorContainer
-        ).let {
-            if (anhiutangerinee.kittisu.ui.theme.backgroundImagePainter != null) {
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = getCardColors(statusContainer).let {
+            if (ThemeConfig.customBackgroundUri != null) {
                 CardDefaults.elevatedCardColors(
-                    containerColor = it.containerColor.copy(alpha = 0.5f),
-                    contentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = Color.Transparent,
+                    contentColor = statusOnContainer
                 )
             } else {
                 it
@@ -544,13 +573,34 @@ private fun StatusCard(
         androidx.compose.foundation.layout.Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (anhiutangerinee.kittisu.ui.theme.backgroundImagePainter != null) {
-                androidx.compose.foundation.Image(
-                    painter = anhiutangerinee.kittisu.ui.theme.backgroundImagePainter!!,
+            val customBgUri = ThemeConfig.customBackgroundUri
+            if (customBgUri != null) {
+                val context = LocalContext.current
+                val tick = ThemeConfig.backgroundRefreshTick
+                val bgFile = remember(customBgUri, tick) {
+                    if (customBgUri.scheme == "file" && customBgUri.path != null) {
+                        java.io.File(customBgUri.path!!)
+                    } else {
+                        customBgUri
+                    }
+                }
+                val cacheKey = remember(customBgUri, tick) {
+                    if (bgFile is java.io.File) {
+                        "${bgFile.absolutePath}_${bgFile.lastModified()}_${bgFile.length()}_$tick"
+                    } else {
+                        "${customBgUri}_$tick"
+                    }
+                }
+                coil.compose.AsyncImage(
+                    model = coil.request.ImageRequest.Builder(context)
+                        .data(bgFile)
+                        .memoryCacheKey(cacheKey)
+                        .diskCacheKey(cacheKey)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.matchParentSize(),
-                    alpha = 0.8f
                 )
             }
             
@@ -569,7 +619,7 @@ private fun StatusCard(
                 when {
                     systemStatus.ksuVersion != null -> {
                         val workingModeText = when {
-                            Natives.isSafeMode -> stringResource(id = R.string.safe_mode)
+                            isSafeMode -> stringResource(id = R.string.safe_mode)
                             else -> stringResource(id = R.string.home_working)
                         }
                         val workingModeSurfaceText = when {
@@ -580,30 +630,27 @@ private fun StatusCard(
                         Text(
                             text = workingModeText,
                             style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             LabelText(
                                 label = workingModeSurfaceText,
-                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                contentColor = MaterialTheme.colorScheme.onSurface
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
-                            if (Natives.isLateLoadMode) {
+                            if (isLateLoadMode) {
                                 Spacer(Modifier.width(6.dp))
                                 LabelText(
                                     label = stringResource(id = R.string.jailbreak_mode),
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                    containerColor = MaterialTheme.colorScheme.surface
                                 )
                             }
-                            if (Os.uname().machine != "aarch64") {
+                            if (machine != "aarch64") {
                                 Spacer(Modifier.width(6.dp))
                                 LabelText(
-                                    label = Os.uname().machine,
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                    label = machine,
+                                    containerColor = MaterialTheme.colorScheme.surface
                                 )
                             }
                         }
@@ -614,7 +661,7 @@ private fun StatusCard(
                                 Text(
                                     text = stringResource(R.string.home_working_version, it),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = statusOnContainer,
                                 )
                             }
                         }
@@ -623,20 +670,19 @@ private fun StatusCard(
                         Text(
                             text = stringResource(R.string.home_not_installed),
                             style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Spacer(Modifier.height(8.dp))
                         LabelText(
                             label = "Legacy",
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            contentColor = MaterialTheme.colorScheme.onSurface
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.home_click_to_install),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = statusOnContainer
                         )
                         if (systemStatus.isSELinuxPermissive) {
                             Spacer(Modifier.height(16.dp))
@@ -655,14 +701,14 @@ private fun StatusCard(
                         Text(
                             text = stringResource(R.string.home_unsupported),
                             style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.home_unsupported_reason),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = statusOnContainer
                         )
                     }
                 }
@@ -677,6 +723,7 @@ fun LearnMoreCard() {
     val url = stringResource(R.string.home_learn_kernelsu_url)
 
     ElevatedCard(
+        shape = MaterialTheme.shapes.large,
         colors = getCardColors(MaterialTheme.colorScheme.surfaceContainerHighest),
         elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
@@ -710,6 +757,7 @@ fun DonateCard() {
     val uriHandler = LocalUriHandler.current
 
     ElevatedCard(
+        shape = MaterialTheme.shapes.large,
         colors = getCardColors(MaterialTheme.colorScheme.surfaceContainerHighest),
         elevation = getCardElevation(),
     ) {
@@ -746,7 +794,10 @@ private fun InfoCard(
     isHideZygiskImplement: Boolean,
     isHideMetaModuleImplement: Boolean,
 ) {
+    val hookType = remember { if (ksuIsValid()) Natives.getHookType() else "" }
+
     ElevatedCard(
+        shape = MaterialTheme.shapes.large,
         colors = getCardColors(MaterialTheme.colorScheme.surfaceContainerHighest),
         elevation = getCardElevation(),
     ) {
@@ -824,7 +875,7 @@ private fun InfoCard(
             if (!isSimpleMode && ksuIsValid()) {
                 InfoCardItem(
                     stringResource(R.string.home_hook_type),
-                    Natives.getHookType(),
+                    hookType,
                     icon = Icons.TwoTone.Link
                 )
             }

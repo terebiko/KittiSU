@@ -1,5 +1,6 @@
 package anhiutangerinee.kittisu.ui.component.settings
 
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.DropdownMenuGroup
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -45,7 +47,16 @@ fun SettingsDropDownPopupMenuWidget(
         (touchPoint.x.toDp()) to (touchPoint.y.toDp())
     }
 
-    Box {
+    Box(
+        modifier = Modifier.pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitFirstDown(requireUnconsumed = false)
+                    touchPoint = event.position
+                }
+            }
+        }
+    ) {
         SettingsBaseWidget(
             modifier = modifier,
             icon = icon,
@@ -53,9 +64,7 @@ fun SettingsDropDownPopupMenuWidget(
             description = description,
             enabled = enabled,
             isError = isError,
-            onClick = { offest ->
-                touchPoint = offest
-
+            onClick = {
                 expanded = !expanded
             },
             leadingContent = leadingContent,

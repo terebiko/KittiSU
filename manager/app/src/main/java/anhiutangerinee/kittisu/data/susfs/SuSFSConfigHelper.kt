@@ -6,7 +6,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import anhiutangerinee.kittisu.ksuApp
-import anhiutangerinee.kittisu.ui.util.withNewRootShell
+import anhiutangerinee.kittisu.ui.util.getRootShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -334,11 +334,16 @@ object SuSFSConfigHelper {
 
     private suspend fun executeSusfsCommand(command: String): CommandResult =
         withContext(Dispatchers.IO) {
+            if (!File(getKsuDaemonPath()).isFile) {
+                return@withContext CommandResult(false, "", "libksud.so not present")
+            }
             try {
                 val stdout = ArrayList<String>()
                 val stderr = ArrayList<String>()
-                val result = withNewRootShell {
-                    newJob()
+                // Reuse the shared root shell. withNewRootShell spawned a brand-new
+                // root process for every susfs query (3 per status refresh).
+                val result = getRootShell().let { shell ->
+                    shell.newJob()
                         .add("${shellQuote(getKsuDaemonPath())} susfs $command")
                         .to(stdout, stderr)
                         .exec()

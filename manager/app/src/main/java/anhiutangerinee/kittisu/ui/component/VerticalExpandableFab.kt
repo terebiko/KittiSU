@@ -1,9 +1,9 @@
 package anhiutangerinee.kittisu.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -80,13 +80,13 @@ fun VerticalExpandableFab(
 
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 45f else 0f,
-        animationSpec = tween(animationDurationMs, easing = FastOutSlowInEasing),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "mainButtonRotation"
     )
 
     val mainButtonScale by animateFloatAsState(
-        targetValue = if (isExpanded) 1.1f else 1f,
-        animationSpec = tween(animationDurationMs, easing = FastOutSlowInEasing),
+        targetValue = if (isExpanded) 1.08f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "mainButtonScale"
     )
 
@@ -95,44 +95,30 @@ fun VerticalExpandableFab(
         contentAlignment = Alignment.BottomEnd
     ) {
         menuItems.forEachIndexed { index, menuItem ->
+            val itemStiffness = (450f - index * 35f).coerceAtLeast(260f)
             val animatedOffsetY by animateFloatAsState(
                 targetValue = if (isExpanded) -(buttonSpacing.value * (index + 1)) else 0f,
-                animationSpec = tween(
-                    durationMillis = animationDurationMs,
-                    delayMillis = if (isExpanded) {
-                        index * staggerDelayMs
-                    } else {
-                        (menuItems.size - index - 1) * staggerDelayMs
-                    },
-                    easing = FastOutSlowInEasing
+                animationSpec = spring(
+                    dampingRatio = 0.72f,
+                    stiffness = itemStiffness
                 ),
                 label = "fabOffset$index"
             )
 
             val animatedScale by animateFloatAsState(
                 targetValue = if (isExpanded) 1f else 0f,
-                animationSpec = tween(
-                    durationMillis = animationDurationMs,
-                    delayMillis = if (isExpanded) {
-                        index * staggerDelayMs + 100
-                    } else {
-                        (menuItems.size - index - 1) * staggerDelayMs
-                    },
-                    easing = FastOutSlowInEasing
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = itemStiffness
                 ),
                 label = "fabScale$index"
             )
 
             val animatedAlpha by animateFloatAsState(
                 targetValue = if (isExpanded) 1f else 0f,
-                animationSpec = tween(
-                    durationMillis = animationDurationMs,
-                    delayMillis = if (isExpanded) {
-                        index * staggerDelayMs + 150
-                    } else {
-                        (menuItems.size - index - 1) * staggerDelayMs
-                    },
-                    easing = FastOutSlowInEasing
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
                 ),
                 label = "fabAlpha$index"
             )
@@ -149,12 +135,12 @@ fun VerticalExpandableFab(
                     visible = isExpanded && animatedScale > 0.5f,
                     enter = slideInHorizontally(
                         initialOffsetX = { it / 2 },
-                        animationSpec = tween(200)
-                    ) + fadeIn(animationSpec = tween(200)),
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
+                    ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)),
                     exit = slideOutHorizontally(
                         targetOffsetX = { it / 2 },
-                        animationSpec = tween(150)
-                    ) + fadeOut(animationSpec = tween(150))
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessHigh)
+                    ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessHigh))
                 ) {
                     Surface(
                         modifier = Modifier.padding(end = 16.dp),

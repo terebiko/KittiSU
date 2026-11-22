@@ -171,7 +171,7 @@ fun ModulePresetsScreen() {
 
 @Composable
 private fun ErrorBanner(message: String, onRetry: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+    Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.TwoTone.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
             Spacer(Modifier.size(12.dp))
@@ -196,7 +196,7 @@ private fun EmptyState() {
 
 @Composable
 fun PresetCard(preset: LoadedPreset, onClick: () -> Unit) {
-    ElevatedCard(shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { onClick() }) {
+    ElevatedCard(shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth().clickable { onClick() }) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(preset.presetEntry.destination, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             preset.presetEntry.committer?.takeIf { it.isNotBlank() }?.let { committer ->

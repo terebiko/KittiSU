@@ -31,7 +31,7 @@ lateinit var ksuApp: KernelSUApplication
 class KernelSUApplication : Application(), ViewModelStoreOwner {
 
     lateinit var okhttpClient: OkHttpClient
-    val UserAgent = "KittiSU/${BuildConfig.VERSION_CODE}"
+    val UserAgent = "SovaSU/${BuildConfig.VERSION_CODE}"
     private val appViewModelStore by lazy { ViewModelStore() }
 
     @SuppressLint("RestrictedApi")
@@ -51,15 +51,15 @@ class KernelSUApplication : Application(), ViewModelStoreOwner {
 
         runCatching { MonetCompat.enablePaletteCompat() }
 
-        // For faster response when first entering superuser or webui activity
+        // For faster response when first entering superuser or webui activity:
+        // run all three initial loads in parallel instead of sequentially.
         val superUserViewModel = ViewModelProvider(this)[SuperUserViewModel::class.java]
         val homeViewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         val moduleViewModel = ViewModelProvider(this)[ModuleViewModel::class.java]
-        CoroutineScope(Dispatchers.Main).launch {
-            homeViewModel.refreshData(this@KernelSUApplication)
-            superUserViewModel.fetchAppList()
-            moduleViewModel.fetchModuleList()
-        }
+        val appScope = CoroutineScope(Dispatchers.Main)
+        appScope.launch { homeViewModel.refreshData(this@KernelSUApplication) }
+        appScope.launch { superUserViewModel.fetchAppList() }
+        appScope.launch { moduleViewModel.fetchModuleList() }
 
         val context = this
         val iconSize = resources.getDimensionPixelSize(android.R.dimen.app_icon_size)

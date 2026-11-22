@@ -44,7 +44,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Wysiwyg
@@ -69,10 +68,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -117,7 +117,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -134,6 +133,7 @@ import com.kyant.capsule.ContinuousRoundedRectangle
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.ksuApp
+import anhiutangerinee.kittisu.ui.component.EmptyState
 import anhiutangerinee.kittisu.ui.component.ConfirmResult
 import anhiutangerinee.kittisu.ui.component.InstallConfirmationDialog
 import anhiutangerinee.kittisu.ui.component.SearchAppBar
@@ -297,9 +297,13 @@ fun ModulePage(bottomPadding: Dp) {
         }
     }
 
-    val isSafeMode = Natives.isSafeMode
-    val hasMagisk = hasMagisk()
-    val hideInstallButton = isSafeMode || hasMagisk
+    val isSafeMode = remember { Natives.isSafeMode }
+    // hasMagisk() executes a shell command. It used to run synchronously during
+    // composition on every recomposition, which made this page stutter badly.
+    val magiskInstalled by produceState(initialValue = false) {
+        value = withContext(Dispatchers.IO) { hasMagisk() }
+    }
+    val hideInstallButton = isSafeMode || magiskInstalled
 
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
@@ -339,10 +343,11 @@ fun ModulePage(bottomPadding: Dp) {
         floatingActionButton = {
             if (hideInstallButton) return@Scaffold
 
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 modifier = Modifier.padding(bottom = bottomPadding + 5.dp),
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                containerColor = MaterialTheme.colorScheme.primary,
+                shape = MaterialTheme.shapes.extraLarge,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 onClick = {
                     selectZipLauncher.launch(
                         Intent(Intent.ACTION_GET_CONTENT).apply {
@@ -351,10 +356,16 @@ fun ModulePage(bottomPadding: Dp) {
                         }
                     )
                 },
-                content = {
+                icon = {
                     Icon(
                         painter = painterResource(id = R.drawable.package_import),
                         contentDescription = null
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.install),
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             )
@@ -371,57 +382,26 @@ fun ModulePage(bottomPadding: Dp) {
         }
     ) { innerPadding ->
         when {
-            hasMagisk -> {
+            magiskInstalled -> {
+                EmptyState(
+                    icon = Icons.TwoTone.Warning,
+                    title = stringResource(R.string.module_magisk_conflict),
+                )
+            }
+            viewModel.isRefreshing && viewModel.moduleList.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.TwoTone.Warning,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(64.dp)
-                                .padding(bottom = 16.dp)
-                        )
-                        Text(
-                            stringResource(R.string.module_magisk_conflict),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
+                    LoadingIndicator()
                 }
             }
             viewModel.moduleList.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.TwoTone.Extension,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(96.dp)
-                                .padding(bottom = 16.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.module_empty),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    }
-                }
+                EmptyState(
+                    icon = Icons.TwoTone.Extension,
+                    title = stringResource(R.string.module_empty),
+                    description = stringResource(R.string.module_empty_description),
+                )
             }
             else -> {
                 ModuleList(
@@ -474,7 +454,7 @@ fun ModulePage(bottomPadding: Dp) {
                     Surface(
                         modifier = Modifier.padding(vertical = 11.dp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = MaterialTheme.shapes.large
                     ) {
                         Box(
                             Modifier.size(
@@ -1217,7 +1197,7 @@ private fun ModuleList(
                                 val clipboard =
                                     context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                                 clipboard.setPrimaryClip(
-                                    ClipData.newPlainText("KittiSU module URL", uri.toString())
+                                    ClipData.newPlainText("SovaSU module URL", uri.toString())
                                 )
                                 Toast.makeText(
                                     context,
@@ -1303,7 +1283,7 @@ fun ModuleItem(
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(CardConfig.cardAlpha),
-        shape = RoundedCornerShape(16.dp)
+        shape = MaterialTheme.shapes.large
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (useBanner && !module.banner.isNullOrBlank()) {
@@ -1546,7 +1526,7 @@ fun ModuleItem(
                 ) {
                     if (module.hasActionScript) {
                         FilledTonalButton(
-                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                             enabled = !module.remove && module.enabled,
                             onClick = {
                                 navigator.push(Route.ExecuteModuleAction(module.dirId))
@@ -1564,7 +1544,7 @@ fun ModuleItem(
     
                     if (module.hasWebUi) {
                         FilledTonalButton(
-                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                             enabled = !module.remove && module.enabled,
                             onClick = { onClick(module) },
                             interactionSource = interactionSource,
@@ -1582,7 +1562,7 @@ fun ModuleItem(
     
                     if (updateUrl.isNotEmpty()) {
                         Button(
-                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                             enabled = !module.remove,
                             onClick = { onUpdate(module) },
                             shape = ButtonDefaults.textShape,
@@ -1597,7 +1577,7 @@ fun ModuleItem(
                     }
     
                     FilledTonalButton(
-                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                         onClick = { onUninstallClicked(module) },
                         contentPadding = ButtonDefaults.TextButtonContentPadding,
                     ) {

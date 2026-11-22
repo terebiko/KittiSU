@@ -24,6 +24,7 @@ import anhiutangerinee.kittisu.ui.util.isSELinuxPermissive
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -92,6 +93,7 @@ class HomeViewModel : ViewModel() {
         private set
 
     private var loadingJobs = mutableListOf<Job>()
+    private var refreshInFlight = false
 
     fun loadUserSettings(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -223,6 +225,11 @@ class HomeViewModel : ViewModel() {
         context: Context,
         refreshUI: Boolean = false
     ) {
+        // Application.onCreate and HomePage both ask for data. Without this guard
+        // the second call cancels and restarts the first one's jobs.
+        if (!refreshUI && (refreshInFlight || isCoreDataLoaded)) return
+
+        refreshInFlight = true
         viewModelScope.launch {
             if (refreshUI)
                 isRefreshing = true
@@ -247,9 +254,12 @@ class HomeViewModel : ViewModel() {
                 // 重新加载扩展数据
                 loadExtendedData(context)
 
+                // Keep the pull-to-refresh indicator visible until both jobs finish.
+                loadingJobs.toList().joinAll()
             } catch (_: Exception) {
                 // 静默处理错误
             } finally {
+                refreshInFlight = false
                 isRefreshing = false
             }
         }

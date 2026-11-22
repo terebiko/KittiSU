@@ -53,6 +53,7 @@ import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import anhiutangerinee.kittisu.ui.theme.util.BackgroundTransformation
+import anhiutangerinee.kittisu.ui.theme.util.cropAndSaveImage
 import anhiutangerinee.kittisu.ui.theme.util.saveTransformedBackground
 import anhiutangerinee.kittisu.ui.util.LocalBlurState
 import anhiutangerinee.kittisu.ui.webui.MonetColorsProvider
@@ -90,6 +91,7 @@ object ThemeConfig {
 
     // 背景状态
     var backgroundImageLoaded by mutableStateOf(false)
+    var backgroundRefreshTick by mutableIntStateOf(0)
     var isThemeChanging by mutableStateOf(false)
     var preventBackgroundRefresh by mutableStateOf(false)
     var isHighContrastMode by mutableStateOf(false)
@@ -99,6 +101,7 @@ object ThemeConfig {
 
     // Full-screen 9:16 background state
     var fullScreenBackgroundUri by mutableStateOf<Uri?>(null)
+    var fullScreenRefreshTick by mutableIntStateOf(0)
     var fullScreenBackgroundDim by mutableFloatStateOf(0f)
     var fullScreenBackgroundBlur by mutableStateOf(false)
     var isFullScreenBackgroundEnabled by mutableStateOf(false)
@@ -286,6 +289,7 @@ object BackgroundManager {
 
             saveBackgroundUri(context, finalUri)
             ThemeConfig.customBackgroundUri = finalUri
+            ThemeConfig.backgroundRefreshTick++
             CardConfig.updateBackground(true)
             resetBackgroundState(context)
 
@@ -330,15 +334,30 @@ object BackgroundManager {
             putString("full_screen_background", finalUri?.toString())
         }
         ThemeConfig.fullScreenBackgroundUri = finalUri
+        ThemeConfig.fullScreenRefreshTick++
         ThemeConfig.isFullScreenBackgroundEnabled = finalUri != null
     }
 
     private fun copyFullScreenImageToInternalStorage(context: Context, uri: Uri): Uri? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val fileName = "fullscreen_background.jpg"
             val file = File(context.filesDir, fileName)
+            val dm = context.resources.displayMetrics
+            val screenW = dm.widthPixels.coerceAtLeast(720)
+            val screenH = dm.heightPixels.coerceAtLeast(1280)
+            val cropped = context.cropAndSaveImage(
+                uri = uri,
+                destFile = file,
+                aspectX = screenW,
+                aspectY = screenH,
+                maxWidth = screenW,
+                maxHeight = screenH
+            )
+            if (cropped != null) {
+                return Uri.fromFile(file)
+            }
 
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             FileOutputStream(file).use { outputStream ->
                 val buffer = ByteArray(8 * 1024)
                 var read: Int
@@ -402,10 +421,23 @@ object BackgroundManager {
 
     private fun copyImageToInternalStorage(context: Context, uri: Uri): Uri? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             val fileName = "custom_background.jpg"
             val file = File(context.filesDir, fileName)
+            val dm = context.resources.displayMetrics
+            val screenW = dm.widthPixels.coerceAtLeast(1080)
+            val cropped = context.cropAndSaveImage(
+                uri = uri,
+                destFile = file,
+                aspectX = 16,
+                aspectY = 9,
+                maxWidth = screenW,
+                maxHeight = (screenW * 9) / 16
+            )
+            if (cropped != null) {
+                return Uri.fromFile(file)
+            }
 
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
             FileOutputStream(file).use { outputStream ->
                 val buffer = ByteArray(8 * 1024)
                 var read: Int
@@ -439,7 +471,7 @@ fun KernelSUTheme(
     ThemeInitializer(context = context, systemIsDark = systemIsDark)
 
     // 创建颜色方案
-    val colorScheme = createColorScheme(darkTheme, dynamicColor)
+    val colorScheme = rememberColorScheme(darkTheme, dynamicColor)
 
     // 系统栏样式
     SystemBarController(darkTheme)
@@ -455,13 +487,17 @@ fun KernelSUTheme(
         }
     }
 
+    val motionScheme = remember { MotionScheme.expressive() }
+    val typography = generateTypography()
+
     CompositionLocalProvider(
         LocalDensity provides density
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
-            motionScheme = MotionScheme.expressive(),
-            typography = generateTypography()
+            motionScheme = motionScheme,
+            shapes = AppShapes,
+            typography = typography
         ) {
             MonetColorsProvider.UpdateCss()
             Box(modifier = Modifier.fillMaxSize()) {
@@ -497,7 +533,9 @@ private fun ThemeInitializer(context: Context, systemIsDark: Boolean) {
 
     // 初始加载配置
     LaunchedEffect(Unit) {
-        scope.launch {
+        // These are all SharedPreferences reads; keep them off the main thread so
+        // the first frame is not delayed by theme loading.
+        scope.launch(Dispatchers.IO) {
             ThemeManager.loadThemeMode(context)
             ThemeManager.loadThemeColors(context)
             ThemeManager.loadDynamicColorState(context)
@@ -672,9 +710,24 @@ private suspend fun Bitmap.extractSeedColor(
 
 @Composable
 private fun BackgroundInitializer(uri: Uri) {
-    backgroundImagePainter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(uri)
+    val context = LocalContext.current
+    val tick = ThemeConfig.backgroundRefreshTick
+    val dataModel = remember(uri, tick) {
+        if (uri.scheme == "file" && uri.path != null) File(uri.path!!) else uri
+    }
+    val cacheKey = remember(uri, tick) {
+        if (uri.scheme == "file" && uri.path != null) {
+            val f = File(uri.path!!)
+            "${f.absolutePath}_${f.lastModified()}_${f.length()}_$tick"
+        } else {
+            "${uri}_$tick"
+        }
+    }
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(dataModel)
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
             .allowHardware(false)
             .crossfade(true)
             .build(),
@@ -688,10 +741,15 @@ private fun BackgroundInitializer(uri: Uri) {
             ThemeConfig.isThemeChanging = false
         }
     )
+    SideEffect {
+        backgroundImagePainter = painter
+    }
 }
 
 @Composable
 private fun FullScreenBackgroundInitializer(uri: Uri) {
+    val context = LocalContext.current
+    val tick = ThemeConfig.fullScreenRefreshTick
     val coroutineScope = rememberCoroutineScope()
 
     val dynamicColorFromSystem =
@@ -699,16 +757,30 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
             colorResource(id = R.color.system_accent1_500).toArgb()
         else -12417548
 
-    val prefs = LocalContext.current
+    val prefs = context
         .getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
 
     val calcedCachedSeedColor =
         prefs
             .getInt("cached_seed_color", dynamicColorFromSystem)
 
-    fullScreenBackgroundPainter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(uri)
+    val dataModel = remember(uri, tick) {
+        if (uri.scheme == "file" && uri.path != null) File(uri.path!!) else uri
+    }
+    val cacheKey = remember(uri, tick) {
+        if (uri.scheme == "file" && uri.path != null) {
+            val f = File(uri.path!!)
+            "${f.absolutePath}_${f.lastModified()}_${f.length()}_$tick"
+        } else {
+            "${uri}_$tick"
+        }
+    }
+
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(dataModel)
+            .memoryCacheKey(cacheKey)
+            .diskCacheKey(cacheKey)
             .allowHardware(false)
             .crossfade(true)
             .build(),
@@ -732,6 +804,9 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
             }
         }
     )
+    SideEffect {
+        fullScreenBackgroundPainter = painter
+    }
 }
 
 @Composable
@@ -787,7 +862,7 @@ private fun generateTypography(): androidx.compose.material3.Typography {
 }
 
 @Composable
-private fun createColorScheme(
+private fun rememberColorScheme(
     darkTheme: Boolean,
     dynamicColor: Boolean
 ): ColorScheme {
@@ -802,12 +877,21 @@ private fun createColorScheme(
         else -> ThemeConfig.currentTheme.primaryLight.toArgb()
     }
 
-    return dynamicColorScheme(
-        seedColor = Color(seedColor),
-        isDark = darkTheme,
-        style = ThemeConfig.dynamicPaletteStyle,
-        specVersion = ThemeConfig.dynamicColorSpec,
-    )
+    // dynamicColorScheme() runs the full HCT palette generation; caching it avoids
+    // repeating that work on every recomposition of the theme wrapper.
+    return remember(
+        seedColor,
+        darkTheme,
+        ThemeConfig.dynamicPaletteStyle,
+        ThemeConfig.dynamicColorSpec
+    ) {
+        dynamicColorScheme(
+            seedColor = Color(seedColor),
+            isDark = darkTheme,
+            style = ThemeConfig.dynamicPaletteStyle,
+            specVersion = ThemeConfig.dynamicColorSpec,
+        )
+    }
 }
 
 @Composable

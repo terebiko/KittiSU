@@ -393,7 +393,7 @@ fun InstallItemCard(zipFile: ZipFileInfo) {
             containerColor = when (zipFile.type) {
                 ZipType.MODULE -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 ZipType.KERNEL -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.surfaceContainerHighest
             }
         ),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)

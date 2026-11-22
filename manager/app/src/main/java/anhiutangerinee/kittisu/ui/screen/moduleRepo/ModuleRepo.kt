@@ -203,7 +203,7 @@ fun ModuleRepoScreen() {
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -419,7 +419,7 @@ fun OnlineModuleItem(
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(CardConfig.cardAlpha),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier
             .clickable {
                 navigator.push(Route.ModuleRepoDetail(module))
@@ -537,7 +537,7 @@ fun OnlineModuleItem(
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.CenterVertically)) {
                     Spacer(modifier = Modifier.weight(1f))
                     FilledTonalButton(
-                        modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                         onClick = {
                             navigator.push(Route.ModuleRepoDetail(module))
                         },
@@ -555,7 +555,7 @@ fun OnlineModuleItem(
                         val confirmInstallTitle =
                             stringResource(R.string.confirm_install_module_title, module.moduleName)
                         FilledTonalButton(
-                            modifier = Modifier.defaultMinSize(minWidth = 52.dp, minHeight = 32.dp),
+                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                             onClick = {
                                 viewModel.viewModelScope.launch {
                                     val result = confirmDialog.awaitConfirm(

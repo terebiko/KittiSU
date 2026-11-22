@@ -23,7 +23,7 @@ val managerCommit = providers.gradleProperty("commit").orElse(
     providers.exec { commandLine("git", "rev-parse", "HEAD") }.standardOutput.asText.map { it.trim() }
 ).get()
 val managerPackageName = providers.gradleProperty("KSU_PACKAGE_NAME").orElse("anhiutangerinee.kittisu")
-val managerName = providers.gradleProperty("KSU_NAME").orElse("KittiSU")
+val managerName = providers.gradleProperty("KSU_NAME").orElse("SovaSU")
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -134,6 +134,8 @@ android {
 
         val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
+        // TEST BUILD ONLY: forces rootAvailable() true. Flip to false to restore.
+        buildConfigField("boolean", "FAKE_ROOT", "true")
         buildConfigField("String", "GIT_COMMIT", "\"$managerCommit\"")
 
         externalNativeBuild {

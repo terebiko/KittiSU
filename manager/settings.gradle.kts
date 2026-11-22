@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "KittiSU"
+rootProject.name = "SovaSU"
 include(":app")
 include(":baselineprofile")

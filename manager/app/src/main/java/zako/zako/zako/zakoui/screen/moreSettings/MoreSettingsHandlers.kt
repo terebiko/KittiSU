@@ -24,6 +24,7 @@ import anhiutangerinee.kittisu.ui.theme.saveThemeColors
 import anhiutangerinee.kittisu.ui.theme.saveThemeMode
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
+import kotlinx.coroutines.launch
 import zako.zako.zako.zakoui.screen.moreSettings.state.MoreSettingsState
 import zako.zako.zako.zakoui.screen.moreSettings.util.toggleLauncherIcon
 
@@ -193,23 +194,28 @@ class MoreSettingsHandlers(
     /**
      * 处理自定义背景
      */
+    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
     fun handleCustomBackground(transformedUri: Uri) {
-        activity.saveAndApplyCustomBackground(transformedUri)
-        state.isCustomBackgroundEnabled = true
-        CardConfig.cardAlpha = 0.55f
-        BackgroundManager.saveEnableBlur(activity, false)
-        BackgroundManager.saveUseBackgroundSeedColor(activity, true)
-        CardConfig.cardElevation = 0.dp
-        CardConfig.isCustomBackgroundEnabled = true
-        CardConfig.save(activity)
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            BackgroundManager.saveAndApplyCustomBackground(activity, transformedUri)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                state.isCustomBackgroundEnabled = true
+                CardConfig.cardAlpha = 0.55f
+                BackgroundManager.saveEnableBlur(activity, false)
+                BackgroundManager.saveUseBackgroundSeedColor(activity, true)
+                CardConfig.cardElevation = 0.dp
+                CardConfig.isCustomBackgroundEnabled = true
+                CardConfig.save(activity)
 
-        state.cardAlpha = CardConfig.cardAlpha
+                state.cardAlpha = CardConfig.cardAlpha
 
-        Toast.makeText(
-            activity,
-            activity.getString(R.string.background_set_success),
-            Toast.LENGTH_SHORT
-        ).show()
+                Toast.makeText(
+                    activity,
+                    activity.getString(R.string.background_set_success),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     /**
@@ -256,25 +262,30 @@ class MoreSettingsHandlers(
     /**
      * 处理全屏背景
      */
+    @OptIn(kotlinx.coroutines.DelicateCoroutinesApi::class)
     fun handleFullScreenBackground(uri: Uri) {
-        BackgroundManager.saveFullScreenBackground(activity, uri)
-        state.isFullScreenBackgroundEnabled = true
-        state.fullScreenBackgroundDim = 0.3f
-        BackgroundManager.saveFullScreenBackgroundDim(activity, 0.3f)
-        BackgroundManager.saveFullScreenBackgroundBlur(activity, false)
+        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            BackgroundManager.saveFullScreenBackground(activity, uri)
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                state.isFullScreenBackgroundEnabled = true
+                state.fullScreenBackgroundDim = 0.3f
+                BackgroundManager.saveFullScreenBackgroundDim(activity, 0.3f)
+                BackgroundManager.saveFullScreenBackgroundBlur(activity, false)
 
-        CardConfig.updateFullScreenBackground(true)
-        if (!CardConfig.isCustomAlphaSet) {
-            CardConfig.cardAlpha = 0.55f
+                CardConfig.updateFullScreenBackground(true)
+                if (!CardConfig.isCustomAlphaSet) {
+                    CardConfig.cardAlpha = 0.55f
+                }
+                CardConfig.save(activity)
+                state.cardAlpha = CardConfig.cardAlpha
+
+                Toast.makeText(
+                    activity,
+                    activity.getString(R.string.background_set_success),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
-        CardConfig.save(activity)
-        state.cardAlpha = CardConfig.cardAlpha
-
-        Toast.makeText(
-            activity,
-            activity.getString(R.string.background_set_success),
-            Toast.LENGTH_SHORT
-        ).show()
     }
 
     /**

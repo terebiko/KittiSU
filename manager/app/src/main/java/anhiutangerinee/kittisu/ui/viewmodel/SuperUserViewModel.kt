@@ -19,12 +19,15 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.BuildConfig
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ksuApp
 import anhiutangerinee.kittisu.ui.KsuService
 import anhiutangerinee.kittisu.ui.util.HanziToPinyin
 import com.resukisu.zako.IKsuInterface
 import com.topjohnwu.superuser.Shell
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
@@ -34,6 +37,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import java.text.Collator
@@ -96,6 +100,7 @@ class SuperUserViewModel : ViewModel() {
         private const val MAX_POOL_SIZE = 16
         private const val KEEP_ALIVE_TIME = 60L
         private const val BATCH_SIZE = 20
+        private val labelCache = ConcurrentHashMap<String, Pair<Long, String>>()
     }
 
     @Immutable
@@ -109,6 +114,14 @@ class SuperUserViewModel : ViewModel() {
         val packageName: String = packageInfo.packageName
         @IgnoredOnParcel
         val uid: Int = packageInfo.applicationInfo!!.uid
+        @IgnoredOnParcel
+        val lowerLabel: String = label.lowercase()
+        @IgnoredOnParcel
+        val lowerPackageName: String = packageName.lowercase()
+        @IgnoredOnParcel
+        val pinyinLabel: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            HanziToPinyin.getInstance().toPinyinString(label)?.lowercase().orEmpty()
+        }
     }
 
     @Immutable
@@ -124,6 +137,10 @@ class SuperUserViewModel : ViewModel() {
         val packageNames: List<String> = apps.map { it.packageName }
         @IgnoredOnParcel
         val allowSu: Boolean = profile?.allowSu == true
+        // Resolve this once on the background thread that builds the list instead of
+        // issuing an ioctl for every visible row on every recomposition.
+        @IgnoredOnParcel
+        val shouldUmount: Boolean = !allowSu && Natives.uidShouldUmount(uid)
         @IgnoredOnParcel
         val userName: String? = Natives.getUserName(uid)
         @IgnoredOnParcel
@@ -286,7 +303,23 @@ class SuperUserViewModel : ViewModel() {
         }
     }
 
-    private suspend fun connectKsuService(onDisconnect: () -> Unit = {}): IBinder? =
+    private fun hasRealRootDaemon(): Boolean {
+        if (BuildConfig.FAKE_ROOT) {
+            val ksudFile = File(ksuApp.applicationInfo.nativeLibraryDir, "libksud.so")
+            if (!ksudFile.isFile) return false
+        }
+        return true
+    }
+
+    private suspend fun connectKsuService(onDisconnect: () -> Unit = {}): IBinder? {
+        if (!hasRealRootDaemon()) return null
+        // bindOrTask only resolves when the root shell spawns. Without a real ksud
+        // `su` fails asynchronously and onServiceConnected never fires, so the
+        // caller would wait forever. Cap the wait and fall back to no-binder.
+        return withTimeoutOrNull(1_500) { awaitKsuBinder(onDisconnect) }
+    }
+
+    private suspend fun awaitKsuBinder(onDisconnect: () -> Unit): IBinder? =
         suspendCoroutine { continuation ->
             val connection = object : ServiceConnection {
                 override fun onServiceDisconnected(name: ComponentName?) {
@@ -301,7 +334,13 @@ class SuperUserViewModel : ViewModel() {
                 val task = com.topjohnwu.superuser.ipc.RootService.bindOrTask(
                     intent, Shell.EXECUTOR, connection
                 )
-                task?.let { Shell.getShell().execTask(it) }
+                if (task == null) {
+                    // No root: bindOrTask returns null and no callback ever arrives,
+                    // which left the page spinning forever.
+                    continuation.resume(null)
+                } else {
+                    Shell.getShell().execTask(task)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to bind KsuService", e)
                 continuation.resume(null)
@@ -319,6 +358,28 @@ class SuperUserViewModel : ViewModel() {
         }
     }
 
+    private fun resolvePackageToAppInfo(
+        pm: android.content.pm.PackageManager,
+        packageInfo: PackageInfo
+    ): AppInfo? {
+        val appInfo = packageInfo.applicationInfo ?: return null
+        val pkgName = packageInfo.packageName
+        val updateTime = packageInfo.lastUpdateTime
+        val cached = labelCache[pkgName]
+        val label = if (cached != null && cached.first == updateTime) {
+            cached.second
+        } else {
+            val loaded = appInfo.loadLabel(pm).toString()
+            labelCache[pkgName] = updateTime to loaded
+            loaded
+        }
+        return AppInfo(
+            label = label,
+            packageInfo = packageInfo,
+            profile = Natives.getAppProfile(pkgName, appInfo.uid)
+        )
+    }
+
     suspend fun fetchAppList() {
         // prevent multiple concurrent refreshes
         if (isRefreshing) return
@@ -327,34 +388,47 @@ class SuperUserViewModel : ViewModel() {
         loadingProgress = 0f
 
         try {
-            val binder = connectKsuService() ?: run { isRefreshing = false; return }
+            // RootService.bindOrTask() must be invoked on the main thread; it only
+            // posts the bind request, so it does not block. The heavy work below
+            // stays on IO / appProcessingThreadPool.
+            val binder = connectKsuService()
 
-            withContext(Dispatchers.IO) {
+            withContext(appProcessingThreadPool) {
                 val pm = ksuApp.packageManager
-                val allPackages = IKsuInterface.Stub.asInterface(binder)
-                val total = allPackages.packageCount
-                val pageSize = 100
-                val result = mutableListOf<AppInfo>()
+                val rawPackages = mutableListOf<PackageInfo>()
 
-                var start = 0
-                while (start < total) {
-                    val page = allPackages.getPackages(start, pageSize)
-                    if (page.isEmpty()) break
+                if (binder == null) {
+                    // No root (fake-root test build): enumerate locally so the page
+                    // stays browsable immediately without waiting.
+                    rawPackages.addAll(pm.getInstalledPackages(0))
+                } else {
+                    val allPackages = IKsuInterface.Stub.asInterface(binder)
+                    val total = allPackages.packageCount
+                    val pageSize = 100
 
-                    result += page.mapNotNull { packageInfo ->
-                        packageInfo.applicationInfo?.let { appInfo ->
-                            AppInfo(
-                                label = appInfo.loadLabel(pm).toString(),
-                                packageInfo = packageInfo,
-                                profile = Natives.getAppProfile(
-                                    packageInfo.packageName,
-                                    appInfo.uid
-                                )
-                            )
-                        }
+                    var start = 0
+                    while (start < total) {
+                        val page = allPackages.getPackages(start, pageSize)
+                        if (page.isEmpty()) break
+                        rawPackages.addAll(page)
+                        start += page.size
+                        loadingProgress = (start.toFloat() / total) * 0.5f
                     }
-                    start += page.size
-                    loadingProgress = start.toFloat() / total
+                }
+
+                val result = supervisorScope {
+                    val chunks = rawPackages.chunked(BATCH_SIZE.coerceAtLeast(16))
+                    chunks.mapIndexed { idx, chunk ->
+                        async {
+                            val resolved = chunk.mapNotNull { pkg ->
+                                resolvePackageToAppInfo(pm, pkg)
+                            }
+                            if (chunks.isNotEmpty()) {
+                                loadingProgress = 0.5f + ((idx + 1).toFloat() / chunks.size) * 0.5f
+                            }
+                            resolved
+                        }
+                    }.awaitAll().flatten()
                 }
 
                 appListMutex.withLock {
@@ -376,11 +450,12 @@ class SuperUserViewModel : ViewModel() {
     }
 
     val appGroupList by derivedStateOf {
+        val query = search.trim().lowercase()
         appGroups.filter { group ->
-            group.apps.any { app ->
-                app.label.contains(search, true) ||
-                        app.packageName.contains(search, true) ||
-                        HanziToPinyin.getInstance().toPinyinString(app.label)?.contains(search, true) == true
+            query.isEmpty() || group.apps.any { app ->
+                app.lowerLabel.contains(query) ||
+                        app.lowerPackageName.contains(query) ||
+                        app.pinyinLabel.contains(query)
             }
         }.filter { group ->
             group.uid == 2000 || showSystemApps ||
