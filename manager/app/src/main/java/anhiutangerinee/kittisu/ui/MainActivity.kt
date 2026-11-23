@@ -827,7 +827,18 @@ fun MainScreen() {
     // 页面隐藏处理
     val activity = LocalActivity.current as MainActivity
 
-    val pages = remember { BottomBarDestination.getPages() }
+    val kpActive = anhiutangerinee.kittisu.KernelPatchManager.isKernelPatchActive
+    val pages = remember(kpActive) { BottomBarDestination.getPages() }
+
+    LaunchedEffect(kpActive) {
+        if (kpActive) {
+            val app = activity.applicationContext as anhiutangerinee.kittisu.KernelSUApplication
+            val suVm = androidx.lifecycle.ViewModelProvider(app)[anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel::class.java]
+            val modVm = androidx.lifecycle.ViewModelProvider(app)[anhiutangerinee.kittisu.ui.viewmodel.ModuleViewModel::class.java]
+            launch { suVm.fetchAppList() }
+            launch { modVm.fetchModuleList() }
+        }
+    }
 
     val coroutineScope = rememberCoroutineScope()
     var uiSelectedPage by rememberSaveable { mutableIntStateOf(0) }

@@ -649,4 +649,14 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="install_folkpatch_init_boot_warning_title">Cảnh báo chọn nhầm phân vùng</string>
     <string name="install_folkpatch_init_boot_warning_msg">File bạn chọn có tên chứa init_boot hoặc vendor_boot. Chế độ APatch / FolkPatch vá trực tiếp nhân trong boot.img (KHÔNG phải init_boot.img). Bạn vẫn muốn tiếp tục?</string>
     <string name="install_upload_lkm_file_summary">Tùy chọn: chọn file .ko cục bộ thay vì LKM tích hợp sẵn</string>
+
+    <!-- KernelPatch / APatch Runtime Compatibility -->
+    <string name="home_superkey_dialog_title">Mở khóa bằng SuperKey</string>
+    <string name="home_superkey_dialog_desc">Nếu bạn đã flash file boot.img vá bằng APatch / FolkPatch (KernelPatch), hãy nhập SuperKey để quản lý root và module trực tiếp ngay trong SovaSU.</string>
+    <string name="home_superkey_unlock_action">Mở khóa</string>
+    <string name="home_superkey_unlock_success">Đã kích hoạt KernelPatch thành công!</string>
+    <string name="home_superkey_unlock_failed">SuperKey không đúng hoặc kernel hiện tại chưa cài KernelPatch.</string>
+    <string name="home_apd_install_button">Cài đặt APatch Daemon (apd)</string>
+    <string name="home_apd_install_success">Đã cài đặt APatch daemon (apd) thành công!</string>
+    <string name="home_apd_install_failed">Cài đặt APatch daemon (apd) thất bại.</string>
 </resources>

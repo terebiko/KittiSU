@@ -1,6 +1,7 @@
 package anhiutangerinee.kittisu.ui.component
 
 import androidx.compose.runtime.Composable
+import anhiutangerinee.kittisu.KernelPatchManager
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 
@@ -12,31 +13,38 @@ inline fun KsuIsValid(
         content()
 }
 
+@Volatile
 private var tested = false
-private var ksuIsValid = false
+@Volatile
+private var ksuNativeValid = false
+
+fun resetKsuValidCache() {
+    tested = false
+}
 
 /**
- * Check the manager is valid or not
- *
- * true = ksu valid
- * false = ksu invalid
- *
- * invalid = not is manager
+ * True only when the real KernelSU kernel driver is present and matches version requirements.
  */
-fun ksuIsValid() : Boolean {
-    if (tested) return ksuIsValid
+fun isKsuNativeValid(): Boolean {
+    if (!tested) {
+        val isManager = runCatching { Natives.isManager }.getOrDefault(false)
+        val ksuVersion = if (isManager) runCatching { Natives.version }.getOrNull() else null
+        ksuNativeValid = ksuVersion != null && ksuVersion >= Natives.MINIMAL_SUPPORTED_KERNEL
+        tested = true
+    }
+    return ksuNativeValid
+}
 
-    val isManager = Natives.isManager
-    val ksuVersion = if (isManager) Natives.version else null
-    ksuIsValid = ksuVersion != null && ksuVersion >= Natives.MINIMAL_SUPPORTED_KERNEL
-    tested = true
-
-    return ksuIsValid
+/**
+ * True when EITHER KernelSU driver OR KernelPatch (APatch / FolkPatch) backend is active.
+ */
+fun ksuIsValid(): Boolean {
+    return isKsuNativeValid() || KernelPatchManager.isKernelPatchActive
 }
 
 /**
  * Check is full feature
  */
 fun isFullFeatured(): Boolean {
-    return ksuIsValid() && !Natives.requireNewKernel() && rootAvailable()
+    return ksuIsValid() && (!isKsuNativeValid() || !Natives.requireNewKernel()) && rootAvailable()
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import anhiutangerinee.kittisu.KernelPatchManager
 import anhiutangerinee.kittisu.KernelVersion
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.getKernelVersion
@@ -42,6 +43,9 @@ class HomeViewModel : ViewModel() {
         val isSELinuxPermissive: Boolean = false,
         val isOfficialSignature: Boolean = true,
         val kernelPatchImplement: Natives.KernelPatchImplement = Natives.KernelPatchImplement.NO_KERNEL_PATCH_SUPPORT,
+        val isKernelPatchActive: Boolean = false,
+        val kernelPatchVersion: String? = null,
+        val isApdInstalled: Boolean = false,
     )
 
     // 系统信息
@@ -122,6 +126,17 @@ class HomeViewModel : ViewModel() {
 
                 val ksuVersion = if (isManager) Natives.version else null
 
+                // If native KernelSU is not installed, auto-probe KernelPatch (APatch / FolkPatch)
+                val isKpActive = if (ksuVersion == null) {
+                    runCatching { KernelPatchManager.tryAutoActivate() }.getOrDefault(false)
+                } else {
+                    false
+                }
+                val kpVersionStr = if (isKpActive) {
+                    KernelPatchManager.formatVersion().ifBlank { null }
+                } else null
+                val apdInstalled = if (isKpActive) KernelPatchManager.isApdInstalled else false
+
                 val fullVersion = try {
                     Natives.getFullVersion()
                 } catch (_: Exception) {
@@ -153,7 +168,7 @@ class HomeViewModel : ViewModel() {
                 val isOfficialSignature = true
 
                 systemStatus = SystemStatus(
-                    isManager = isManager,
+                    isManager = isManager || isKpActive,
                     ksuVersion = ksuVersion,
                     ksuFullVersion = "$fullVersion (${Natives.version})",
                     lkmMode = lkmMode,
@@ -163,6 +178,9 @@ class HomeViewModel : ViewModel() {
                     isSELinuxPermissive = isSELinuxPermissive,
                     isOfficialSignature = isOfficialSignature,
                     kernelPatchImplement = Natives.getKernelPatchImplement(),
+                    isKernelPatchActive = isKpActive,
+                    kernelPatchVersion = kpVersionStr,
+                    isApdInstalled = apdInstalled,
                 )
 
                 isCoreDataLoaded = true
@@ -253,6 +271,43 @@ class HomeViewModel : ViewModel() {
             } finally {
                 refreshInFlight = false
                 isRefreshing = false
+            }
+        }
+    }
+
+    fun unlockKernelPatch(
+        context: Context,
+        superKey: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = runCatching {
+                KernelPatchManager.activateWithSuperKey(superKey, persist = true)
+            }.getOrDefault(false)
+            if (ok) {
+                withContext(Dispatchers.Main) {
+                    refreshData(context, refreshUI = true)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                onResult(ok)
+            }
+        }
+    }
+
+    fun installApdDaemon(
+        context: Context,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = runCatching { KernelPatchManager.installApd() }.getOrDefault(false)
+            if (ok) {
+                withContext(Dispatchers.Main) {
+                    refreshData(context, refreshUI = true)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                onResult(ok)
             }
         }
     }

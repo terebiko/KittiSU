@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.system.Os
 import android.util.Log
 import anhiutangerinee.kittisu.BuildConfig
+import anhiutangerinee.kittisu.KernelPatchManager
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ksuApp
 import com.topjohnwu.superuser.CallbackList
@@ -32,6 +33,36 @@ private fun getKsuDaemonPath(): String {
     return ksuApp.applicationInfo.nativeLibraryDir + File.separator + "libksud.so"
 }
 
+private fun getKPatchPath(): String {
+    return ksuApp.applicationInfo.nativeLibraryDir + File.separator + "libkpatch.so"
+}
+
+private fun getApdDaemonPath(): String {
+    val installed = File(KernelPatchManager.APD_PATH)
+    if (installed.exists()) return KernelPatchManager.APD_PATH
+    val bundled = File(ksuApp.applicationInfo.nativeLibraryDir, "libapd.so")
+    if (bundled.isFile) return bundled.absolutePath
+    return KernelPatchManager.APD_PATH
+}
+
+/**
+ * Returns the active userspace module daemon path:
+ * `libksud.so` when KernelSU is active, or `/data/adb/apd` when KernelPatch/APatch is active.
+ */
+internal fun getActiveModuleDaemonPath(): String {
+    return if (hasKsuManager) {
+        getKsuDaemonPath()
+    } else if (KernelPatchManager.isKernelPatchActive) {
+        getApdDaemonPath()
+    } else {
+        getKsuDaemonPath()
+    }
+}
+
+internal fun isAnyRootBackendActive(): Boolean {
+    return hasKsuManager || KernelPatchManager.isKernelPatchActive
+}
+
 internal fun hasKsuDaemon(): Boolean {
     return File(getKsuDaemonPath()).isFile
 }
@@ -47,10 +78,31 @@ internal val hasKsuManager: Boolean by lazy {
 
 @SuppressLint("RestrictedApi")
 object KsuCli {
-    // Create shells lazily: the old eager init spawned two root shells as soon as
-    // this object was touched, which could happen on the main thread at startup.
-    val SHELL: Shell by lazy { createRootShell() }
-    val GLOBAL_MNT_SHELL: Shell by lazy { createRootShell(true) }
+    @Volatile
+    private var _shell: Shell? = null
+    @Volatile
+    private var _globalMntShell: Shell? = null
+
+    val SHELL: Shell
+        get() = _shell ?: synchronized(this) {
+            _shell ?: createRootShell(false).also { _shell = it }
+        }
+
+    val GLOBAL_MNT_SHELL: Shell
+        get() = _globalMntShell ?: synchronized(this) {
+            _globalMntShell ?: createRootShell(true).also { _globalMntShell = it }
+        }
+
+    fun refresh() {
+        synchronized(this) {
+            val oldShell = _shell
+            val oldGlobal = _globalMntShell
+            _shell = null
+            _globalMntShell = null
+            runCatching { oldShell?.close() }
+            runCatching { oldGlobal?.close() }
+        }
+    }
 }
 
 fun getRootShell(globalMnt: Boolean = false): Shell {
@@ -67,6 +119,9 @@ fun generateMainShellBuilder(): Shell.Builder {
     val builder = Shell.Builder.create()
     if (hasKsuManager && hasKsuDaemon()) {
         builder.setCommands(getKsuDaemonPath(), "debug", "su")
+    } else if (KernelPatchManager.isKernelPatchActive) {
+        val key = KernelPatchManager.superKey.ifBlank { "su" }
+        builder.setCommands(KernelPatchManager.SUPERCMD, key, "-Z", KernelPatchManager.MAGISK_SCONTEXT)
     }
     return builder
 }
@@ -79,10 +134,50 @@ inline fun <T> withNewRootShell(
 }
 
 fun createRootShell(globalMnt: Boolean = false): Shell {
-    // Verbose libsu logging is extremely chatty and adds measurable overhead to
-    // every shell command. Keep it opt-in instead of enabling it for all debug builds.
     Shell.enableVerboseLogging = false
     val builder = Shell.Builder.create()
+
+    if (KernelPatchManager.isKernelPatchActive && !hasKsuManager) {
+        val key = KernelPatchManager.superKey.ifBlank { "su" }
+        return try {
+            builder.build(
+                KernelPatchManager.SUPERCMD,
+                key,
+                "-Z",
+                KernelPatchManager.MAGISK_SCONTEXT
+            )
+        } catch (e: Throwable) {
+            Log.w(TAG, "kp supercmd failed, retrying libkpatch.so", e)
+            try {
+                if (globalMnt) {
+                    builder.build(
+                        getKPatchPath(),
+                        key,
+                        "su",
+                        "-Z",
+                        KernelPatchManager.MAGISK_SCONTEXT,
+                        "--mount-master"
+                    )
+                } else {
+                    builder.build(
+                        getKPatchPath(),
+                        key,
+                        "su",
+                        "-Z",
+                        KernelPatchManager.MAGISK_SCONTEXT
+                    )
+                }
+            } catch (e2: Throwable) {
+                Log.w(TAG, "libkpatch.so failed, falling back to su/sh", e2)
+                try {
+                    if (globalMnt) builder.build("su", "-mm") else builder.build("su")
+                } catch (_: Throwable) {
+                    builder.build("sh")
+                }
+            }
+        }
+    }
+
     return try {
         if (globalMnt) {
             builder.build(getKsuDaemonPath(), "debug", "su", "-g")
@@ -331,11 +426,15 @@ fun hasMetaModule(): Boolean {
 }
 
 fun listModules(): String {
-    if (!hasKsuDaemon() || !hasKsuManager) return "[]"
+    if (!isAnyRootBackendActive()) return "[]"
+    val daemon = getActiveModuleDaemonPath()
+    if (!hasKsuManager && KernelPatchManager.isKernelPatchActive && !File(daemon).exists() && !ShellUtils.fastCmdResult(getRootShell(), "[ -x $daemon ]")) {
+        return "[]"
+    }
     return runCatching {
         val shell = getRootShell()
         val out = shell.newJob()
-            .add("${getKsuDaemonPath()} module list").to(ArrayList(), null).exec().out
+            .add("$daemon module list").to(ArrayList(), null).exec().out
         out.joinToString("\n").ifBlank { "[]" }
     }.getOrDefault("[]")
 }
@@ -352,27 +451,38 @@ fun getSuperuserCount(): Int {
     return Natives.getSuperuserCount()
 }
 
+private fun execModuleDaemon(args: String, newShell: Boolean = true): Boolean {
+    val daemon = getActiveModuleDaemonPath()
+    return if (newShell) {
+        withNewRootShell {
+            ShellUtils.fastCmdResult(this, "$daemon $args")
+        }
+    } else {
+        ShellUtils.fastCmdResult(getRootShell(), "$daemon $args")
+    }
+}
+
 fun toggleModule(id: String, enable: Boolean): Boolean {
     val cmd = if (enable) {
-        "module enable $id"
+        "module enable ${id.shellQuote()}"
     } else {
-        "module disable $id"
+        "module disable ${id.shellQuote()}"
     }
-    val result = execKsud(cmd, true)
+    val result = execModuleDaemon(cmd, true)
     Log.i(TAG, "$cmd result: $result")
     return result
 }
 
 fun uninstallModule(id: String): Boolean {
-    val cmd = "module uninstall $id"
-    val result = execKsud(cmd, true)
+    val cmd = "module uninstall ${id.shellQuote()}"
+    val result = execModuleDaemon(cmd, true)
     Log.i(TAG, "uninstall module $id result: $result")
     return result
 }
 
 fun undoUninstallModule(id: String): Boolean {
-    val cmd = "module undo-uninstall $id"
-    val result = execKsud(cmd, true)
+    val cmd = "module undo-uninstall ${id.shellQuote()}"
+    val result = execModuleDaemon(cmd, true)
     Log.i(TAG, "undo uninstall module $id result: $result")
     return result
 }
@@ -428,8 +538,8 @@ fun flashModule(
             this?.copyTo(output)
         }
         try {
-            val cmd = "module install ${file.absolutePath}"
-            val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
+            val cmd = "module install ${file.absolutePath.shellQuote()}"
+            val result = flashWithIO("${getActiveModuleDaemonPath()} $cmd", onStdout, onStderr)
             Log.i("KernelSU", "install module $uri result: $result")
 
             onFinish(result.isSuccess && moduleNeedsReboot(file), result.code)
@@ -475,7 +585,7 @@ fun runModuleAction(
     }
 
     val result = withNewRootShell(true) {
-        newJob().add("${getKsuDaemonPath()} module action ${moduleId.shellQuote()}")
+        newJob().add("${getActiveModuleDaemonPath()} module action ${moduleId.shellQuote()}")
             .to(stdoutCallback, stderrCallback).exec()
     }
 
@@ -580,10 +690,18 @@ fun installBoot(
         }
     }
 
-    // output dir
-    val downloadsDir =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-    cmd += " -o $downloadsDir"
+    // For unrooted file patching (bootUri != null), write into app cacheDir first and
+    // export via MediaStore.Downloads so Android 11+ Scoped Storage never blocks output.
+    val tempOutDir = if (bootFile != null) {
+        File(ksuApp.cacheDir, "ksu_boot_out").apply {
+            deleteRecursively()
+            mkdirs()
+        }
+    } else null
+
+    val outDirPath = tempOutDir?.absolutePath
+        ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
+    cmd += " -o ${outDirPath.shellQuote()}"
 
     partition?.let { part ->
         cmd += " --partition $part"
@@ -592,17 +710,41 @@ fun installBoot(
     val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
     Log.i("KernelSU", "install boot result: ${result.isSuccess}")
 
+    var finalSuccess = result.isSuccess
+    var finalCode = result.code
+
+    if (tempOutDir != null) {
+        try {
+            if (result.isSuccess) {
+                val patchedFile = tempOutDir.listFiles()
+                    ?.firstOrNull { it.isFile && it.name.endsWith(".img") }
+                if (patchedFile != null) {
+                    val savedPath = saveFileToDownloads(ksuApp, patchedFile, patchedFile.name)
+                    if (savedPath != null) {
+                        onStdout("- Output file saved to: $savedPath")
+                    } else {
+                        onStdout("- Failed to copy patched image to Downloads.")
+                        finalSuccess = false
+                        finalCode = 1
+                    }
+                }
+            }
+        } finally {
+            tempOutDir.deleteRecursively()
+        }
+    }
+
     bootFile?.delete()
     lkmFile?.delete()
 
     // if boot uri is empty, it is direct install, when success, we should show reboot button
-    onFinish(bootUri == null && result.isSuccess, result.code)
+    onFinish(bootUri == null && finalSuccess, finalCode)
 
-    if (bootUri == null && result.isSuccess) {
+    if (bootUri == null && finalSuccess) {
         install()
     }
 
-    return result.isSuccess
+    return finalSuccess
 }
 
 fun reboot(reason: String = "") {

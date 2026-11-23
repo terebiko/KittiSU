@@ -49,6 +49,7 @@ import androidx.compose.material.icons.twotone.Extension
 import androidx.compose.material.icons.twotone.Favorite
 import androidx.compose.material.icons.twotone.Group
 import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Key
 import androidx.compose.material.icons.twotone.Link
 import androidx.compose.material.icons.twotone.LocalPolice
 import androidx.compose.material.icons.twotone.Memory
@@ -58,10 +59,13 @@ import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material.icons.twotone.SettingsSuggest
 import androidx.compose.material.icons.twotone.Storage
 import androidx.compose.material.icons.twotone.Tune
+import androidx.compose.material.icons.twotone.Visibility
+import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Block
 import androidx.compose.material.icons.twotone.TaskAlt
 import androidx.compose.material.icons.twotone.Warning
 import androidx.compose.material.icons.twotone.Error
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -77,9 +81,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -177,6 +183,83 @@ fun HomePage(
     val navigator = LocalNavigator.current
     val loadingDialog = rememberLoadingDialog()
     val scope = rememberCoroutineScope()
+    var showSuperKeyDialog by remember { mutableStateOf(false) }
+
+    if (showSuperKeyDialog) {
+        var inputKey by remember { mutableStateOf(anhiutangerinee.kittisu.KernelPatchManager.loadSavedSuperKey()) }
+        var showKey by remember { mutableStateOf(false) }
+        var isVerifying by remember { mutableStateOf(false) }
+        val unlockOkMsg = stringResource(R.string.home_superkey_unlock_success)
+        val unlockFailMsg = stringResource(R.string.home_superkey_unlock_failed)
+
+        AlertDialog(
+            onDismissRequest = { if (!isVerifying) showSuperKeyDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.TwoTone.Key,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text(stringResource(R.string.home_superkey_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = stringResource(R.string.home_superkey_dialog_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = inputKey,
+                        onValueChange = { inputKey = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(R.string.install_folkpatch_superkey_title)) },
+                        visualTransformation = if (showKey) {
+                            androidx.compose.ui.text.input.VisualTransformation.None
+                        } else {
+                            androidx.compose.ui.text.input.PasswordVisualTransformation()
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showKey = !showKey }) {
+                                Icon(
+                                    imageVector = if (showKey) Icons.TwoTone.VisibilityOff else Icons.TwoTone.Visibility,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = inputKey.isNotBlank() && !isVerifying,
+                    onClick = {
+                        isVerifying = true
+                        viewModel.unlockKernelPatch(context, inputKey.trim()) { ok ->
+                            isVerifying = false
+                            if (ok) {
+                                showSuperKeyDialog = false
+                                Toast.makeText(context, unlockOkMsg, Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, unlockFailMsg, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.home_superkey_unlock_action))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !isVerifying,
+                    onClick = { showSuperKeyDialog = false }
+                ) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -228,10 +311,26 @@ fun HomePage(
             ) {
                 // 状态卡片
                 if (viewModel.isCoreDataLoaded) {
+                    val apdInstallSuccess = stringResource(R.string.home_apd_install_success)
+                    val apdInstallFailed = stringResource(R.string.home_apd_install_failed)
                     StatusCard(
                         systemStatus = viewModel.systemStatus,
                         onClickInstall = {
                             navigator.push(Route.Install(preselectedKernelUri = null))
+                        },
+                        onClickSuperKey = {
+                            showSuperKeyDialog = true
+                        },
+                        onClickInstallApd = {
+                            loadingDialog.showLoading()
+                            viewModel.installApdDaemon(context) { ok ->
+                                loadingDialog.hide()
+                                Toast.makeText(
+                                    context,
+                                    if (ok) apdInstallSuccess else apdInstallFailed,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         },
                         onClickJailbreak = {
                             loadingDialog.showLoading()
@@ -318,7 +417,9 @@ fun HomePage(
                         )
                     }
 
-                    if (viewModel.systemStatus.kernelPatchImplement == Natives.KernelPatchImplement.KERNEL_PATCH_OFFICIAL) {
+                    if (viewModel.systemStatus.ksuVersion != null &&
+                        viewModel.systemStatus.kernelPatchImplement == Natives.KernelPatchImplement.KERNEL_PATCH_OFFICIAL
+                    ) {
                         WarningCard(
                             message = stringResource(
                                 R.string.conflict_with_apatch,
@@ -596,17 +697,20 @@ private fun TopBar(
 private fun StatusCard(
     systemStatus: HomeViewModel.SystemStatus,
     onClickInstall: () -> Unit = {},
+    onClickSuperKey: () -> Unit = {},
+    onClickInstallApd: () -> Unit = {},
     onClickJailbreak: () -> Unit = {}
 ) {
     // These values are static for the lifetime of the process; read them once
     // instead of doing JNI/uname work on every recomposition.
-    val isSafeMode = remember { Natives.isSafeMode }
+    val isSafeMode = remember { Natives.isSafeMode } || anhiutangerinee.kittisu.KernelPatchManager.isSafeMode
     val isLateLoadMode = remember { Natives.isLateLoadMode }
     val machine = remember { Os.uname().machine }
+    val isWorking = systemStatus.ksuVersion != null || systemStatus.isKernelPatchActive
 
     // Container role drives the content role: secondaryContainer -> onSecondaryContainer,
     // errorContainer -> onErrorContainer. Using onSurface here broke contrast in dark mode.
-    val statusContainer = if (systemStatus.ksuVersion != null) {
+    val statusContainer = if (isWorking) {
         MaterialTheme.colorScheme.secondaryContainer
     } else {
         MaterialTheme.colorScheme.errorContainer
@@ -614,7 +718,7 @@ private fun StatusCard(
     val hasCustomCardBg = ThemeConfig.customBackgroundUri != null
     val statusOnContainer = when {
         hasCustomCardBg -> Color.White
-        systemStatus.ksuVersion != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        isWorking -> MaterialTheme.colorScheme.onSecondaryContainer
         else -> MaterialTheme.colorScheme.onErrorContainer
     }
     val hasAnyCustomBg = hasCustomCardBg || ThemeConfig.isFullScreenBackgroundEnabled
@@ -712,12 +816,12 @@ private fun StatusCard(
             }
 
             val isClassicUi = ThemeConfig.isClassicHomeUi
-            val isClickableStatus = systemStatus.isRootAvailable || systemStatus.kernelVersion.isGKI()
+            val isClickableStatus = true
             val statusIcon = when {
-                systemStatus.ksuVersion != null && isSafeMode -> Icons.TwoTone.Warning
-                systemStatus.ksuVersion != null -> Icons.TwoTone.TaskAlt
+                isWorking && isSafeMode -> Icons.TwoTone.Warning
+                isWorking -> Icons.TwoTone.TaskAlt
                 systemStatus.kernelVersion.isGKI() -> Icons.TwoTone.Download
-                else -> Icons.TwoTone.Block
+                else -> Icons.TwoTone.Download
             }
 
             if (isClassicUi) {
@@ -748,13 +852,17 @@ private fun StatusCard(
                     Spacer(Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         when {
-                            systemStatus.ksuVersion != null -> {
+                            isWorking -> {
                                 val workingModeText = if (isSafeMode) {
                                     stringResource(id = R.string.safe_mode)
                                 } else {
                                     stringResource(id = R.string.home_working)
                                 }
-                                val workingModeSurfaceText = if (systemStatus.lkmMode == true) "LKM" else "Built-in"
+                                val workingModeSurfaceText = when {
+                                    systemStatus.isKernelPatchActive -> "KernelPatch"
+                                    systemStatus.lkmMode == true -> "LKM"
+                                    else -> "Built-in"
+                                }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = workingModeText,
@@ -771,6 +879,15 @@ private fun StatusCard(
                                         contentColor = statusOnContainer,
                                         border = badgeBorder
                                     )
+                                    if (systemStatus.isKernelPatchActive) {
+                                        Spacer(Modifier.width(6.dp))
+                                        LabelText(
+                                            label = "APatch",
+                                            containerColor = badgeContainerColor,
+                                            contentColor = statusOnContainer,
+                                            border = badgeBorder
+                                        )
+                                    }
                                     if (isLateLoadMode) {
                                         Spacer(Modifier.width(6.dp))
                                         LabelText(
@@ -795,7 +912,12 @@ private fun StatusCard(
                                     .getBoolean("is_hide_version", false)
                                 if (!isHideVersion) {
                                     Spacer(Modifier.height(4.dp))
-                                    systemStatus.ksuFullVersion?.let {
+                                    val versionDisplay = if (systemStatus.isKernelPatchActive) {
+                                        systemStatus.kernelPatchVersion?.let { "KernelPatch $it" }
+                                    } else {
+                                        systemStatus.ksuFullVersion
+                                    }
+                                    versionDisplay?.let {
                                         Text(
                                             text = stringResource(R.string.home_working_version, it),
                                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -806,7 +928,7 @@ private fun StatusCard(
                                     }
                                 }
                             }
-                            systemStatus.kernelVersion.isGKI() -> {
+                            else -> {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = stringResource(R.string.home_not_installed),
@@ -818,7 +940,7 @@ private fun StatusCard(
                                     )
                                     Spacer(Modifier.width(8.dp))
                                     LabelText(
-                                        label = "Legacy",
+                                        label = if (systemStatus.kernelVersion.isGKI()) "GKI" else "Boot Patch",
                                         containerColor = badgeContainerColor,
                                         contentColor = statusOnContainer,
                                         border = badgeBorder
@@ -827,24 +949,6 @@ private fun StatusCard(
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = stringResource(R.string.home_click_to_install),
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        shadow = customBgTextShadow
-                                    ),
-                                    color = statusOnContainer.copy(alpha = 0.9f)
-                                )
-                            }
-                            else -> {
-                                Text(
-                                    text = stringResource(R.string.home_unsupported),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        shadow = customBgTextShadow
-                                    ),
-                                    color = statusOnContainer,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = stringResource(R.string.home_unsupported_reason),
                                     style = MaterialTheme.typography.bodyMedium.copy(
                                         shadow = customBgTextShadow
                                     ),
@@ -893,12 +997,13 @@ private fun StatusCard(
                     Spacer(Modifier.height(12.dp))
 
                     when {
-                        systemStatus.ksuVersion != null -> {
+                        isWorking -> {
                             val workingModeText = when {
                                 isSafeMode -> stringResource(id = R.string.safe_mode)
                                 else -> stringResource(id = R.string.home_working)
                             }
                             val workingModeSurfaceText = when {
+                                systemStatus.isKernelPatchActive -> "KernelPatch"
                                 systemStatus.lkmMode == true -> "LKM"
                                 else -> "Built-in"
                             }
@@ -922,6 +1027,14 @@ private fun StatusCard(
                                     contentColor = statusOnContainer,
                                     border = badgeBorder
                                 )
+                                if (systemStatus.isKernelPatchActive) {
+                                    LabelText(
+                                        label = "APatch",
+                                        containerColor = badgeContainerColor,
+                                        contentColor = statusOnContainer,
+                                        border = badgeBorder
+                                    )
+                                }
                                 if (isLateLoadMode) {
                                     LabelText(
                                         label = stringResource(id = R.string.jailbreak_mode),
@@ -944,7 +1057,12 @@ private fun StatusCard(
                                 .getBoolean("is_hide_version", false)
                             if (!isHideVersion) {
                                 Spacer(Modifier.height(8.dp))
-                                systemStatus.ksuFullVersion?.let {
+                                val versionDisplay = if (systemStatus.isKernelPatchActive) {
+                                    systemStatus.kernelPatchVersion?.let { "KernelPatch $it" }
+                                } else {
+                                    systemStatus.ksuFullVersion
+                                }
+                                versionDisplay?.let {
                                     Text(
                                         text = stringResource(R.string.home_working_version, it),
                                         style = MaterialTheme.typography.bodyMedium.copy(
@@ -954,8 +1072,35 @@ private fun StatusCard(
                                     )
                                 }
                             }
+                            if (systemStatus.isKernelPatchActive && !systemStatus.isApdInstalled) {
+                                Spacer(Modifier.height(12.dp))
+                                Surface(
+                                    onClick = onClickInstallApd,
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f),
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tonalElevation = 2.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.TwoTone.Download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.home_apd_install_button),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
                         }
-                        systemStatus.kernelVersion.isGKI() -> {
+                        else -> {
                             Text(
                                 text = stringResource(R.string.home_not_installed),
                                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -966,45 +1111,74 @@ private fun StatusCard(
                             )
                             Spacer(Modifier.height(8.dp))
                             LabelText(
-                                label = "Legacy",
+                                label = if (systemStatus.kernelVersion.isGKI()) "GKI 5.10+" else "Boot Patch",
                                 containerColor = badgeContainerColor,
                                 contentColor = statusOnContainer,
                                 border = badgeBorder
                             )
                             Spacer(Modifier.height(16.dp))
-                            Surface(
-                                onClick = onClickInstall,
-                                shape = CircleShape,
-                                color = if (hasCustomCardBg) {
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f)
-                                } else {
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
-                                },
-                                contentColor = if (hasCustomCardBg) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface
-                                },
-                                tonalElevation = 2.dp
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                Surface(
+                                    onClick = onClickInstall,
+                                    shape = CircleShape,
+                                    color = if (hasCustomCardBg) {
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f)
+                                    } else {
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                                    },
+                                    contentColor = if (hasCustomCardBg) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                                    tonalElevation = 2.dp
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.TwoTone.Download,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.home_click_to_install),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.TwoTone.Download,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.home_click_to_install),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                                Surface(
+                                    onClick = onClickSuperKey,
+                                    shape = CircleShape,
+                                    color = badgeContainerColor,
+                                    contentColor = statusOnContainer,
+                                    border = badgeBorder
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.TwoTone.Key,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "SuperKey",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                 }
                             }
-                            if (systemStatus.isSELinuxPermissive) {
+                            if (systemStatus.kernelVersion.isGKI() && systemStatus.isSELinuxPermissive) {
                                 Spacer(Modifier.height(12.dp))
                                 Button(
                                     onClick = onClickJailbreak,
@@ -1016,24 +1190,6 @@ private fun StatusCard(
                                     Text(stringResource(R.string.home_jailbreak))
                                 }
                             }
-                        }
-                        else -> {
-                            Text(
-                                text = stringResource(R.string.home_unsupported),
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    shadow = customBgTextShadow
-                                ),
-                                color = statusOnContainer,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = stringResource(R.string.home_unsupported_reason),
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    shadow = customBgTextShadow
-                                ),
-                                color = statusOnContainer.copy(alpha = 0.92f)
-                            )
                         }
                     }
                 }

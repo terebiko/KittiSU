@@ -6,8 +6,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.system.Os
 import android.util.Log
+import anhiutangerinee.kittisu.KernelPatchManager
 import anhiutangerinee.kittisu.ksuApp
 import com.topjohnwu.superuser.CallbackList
 import java.io.BufferedReader
@@ -47,9 +47,9 @@ fun generateRandomSuperKey(length: Int = 12): String {
     return chars.joinToString("")
 }
 
-private fun savePatchedBootToDownloads(
+internal fun saveFileToDownloads(
     context: Context,
-    patchedFile: File,
+    srcFile: File,
     outFilename: String,
 ): String? {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -62,7 +62,7 @@ private fun savePatchedBootToDownloads(
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
         try {
             resolver.openOutputStream(uri)?.use { output ->
-                patchedFile.inputStream().use { input ->
+                srcFile.inputStream().use { input ->
                     input.copyTo(output)
                 }
             } ?: return null
@@ -81,7 +81,7 @@ private fun savePatchedBootToDownloads(
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (!dir.exists()) dir.mkdirs()
             val outFile = File(dir, outFilename)
-            patchedFile.inputStream().use { input ->
+            srcFile.inputStream().use { input ->
                 outFile.outputStream().use { output ->
                     input.copyTo(output)
                 }
@@ -97,7 +97,8 @@ private fun savePatchedBootToDownloads(
 /**
  * Patches a stock boot.img using the KernelPatch (APatch / FolkPatch) workflow:
  * kptools unpack -> kptools patch with kpimg + SuperKey -> kptools repack.
- * Works without root for PATCH_ONLY, and with root for DIRECT_INSTALL / INACTIVE_SLOT.
+ * Executes `libbusybox.so` & `libkptools.so` directly from `nativeLibraryDir`
+ * so Android 10–16 W^X SELinux restrictions never block execution.
  */
 fun patchBootImageFolkPatch(
     bootUri: Uri?,
@@ -121,30 +122,17 @@ fun patchBootImageFolkPatch(
         if (!kptoolsLib.isFile) {
             val msg = "- kptools binary is only available on ARM64 (arm64-v8a) devices (current ABI: ${Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"})."
             onStderr("$msg\n")
-            onStdout("$msg\n")
+            onStdout(msg)
             onFinish(false, 1)
             return false
         }
         if (!busyboxLib.isFile) {
             val msg = "- busybox binary is missing in nativeLibraryDir."
             onStderr("$msg\n")
-            onStdout("$msg\n")
+            onStdout(msg)
             onFinish(false, 1)
             return false
         }
-
-        fun linkOrCopyExec(src: File, targetName: String) {
-            val dest = File(patchDir, targetName)
-            try {
-                Os.symlink(src.absolutePath, dest.absolutePath)
-            } catch (_: Throwable) {
-                src.copyTo(dest, overwrite = true)
-                dest.setExecutable(true)
-            }
-        }
-
-        linkOrCopyExec(kptoolsLib, "kptools")
-        linkOrCopyExec(busyboxLib, "busybox")
 
         for (assetName in listOf("kp_boot_patch.sh", "kp_boot_extract.sh", "kp_util_functions.sh", "kpimg")) {
             val dest = File(patchDir, assetName)
@@ -153,13 +141,10 @@ fun patchBootImageFolkPatch(
                     input.copyTo(output)
                 }
             }
-            if (assetName.endsWith(".sh")) {
-                dest.setExecutable(true)
-            }
         }
 
         if (kpimgUri != null) {
-            onStdout("- Using custom kpimg file...\n")
+            onStdout("- Using custom kpimg file...")
             val customKpimg = File(patchDir, "kpimg")
             context.contentResolver.openInputStream(kpimgUri)?.use { input ->
                 customKpimg.outputStream().use { output ->
@@ -176,7 +161,7 @@ fun patchBootImageFolkPatch(
         if (!isValidSuperKey(effectiveKey)) {
             val msg = "- Invalid SuperKey! Must be 8-63 alphanumeric characters containing both letters and digits."
             onStderr("$msg\n")
-            onStdout("$msg\n")
+            onStdout(msg)
             onFinish(false, 1)
             return false
         }
@@ -187,7 +172,7 @@ fun patchBootImageFolkPatch(
                 onFinish(false, 1)
                 return false
             }
-            onStdout("- Copying selected boot image...\n")
+            onStdout("- Copying selected boot image...")
             val srcBoot = File(patchDir, "boot.img")
             context.contentResolver.openInputStream(bootUri)?.use { input ->
                 srcBoot.outputStream().use { output ->
@@ -199,11 +184,18 @@ fun patchBootImageFolkPatch(
                 return false
             }
 
+            // Execute busybox & kptools directly from nativeLibraryDir (apk_data_file)
+            // to stay 100% compliant with Android 10+ W^X / SELinux app_data_file execute restrictions.
             val pb = ProcessBuilder(
-                "sh", "-c", "./busybox sh kp_boot_patch.sh \"$0\" \"$@\"",
-                effectiveKey, srcBoot.absolutePath
+                busyboxLib.absolutePath,
+                "sh",
+                "kp_boot_patch.sh",
+                effectiveKey,
+                srcBoot.absolutePath
             )
             pb.environment()["ASH_STANDALONE"] = "1"
+            pb.environment()["KPTOOLS"] = kptoolsLib.absolutePath
+            pb.environment()["BUSYBOX"] = busyboxLib.absolutePath
             pb.directory(patchDir)
             pb.redirectErrorStream(true)
 
@@ -230,12 +222,14 @@ fun patchBootImageFolkPatch(
 
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val outFilename = "sovasu_boot_patched_${timestamp}.img"
-            val savedPath = savePatchedBootToDownloads(context, newBoot, outFilename)
+            val savedPath = saveFileToDownloads(context, newBoot, outFilename)
             if (savedPath != null) {
+                // Remember SuperKey automatically so SovaSU auto-unlocks after user flashes & reboots
+                KernelPatchManager.saveSuperKey(effectiveKey)
                 onStdout("- Patched boot image saved to:")
                 onStdout("  $savedPath")
                 onStdout("- Flash via fastboot: fastboot flash boot $outFilename")
-                onStdout("- Remember your SuperKey to manage root after reboot!")
+                onStdout("- SuperKey has been saved in SovaSU — it will auto-activate after reboot!")
                 onFinish(false, 0)
                 return true
             } else {
@@ -258,7 +252,9 @@ fun patchBootImageFolkPatch(
             }
 
             val extractOut = ArrayList<String>()
-            val extractCmd = if (isNextSlot) "./busybox sh kp_boot_extract.sh true" else "./busybox sh kp_boot_extract.sh"
+            val bbPath = busyboxLib.absolutePath.shellQuote()
+            val kpPath = kptoolsLib.absolutePath.shellQuote()
+            val extractCmd = if (isNextSlot) "$bbPath sh kp_boot_extract.sh true" else "$bbPath sh kp_boot_extract.sh"
             val extractRes = withNewRootShell {
                 newJob()
                     .add("export ASH_STANDALONE=1")
@@ -278,10 +274,15 @@ fun patchBootImageFolkPatch(
             val patchRes = withNewRootShell {
                 newJob()
                     .add("export ASH_STANDALONE=1")
+                    .add("export KPTOOLS=$kpPath")
+                    .add("export BUSYBOX=$bbPath")
                     .add("cd ${patchDir.absolutePath.shellQuote()}")
-                    .add("./busybox sh kp_boot_patch.sh ${effectiveKey.shellQuote()} ${bootDev.shellQuote()} true")
+                    .add("$bbPath sh kp_boot_patch.sh ${effectiveKey.shellQuote()} ${bootDev.shellQuote()} true")
                     .to(stdoutCb, stderrCb)
                     .exec()
+            }
+            if (patchRes.isSuccess) {
+                KernelPatchManager.saveSuperKey(effectiveKey)
             }
             onFinish(patchRes.isSuccess, patchRes.code)
             return patchRes.isSuccess

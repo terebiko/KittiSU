@@ -54,7 +54,9 @@ class ModuleViewModel : ViewModel() {
                         try {
                             val shell = getRootShell()
                             val command =
-                                "/data/adb/ksu/bin/busybox du -sb /data/adb/modules/$dirId"
+                                "if [ -x /data/adb/ksu/bin/busybox ]; then /data/adb/ksu/bin/busybox du -sb /data/adb/modules/$dirId; " +
+                                "elif [ -x /data/adb/ap/bin/busybox ]; then /data/adb/ap/bin/busybox du -sb /data/adb/modules/$dirId; " +
+                                "else du -sb /data/adb/modules/$dirId; fi"
                             val result = shell.newJob().add(command).to(ArrayList(), null).exec()
 
                             if (result.isSuccess && result.out.isNotEmpty()) {
@@ -101,8 +103,8 @@ class ModuleViewModel : ViewModel() {
 
     internal object Parser {
         fun parseModuleInfo(obj: JSONObject): ModuleInfo {
-            val dirId = obj.optString("dir_id").trim()
-            require(dirId.isNotEmpty()) { "module dir_id is missing" }
+            val dirId = obj.optString("dir_id").trim().ifEmpty { obj.optString("id").trim() }
+            require(dirId.isNotEmpty()) { "module dir_id/id is missing" }
             val moduleId = obj.optString("id").trim().ifEmpty { dirId }
             return ModuleInfo(
                 id = moduleId,

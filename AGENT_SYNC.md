@@ -84,6 +84,18 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
 - **[2026-11-23 - Antigravity]**:
+  - **Sửa triệt để lỗi cài đặt Kernel/LKM & Tích hợp hoàn chỉnh tương thích runtime APatch / FolkPatch (`KernelPatch 0.13.9` + `apd`) vào SovaSU**:
+    - **Sửa lỗi chế độ Kernel / LKM (`ksuinit` + Android 11+ Scoped Storage)**:
+      - Biên dịch `ksuinit` (`aarch64` & `x86_64`) từ `userspace/ksuinit`, đặt vào `userspace/ksud/bin/{aarch64,x86_64}/ksuinit` và biên dịch lại `libksud.so` (`arm64-v8a` & `x86_64`) để `ksud boot-patch` không còn báo lỗi `Failed to load ksuinit`.
+      - Sửa `KsuCli.installBoot()` xuất ảnh boot đã vá vào thư mục tạm trong `cacheDir` rồi xuất sang thư mục `Download/` công khai qua `MediaStore.Downloads` (`saveFileToDownloads`), khắc phục lỗi `Permission denied` trên Android 11–16 chưa có root.
+    - **Sửa chống chặn W^X trên Android 10–16 cho trình vá `boot.img` APatch / FolkPatch**:
+      - Cập nhật `BootImagePatcher.kt` và `assets/kp_boot_patch.sh` gọi trực tiếp `libbusybox.so` và truyền `KPTOOLS=<nativeLibraryDir>/libkptools.so` thay vì chạy binary/symlink trong `cacheDir`, đồng thời tự động lưu `SuperKey` vào `KernelPatchManager` ngay khi vá xong để SovaSU tự nhận diện sau khi flash & reboot.
+    - **Tích hợp đầy đủ backend runtime KernelPatch (`supercall` JNI + `apd` + SuperKey)**:
+      - Thêm `manager/app/src/main/cpp/kp/{supercall.h,version,uapi/scdefs.h}` và `manager/app/src/main/cpp/kp_jni.c` (compile thẳng vào `libkernelsu.so`, bảo vệ `#if defined(__aarch64__)` an toàn cho `x86_64`/`armeabi-v7a`).
+      - Đóng gói đầy đủ bộ runtime chính chủ từ FolkPatch (`arm64-v8a`: `libapd.so`, `libkpatch.so`, `libkptools.so`, `libbusybox.so`, `libresetprop.so`).
+      - Tạo `KernelPatchManager.kt`: tự động kích hoạt KernelPatch bằng SuperKey đã lưu hoặc `"su"`, tự cài `apd` vào `/data/adb/apd` + đồng bộ `/data/adb/ap/package_config` (lưu quyền SuperUser bền vững qua reboot).
+      - Định tuyến trong suốt trong `Natives.kt` (`getAppProfile`, `setAppProfile`, `uidShouldUmount`, `getSuperuserCount`), `KsuCli.kt` (`createRootShell` dùng `/system/bin/truncate <superKey> -Z u:r:magisk:s0` / `libkpatch.so`; quản lý module dùng `/data/adb/apd`), `ModuleViewModel.kt` (hỗ trợ JSON chỉ có `"id"` của `apd` và `busybox` tại `/data/adb/ap/bin/busybox`), `KsuIsValidCheck.kt`, `MainActivity.kt` (tự động mở tab SuperUser + Module ngay khi mở khóa SuperKey), và `HomePage.kt` (thêm nút `SuperKey` + hộp thoại nhập khóa + trạng thái `Working • KernelPatch • APatch` + nút 1 chạm cài `apd`).
+    - Build thành công bản APK release thật (`out/SovaSU-release.apk` 11 MB arm64, `out/SovaSU-universal-release.apk` 15 MB) và xác nhận trực quan trên `emulator-5554` (0 crash).
   - **Redesign toàn diện UI theo chuẩn Material Design 3 & M3 Expressive (`@material-design-3-ui`)**:
     - **Hệ thống phân cấp bề mặt (`CardManage.kt`, `SettingsBaseWidget.kt`, `SegmentedColumn.kt`, `MoreSettings.kt`)**:
       - Tạo helper semantic `m3CardContainerColor()`: dùng `surfaceContainerLowest` (trắng nổi sắc nét) trên nền canvas `surfaceContainer` ở Light Mode và `surfaceContainerHigh` ở Dark Mode — loại bỏ hoàn toàn tình trạng thẻ bị phẳng/nhạt màu ở `Settings`, `MoreSettings`, `Home`, và `Module`.

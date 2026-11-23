@@ -840,4 +840,14 @@ Important Note:\n
     <string name="install_folkpatch_init_boot_warning_msg">The selected file looks like init_boot or vendor_boot. APatch / FolkPatch mode patches the kernel inside boot.img, NOT init_boot.img. Continue anyway?</string>
     <string name="install_upload_lkm_file_summary">Optional: pick a local .ko kernel module instead of built-in LKM</string>
 
+    <!-- KernelPatch / APatch Runtime Compatibility -->
+    <string name="home_superkey_dialog_title">Unlock with SuperKey</string>
+    <string name="home_superkey_dialog_desc">If you flashed a boot.img patched with APatch / FolkPatch (KernelPatch), enter your SuperKey to manage root and modules directly in SovaSU.</string>
+    <string name="home_superkey_unlock_action">Unlock</string>
+    <string name="home_superkey_unlock_success">KernelPatch unlocked successfully!</string>
+    <string name="home_superkey_unlock_failed">Invalid SuperKey or KernelPatch is not installed on this kernel.</string>
+    <string name="home_apd_install_button">Install APatch Daemon (apd)</string>
+    <string name="home_apd_install_success">APatch daemon (apd) installed!</string>
+    <string name="home_apd_install_failed">Failed to install APatch daemon (apd).</string>
+
 </resources>

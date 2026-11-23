@@ -31,7 +31,7 @@ NativeBridgeNP(getFullVersion, jstring) {
 	return GetEnvironment()->NewStringUTF(env, buff);
 }
 
-NativeBridgeNP(getSuperuserCount, jint) {
+NativeBridgeNP(ksuGetSuperuserCount, jint) {
     struct ksu_new_get_allow_list_cmd cmd = {
         .count = 0
     };
@@ -117,7 +117,7 @@ static void fillArrayWithList(JNIEnv *env, jobject list, int *data, int count) {
 	}
 }
 
-NativeBridge(getAppProfile, jobject, jstring pkg, jint uid) {
+NativeBridge(ksuGetAppProfile, jobject, jstring pkg, jint uid) {
 	if (GetEnvironment()->GetStringLength(env, pkg) > KSU_MAX_PACKAGE_NAME) {
 		return NULL;
 	}
@@ -210,7 +210,7 @@ NativeBridge(getAppProfile, jobject, jstring pkg, jint uid) {
 	return obj;
 }
 
-NativeBridge(setAppProfile, jboolean, jobject profile) {
+NativeBridge(ksuSetAppProfile, jboolean, jobject profile) {
 	jclass cls = GetEnvironment()->FindClass(env, "anhiutangerinee/kittisu/Natives$Profile");
 
 	jfieldID keyField = GetEnvironment()->GetFieldID(env, cls, "name", "Ljava/lang/String;");
@@ -295,7 +295,7 @@ NativeBridge(setAppProfile, jboolean, jobject profile) {
 	return set_app_profile(&p);
 }
 
-NativeBridge(uidShouldUmount, jboolean, jint uid) {
+NativeBridge(ksuUidShouldUmount, jboolean, jint uid) {
 	return uid_should_umount(uid);
 }
 

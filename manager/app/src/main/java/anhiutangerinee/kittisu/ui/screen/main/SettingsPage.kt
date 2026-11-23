@@ -235,7 +235,8 @@ fun SettingsPage(bottomPadding: Dp) {
         var umountChecked by remember { mutableStateOf(settingsState.isDefaultUmountModules) }
         var bootRecoveryState by remember { mutableStateOf(settingsState.batch.bootRecoveryState) }
 
-        val ksuValid = remember { ksuIsValid() }
+        val ksuValid = remember(anhiutangerinee.kittisu.KernelPatchManager.isKernelPatchActive) { ksuIsValid() }
+        val ksuNativeValid = remember { anhiutangerinee.kittisu.ui.component.isKsuNativeValid() }
 
         LaunchedEffect(Unit) {
             if (SettingsStateCache.cached != null) return@LaunchedEffect
@@ -416,8 +417,8 @@ fun SettingsPage(bottomPadding: Dp) {
                 bottom = innerPadding.calculateBottomPadding() + bottomPadding + 15.dp
             )
         ) {
-            // 配置卡片
-            if (ksuValid) {
+            // 配置卡片 (KernelSU kernel features only)
+            if (ksuNativeValid) {
                 item {
                     val modeItems = listOf(
                         stringResource(id = R.string.settings_mode_default),

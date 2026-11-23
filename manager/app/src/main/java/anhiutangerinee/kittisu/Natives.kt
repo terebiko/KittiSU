@@ -98,15 +98,40 @@ object Natives {
      */
     external fun getKernelPatchImplement(): KernelPatchImplement
 
-    external fun uidShouldUmount(uid: Int): Boolean
+    private external fun ksuUidShouldUmount(uid: Int): Boolean
+
+    fun uidShouldUmount(uid: Int): Boolean {
+        return if (!isManager && KernelPatchManager.isKernelPatchActive) {
+            KernelPatchManager.uidShouldUmount(uid)
+        } else {
+            ksuUidShouldUmount(uid)
+        }
+    }
 
     /**
      * Get the profile of the given package.
      * @param key usually the package name
      * @return return null if failed.
      */
-    external fun getAppProfile(key: String?, uid: Int): Profile
-    external fun setAppProfile(profile: Profile?): Boolean
+    private external fun ksuGetAppProfile(key: String?, uid: Int): Profile
+    private external fun ksuSetAppProfile(profile: Profile?): Boolean
+
+    fun getAppProfile(key: String?, uid: Int): Profile {
+        return if (!isManager && KernelPatchManager.isKernelPatchActive) {
+            KernelPatchManager.getAppProfile(key.orEmpty(), uid)
+        } else {
+            ksuGetAppProfile(key, uid)
+        }
+    }
+
+    fun setAppProfile(profile: Profile?): Boolean {
+        if (profile == null) return false
+        return if (!isManager && KernelPatchManager.isKernelPatchActive) {
+            KernelPatchManager.setAppProfile(profile)
+        } else {
+            ksuSetAppProfile(profile)
+        }
+    }
 
     /**
      * `su` compat mode can be disabled temporarily.
@@ -169,7 +194,15 @@ object Natives {
 
     external fun getUserName(uid: Int): String?
 
-    external fun getSuperuserCount(): Int
+    private external fun ksuGetSuperuserCount(): Int
+
+    fun getSuperuserCount(): Int {
+        return if (!isManager && KernelPatchManager.isKernelPatchActive) {
+            KernelPatchManager.getSuperuserCount()
+        } else {
+            ksuGetSuperuserCount()
+        }
+    }
 
     private const val NON_ROOT_DEFAULT_PROFILE_KEY = "$"
     private const val NOBODY_UID = 9999

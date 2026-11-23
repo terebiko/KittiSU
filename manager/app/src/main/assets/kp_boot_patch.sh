@@ -41,14 +41,14 @@ fi
 [ -e "$BOOTIMAGE" ] || { >&2 echo "- $BOOTIMAGE does not exist!"; exit 1; }
 
 # Check for dependencies
-
-command -v ./kptools >/dev/null 2>&1 || { >&2 echo "- Command kptools not found!"; exit 1; }
+KPTOOLS="${KPTOOLS:-./kptools}"
+[ -x "$KPTOOLS" ] || command -v "$KPTOOLS" >/dev/null 2>&1 || { >&2 echo "- Command kptools not found ($KPTOOLS)!"; exit 1; }
 
 if [ ! -f kernel ]; then
 echo "- Unpacking boot image"
 
 set -x
-./kptools unpack "$BOOTIMAGE" "$@"
+"$KPTOOLS" unpack "$BOOTIMAGE" "$@"
 patch_rc=$?
 set +x
   if [ $patch_rc -ne 0 ]; then
@@ -57,7 +57,7 @@ set +x
   fi
 fi
 
-kallsyms_out=$(./kptools -i kernel -f 2>&1)
+kallsyms_out=$("$KPTOOLS" -i kernel -f 2>&1)
 kallsyms_rc=$?
 if [ "$kallsyms_rc" -ne 0 ]; then
 	printf '%s\n' "$kallsyms_out" >&2
@@ -70,7 +70,7 @@ if ! printf '%s\n' "$kallsyms_out" | grep -q CONFIG_KALLSYMS=y; then
 	exit 1
 fi
 
-if [  $(./kptools -i kernel -l | grep patched=false) ]; then
+if [  $("$KPTOOLS" -i kernel -l | grep patched=false) ]; then
 	echo "- Backing boot.img "
   cp "$BOOTIMAGE" "ori.img" >/dev/null 2>&1
 fi
@@ -85,7 +85,7 @@ KPT_ARGS=""
 [ "$SUPERKEY" != "su" ] && KPT_ARGS="-S $SUPERKEY"
 
 set -x
-./kptools -p -i kernel.ori $KPT_ARGS -k kpimg -o kernel "$@"
+"$KPTOOLS" -p -i kernel.ori $KPT_ARGS -k kpimg -o kernel "$@"
 patch_rc=$?
 set +x
 
@@ -95,10 +95,10 @@ if [ $patch_rc -ne 0 ]; then
 fi
 
 echo "- Repacking boot image"
-./kptools repack "$BOOTIMAGE"
+"$KPTOOLS" repack "$BOOTIMAGE"
 repack_rc=$?
 
-if [ ! $(./kptools -i kernel.ori -f | grep CONFIG_KALLSYMS_ALL=y) ]; then
+if [ ! $("$KPTOOLS" -i kernel.ori -f | grep CONFIG_KALLSYMS_ALL=y) ]; then
 	echo "- Detected CONFIG_KALLSYMS_ALL is not set!"
 	echo "- APatch has patched but maybe your device won't boot."
 	echo "- Make sure you have original boot image backup."
