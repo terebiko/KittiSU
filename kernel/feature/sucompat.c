@@ -218,9 +218,6 @@ static long ksu_handle_execve_sucompat_common_internal(const char __user **filen
     if (execveat && ((int)PT_REGS_SYSCALL_PARM1(regs) != AT_FDCWD || (int)PT_REGS_PARM5(regs) != 0))
         goto do_orig_execve;
 
-    if (execveat && ((int)PT_REGS_PARM1(regs) != AT_FDCWD || (int)PT_REGS_PARM5(regs) != 0))
-        goto do_orig_execve;
-
     if (unlikely(!filename_user))
         goto do_orig_execve;
 
@@ -320,18 +317,6 @@ long ksu_handle_execveat_sucompat_internal(const char __user **filename_user, in
     return ksu_handle_execve_sucompat_common_internal(filename_user,
                                                       (const char __user *const __user *)PT_REGS_USER_PTR(regs, 3),
                                                       PT_REGS_SYSCALL_PARM4(regs), true, orig_nr, regs);
-}
-
-int ksu_handle_execve_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs)
-{
-    return ksu_handle_execve_sucompat_common_tp_internal(
-        filename_user, (const char __user *const __user *)PT_REGS_PARM2(regs), false, orig_nr, regs);
-}
-
-int ksu_handle_execveat_sucompat_tp_internal(const char __user **filename_user, int orig_nr, const struct pt_regs *regs)
-{
-    return ksu_handle_execve_sucompat_common_tp_internal(
-        filename_user, (const char __user *const __user *)PT_REGS_PARM3(regs), true, orig_nr, regs);
 }
 #endif
 

@@ -1039,7 +1039,6 @@ static long ksu_sys_fstat(const struct pt_regs *regs)
     if (file) {
         if (is_init_rc(file)) {
             pr_info("stat init.rc");
-            load_module_rc();
             is_rc = true;
             load_module_rc_once();
         }
