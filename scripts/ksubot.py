@@ -32,7 +32,9 @@ def format_commit_messages(commits, max_length=600):
         message = commit['message'].strip()
         if len(message) > 200:
             message = message[:197] + '...'
-        message += ' by ' + commit['author']['username']
+        author = commit.get('author') or {}
+        author_name = author.get('username') or author.get('name') or 'unknown'
+        message += ' by ' + author_name
 
         remaining = len(commits_to_show) - index - 1
         candidate_commits = formatted_commits + [message]
@@ -56,13 +58,17 @@ try:
     if 'commits' in GITHUB_EVENT:
         commits = GITHUB_EVENT['commits']
         commit_message = format_commit_messages(commits)
-    elif 'head_commit' in GITHUB_EVENT:
+    elif 'head_commit' in GITHUB_EVENT and GITHUB_EVENT['head_commit']:
         msg = GITHUB_EVENT["head_commit"]["message"]
         if len(msg) > 200:
             msg = msg[:197] + '...'
         commit_message = f'{msg.strip()}'
     else:
-        commit_message = f'(no commit message)'
+        import subprocess
+        git_msg = subprocess.check_output(["git", "log", "-1", "--pretty=%B"], text=True).strip()
+        if len(git_msg) > 200:
+            git_msg = git_msg[:197] + '...'
+        commit_message = git_msg or '(no commit message)'
 except IndexError:
     print("[!] IndexError Found! try another way to get commit...")
     try:

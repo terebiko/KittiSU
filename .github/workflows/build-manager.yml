@@ -155,7 +155,7 @@ jobs:
   build-manager:
     needs: [prepare]
     runs-on: ubuntu-latest
-    if: always() && needs.prepare.result == 'success' && (inputs.build_manager != false && github.event.inputs.build_manager != 'false')
+    if: always() && needs.prepare.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.build_manager != 'false')
     strategy:
       fail-fast: false
       matrix:
