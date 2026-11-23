@@ -630,7 +630,7 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="install_mode_kernel_badge">Kernel 5.10+</string>
     <string name="install_mode_kernel_note_title">Lưu ý chế độ Kernel &amp; LKM</string>
     <string name="install_mode_kernel_note_body">Hỗ trợ vá LKM cho máy chạy Kernel 5.10 trở lên (GKI 2.0) hoặc flash Kernel build riêng.\n• Khó cập nhật hơn đối với bản Kernel (cần build lại kernel khi nâng cấp).\n• Dễ ẩn root và vượt qua các ứng dụng ngân hàng hơn rất nhiều.</string>
-    <string name="install_mode_kernel_nongki_hint">Kernel hiện tại (%1$s) thấp hơn 5.10 (Non-GKI) nên không hỗ trợ vá LKM tự động. Hãy build/flash Kernel tích hợp hoặc chuyển sang chế độ Vá Boot (APatch / FolkPatch) bên cạnh.</string>
+    <string name="install_mode_kernel_nongki_hint">Kernel hiện tại (%1$s) thấp hơn 5.10 (Non-GKI) nên không cho phép cài trực tiếp LKM lên máy này. Bạn vẫn có thể chọn file .img bên dưới để vá hộ / cứu hộ cho máy GKI 2.0 khác, hoặc chuyển sang chế độ Vá Boot (APatch / FolkPatch) để root chính máy này.</string>
     <string name="install_mode_folkpatch_title">Vá Boot Image</string>
     <string name="install_mode_folkpatch_badge">APatch / FolkPatch</string>
     <string name="install_mode_folkpatch_note_title">Lưu ý chế độ APatch / FolkPatch</string>

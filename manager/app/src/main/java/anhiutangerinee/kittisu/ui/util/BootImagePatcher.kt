@@ -51,47 +51,105 @@ internal fun saveFileToDownloads(
     context: Context,
     srcFile: File,
     outFilename: String,
+    onError: ((String) -> Unit)? = null,
 ): String? {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        val resolver = context.contentResolver
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, outFilename)
-            put(MediaStore.Downloads.MIME_TYPE, "application/octet-stream")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: return null
+    val errors = mutableListOf<String>()
+
+    // Tier 1: Android 10+ Scoped Storage via MediaStore.Downloads
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         try {
-            resolver.openOutputStream(uri)?.use { output ->
-                srcFile.inputStream().use { input ->
-                    input.copyTo(output)
-                }
-            } ?: return null
-            val finishValues = ContentValues().apply {
-                put(MediaStore.Downloads.IS_PENDING, 0)
+            val resolver = context.contentResolver
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, outFilename)
+                put(MediaStore.Downloads.MIME_TYPE, "application/octet-stream")
+                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.IS_PENDING, 1)
             }
-            resolver.update(uri, finishValues, null, null)
-            "/storage/emulated/0/Download/$outFilename"
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            if (uri != null) {
+                try {
+                    val outStream = resolver.openOutputStream(uri)
+                        ?: throw IllegalStateException("openOutputStream returned null")
+                    outStream.use { output ->
+                        srcFile.inputStream().use { input ->
+                            input.copyTo(output)
+                        }
+                    }
+                    val finishValues = ContentValues().apply {
+                        put(MediaStore.Downloads.IS_PENDING, 0)
+                    }
+                    resolver.update(uri, finishValues, null, null)
+                    return "/storage/emulated/0/Download/$outFilename"
+                } catch (e: Exception) {
+                    Log.e(TAG, "MediaStore copy failed", e)
+                    errors.add("MediaStore: ${e.message}")
+                    runCatching { resolver.delete(uri, null, null) }
+                }
+            } else {
+                errors.add("MediaStore: insert returned null")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "MediaStore save failed", e)
-            runCatching { resolver.delete(uri, null, null) }
-            null
+            Log.e(TAG, "MediaStore insert failed", e)
+            errors.add("MediaStore: ${e.message}")
         }
-    } else {
+    }
+
+    // Tier 2: Direct filesystem write to public Download folder
+    try {
+        val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        if (!dir.exists()) dir.mkdirs()
+        val outFile = File(dir, outFilename)
+        srcFile.inputStream().use { input ->
+            outFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        return outFile.absolutePath
+    } catch (e: Exception) {
+        Log.e(TAG, "Direct Download write failed", e)
+        errors.add("Direct: ${e.message}")
+    }
+
+    // Tier 3: Root shell copy to public Download folder (handles rooted devices / root-owned srcFile)
+    if (rootAvailable()) {
         try {
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!dir.exists()) dir.mkdirs()
-            val outFile = File(dir, outFilename)
+            val dstPath = "/storage/emulated/0/Download/$outFilename"
+            val copyRes = withNewRootShell {
+                newJob()
+                    .add("mkdir -p /storage/emulated/0/Download")
+                    .add("cp -f ${srcFile.absolutePath.shellQuote()} ${dstPath.shellQuote()} && chmod 0664 ${dstPath.shellQuote()}")
+                    .exec()
+            }
+            if (copyRes.isSuccess) {
+                return dstPath
+            }
+            errors.add("Root cp exited with code ${copyRes.code}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Root Download copy failed", e)
+            errors.add("Root: ${e.message}")
+        }
+    }
+
+    // Tier 4: App external Downloads directory (always writable on Android 10-16 without extra permissions)
+    try {
+        val extDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+        if (extDir != null) {
+            if (!extDir.exists()) extDir.mkdirs()
+            val outFile = File(extDir, outFilename)
             srcFile.inputStream().use { input ->
                 outFile.outputStream().use { output ->
                     input.copyTo(output)
                 }
             }
-            outFile.absolutePath
-        } catch (e: Exception) {
-            Log.e(TAG, "Legacy Download save failed", e)
-            null
+            return outFile.absolutePath
         }
+    } catch (e: Exception) {
+        Log.e(TAG, "App external Download save failed", e)
+        errors.add("AppExt: ${e.message}")
     }
+
+    onError?.invoke(errors.joinToString("; "))
+    return null
 }
 
 /**
@@ -222,7 +280,8 @@ fun patchBootImageFolkPatch(
 
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val outFilename = "sovasu_boot_patched_${timestamp}.img"
-            val savedPath = saveFileToDownloads(context, newBoot, outFilename)
+            var saveError: String? = null
+            val savedPath = saveFileToDownloads(context, newBoot, outFilename) { saveError = it }
             if (savedPath != null) {
                 // Remember SuperKey automatically so SovaSU auto-unlocks after user flashes & reboots
                 KernelPatchManager.saveSuperKey(effectiveKey)
@@ -233,7 +292,7 @@ fun patchBootImageFolkPatch(
                 onFinish(false, 0)
                 return true
             } else {
-                onStdout("- Failed to write patched boot image to Downloads.")
+                onStdout("- Failed to write patched boot image to Downloads${saveError?.let { ": $it" } ?: "."}")
                 onFinish(false, 1)
                 return false
             }

@@ -623,6 +623,34 @@ sealed class LkmSelection : Parcelable {
     data object KmiNone : LkmSelection()
 }
 
+private fun runAppCommandWithIO(
+    args: List<String>,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit,
+): Pair<Boolean, Int> {
+    return try {
+        val process = ProcessBuilder(args).start()
+        val stderrThread = Thread {
+            runCatching {
+                process.errorStream.bufferedReader().useLines { lines ->
+                    lines.forEach { onStderr("$it\n") }
+                }
+            }
+        }
+        stderrThread.start()
+        process.inputStream.bufferedReader().useLines { lines ->
+            lines.forEach { onStdout(it) }
+        }
+        stderrThread.join()
+        val code = process.waitFor()
+        Pair(code == 0, code)
+    } catch (e: Throwable) {
+        Log.e(TAG, "runAppCommandWithIO failed", e)
+        onStderr("${e.message}\n")
+        Pair(false, 1)
+    }
+}
+
 fun installBoot(
     bootUri: Uri?,
     lkm: LkmSelection,
@@ -646,17 +674,17 @@ fun installBoot(
         }
     }
 
-    var cmd = "boot-patch"
+    val args = mutableListOf(getKsuDaemonPath(), "boot-patch")
 
-    cmd += if (bootFile == null) {
+    if (bootFile == null) {
         // no boot.img, use -f to force install
-        " -f"
+        args += "-f"
     } else {
-        " -b ${bootFile.absolutePath}"
+        args += listOf("-b", bootFile.absolutePath)
     }
 
     if (ota) {
-        cmd += " -u"
+        args += "-u"
     }
 
     if (backup) {
@@ -664,7 +692,7 @@ fun installBoot(
             ksuApp.applicationInfo.deviceProtectedDataDir,
             "boot_backup"
         ).absolutePath
-        cmd += " --backup --backup-dir ${backupDir.shellQuote()}"
+        args += listOf("--backup", "--backup-dir", backupDir)
     }
 
     var lkmFile: File? = null
@@ -678,11 +706,11 @@ fun installBoot(
 
                 file
             }
-            cmd += " -m ${lkmFile.absolutePath}"
+            args += listOf("-m", lkmFile.absolutePath)
         }
 
         is LkmSelection.KmiString -> {
-            cmd += " --kmi ${lkm.value}"
+            args += listOf("--kmi", lkm.value)
         }
 
         LkmSelection.KmiNone -> {
@@ -690,8 +718,9 @@ fun installBoot(
         }
     }
 
-    // For unrooted file patching (bootUri != null), write into app cacheDir first and
-    // export via MediaStore.Downloads so Android 11+ Scoped Storage never blocks output.
+    // For file patching (bootUri != null), run ksud under the app UID into app cacheDir first and
+    // export via saveFileToDownloads(). Running under app UID prevents root-owned 0600 files in
+    // cacheDir from triggering EACCES when MediaStore/app copies the output to Downloads.
     val tempOutDir = if (bootFile != null) {
         File(ksuApp.cacheDir, "ksu_boot_out").apply {
             deleteRecursively()
@@ -701,32 +730,45 @@ fun installBoot(
 
     val outDirPath = tempOutDir?.absolutePath
         ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).absolutePath
-    cmd += " -o ${outDirPath.shellQuote()}"
+    args += listOf("-o", outDirPath)
 
     partition?.let { part ->
-        cmd += " --partition $part"
+        args += listOf("--partition", part)
     }
 
-    val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
-    Log.i("KernelSU", "install boot result: ${result.isSuccess}")
+    val (patchSuccess, patchCode) = if (bootFile != null) {
+        runAppCommandWithIO(args, onStdout, onStderr)
+    } else {
+        val cmdLine = args.joinToString(" ") { it.shellQuote() }
+        val result = flashWithIO(cmdLine, onStdout, onStderr)
+        Pair(result.isSuccess, result.code)
+    }
+    Log.i("KernelSU", "install boot result: $patchSuccess (code=$patchCode)")
 
-    var finalSuccess = result.isSuccess
-    var finalCode = result.code
+    var finalSuccess = patchSuccess
+    var finalCode = patchCode
 
     if (tempOutDir != null) {
         try {
-            if (result.isSuccess) {
+            if (patchSuccess) {
                 val patchedFile = tempOutDir.listFiles()
                     ?.firstOrNull { it.isFile && it.name.endsWith(".img") }
                 if (patchedFile != null) {
-                    val savedPath = saveFileToDownloads(ksuApp, patchedFile, patchedFile.name)
+                    var saveError: String? = null
+                    val savedPath = saveFileToDownloads(ksuApp, patchedFile, patchedFile.name) {
+                        saveError = it
+                    }
                     if (savedPath != null) {
                         onStdout("- Output file saved to: $savedPath")
                     } else {
-                        onStdout("- Failed to copy patched image to Downloads.")
+                        onStdout("- Failed to copy patched image to Downloads${saveError?.let { ": $it" } ?: "."}")
                         finalSuccess = false
                         finalCode = 1
                     }
+                } else {
+                    onStdout("- Patched image not found in output directory.")
+                    finalSuccess = false
+                    finalCode = 1
                 }
             }
         } finally {
@@ -775,10 +817,16 @@ suspend fun getCurrentKmi(): String = withContext(Dispatchers.IO) {
 }
 
 suspend fun getSupportedKmis(): List<String> = withContext(Dispatchers.IO) {
-    val shell = getRootShell()
-    val cmd = "boot-info supported-kmis"
-    val out = shell.newJob().add("${getKsuDaemonPath()} $cmd").to(ArrayList(), null).exec().out
-    out.filter { it.isNotBlank() }.map { it.trim() }
+    runCatching {
+        val process = ProcessBuilder(getKsuDaemonPath(), "boot-info", "supported-kmis").start()
+        val lines = process.inputStream.bufferedReader().readLines()
+        process.waitFor()
+        lines.map { it.trim() }.filter { it.isNotBlank() }
+    }.getOrElse {
+        val shell = getRootShell()
+        val out = shell.newJob().add("${getKsuDaemonPath()} boot-info supported-kmis").to(ArrayList(), null).exec().out
+        out.filter { it.isNotBlank() }.map { it.trim() }
+    }
 }
 
 suspend fun isAbDevice(): Boolean = withContext(Dispatchers.IO) {

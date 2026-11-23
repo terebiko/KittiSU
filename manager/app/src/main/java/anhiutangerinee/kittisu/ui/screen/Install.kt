@@ -275,7 +275,7 @@ fun InstallScreen(
         )
     }
 
-    val onInstallKernelMode = {
+    val onInstallKernelMode: (LkmSelection) -> Unit = { effectiveLkm ->
         installMethod?.let { method ->
             when (method) {
                 is InstallMethod.HorizonKernel -> {
@@ -293,7 +293,7 @@ fun InstallScreen(
                     val partitionSelection = partitionsState.getOrNull(partitionSelectionIndex)
                     val flashIt = FlashIt.FlashBoot(
                         boot = if (method is InstallMethod.SelectFile) method.uri else null,
-                        lkm = lkmSelection,
+                        lkm = effectiveLkm,
                         ota = isOta,
                         partition = partitionSelection,
                         backup = method is InstallMethod.SelectFile && forceBackup
@@ -302,7 +302,6 @@ fun InstallScreen(
                 }
             }
         }
-        Unit
     }
 
     val onInstallFolkPatchMode = {
@@ -346,18 +345,20 @@ fun InstallScreen(
 
     val selectKmiDialog = rememberSelectKmiDialog { kmi ->
         kmi?.let {
-            lkmSelection = LkmSelection.KmiString(it)
-            onInstallKernelMode()
+            onInstallKernelMode(LkmSelection.KmiString(it))
         }
     }
 
     val onClickNext = {
         when (selectedTab) {
             InstallModeTab.KERNEL_LKM -> {
-                if (isGKI && lkmSelection == LkmSelection.KmiNone && currentKmi.isBlank() && installMethod !is InstallMethod.HorizonKernel) {
+                val needsKmiPrompt = installMethod !is InstallMethod.HorizonKernel &&
+                    lkmSelection == LkmSelection.KmiNone &&
+                    (!isGKI || currentKmi.isBlank())
+                if (needsKmiPrompt) {
                     selectKmiDialog.show()
                 } else {
-                    onInstallKernelMode()
+                    onInstallKernelMode(lkmSelection)
                 }
             }
             InstallModeTab.FOLKPATCH_BOOT -> {
@@ -635,31 +636,31 @@ fun InstallScreen(
                                 }
                             }
 
-                            if (isGKI) {
-                                // Clean single-layer M3 Expressive card with crisp UploadFile icon badge
-                                FilePickerActionCard(
-                                    icon = Icons.TwoTone.UploadFile,
-                                    title = stringResource(id = R.string.install_upload_lkm_file),
-                                    subtitle = if (lkmSelection is LkmSelection.LkmUri) {
-                                        stringResource(
-                                            id = R.string.selected_lkm,
-                                            lkmFileName ?: "(file)"
-                                        )
-                                    } else {
-                                        stringResource(id = R.string.install_upload_lkm_file_summary)
-                                    },
-                                    hasSelection = lkmSelection is LkmSelection.LkmUri,
-                                    onClear = {
-                                        lkmSelection = LkmSelection.KmiNone
-                                        lkmFileName = null
-                                    },
-                                    onClick = {
-                                        selectLkmLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply {
-                                            type = "application/octet-stream"
-                                        })
-                                    }
-                                )
-                            }
+                            // Clean single-layer M3 Expressive card with crisp UploadFile icon badge
+                            // Always available in Kernel/LKM tab so Non-GKI (< 5.10) devices can also
+                            // patch images with a local .ko for another GKI 2.0 device.
+                            FilePickerActionCard(
+                                icon = Icons.TwoTone.UploadFile,
+                                title = stringResource(id = R.string.install_upload_lkm_file),
+                                subtitle = if (lkmSelection is LkmSelection.LkmUri) {
+                                    stringResource(
+                                        id = R.string.selected_lkm,
+                                        lkmFileName ?: "(file)"
+                                    )
+                                } else {
+                                    stringResource(id = R.string.install_upload_lkm_file_summary)
+                                },
+                                hasSelection = lkmSelection is LkmSelection.LkmUri,
+                                onClear = {
+                                    lkmSelection = LkmSelection.KmiNone
+                                    lkmFileName = null
+                                },
+                                onClick = {
+                                    selectLkmLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply {
+                                        type = "application/octet-stream"
+                                    })
+                                }
+                            )
 
                             (installMethod as? InstallMethod.HorizonKernel)?.let { method ->
                                 if (method.slot != null) {
@@ -1253,9 +1254,13 @@ private fun SelectInstallMethod(
     )
 
     if (rootAvailable) {
-        radioOptions.add(InstallMethod.DirectInstall)
-        if (isAbDevice) {
-            radioOptions.add(InstallMethod.DirectInstallToInactiveSlot)
+        // Direct LKM installation onto this device is only allowed on GKI 2.0 (kernel >= 5.10).
+        // On kernel < 5.10, SelectFile remains enabled so the user can patch images for other GKI 2.0 devices.
+        if (isGKI) {
+            radioOptions.add(InstallMethod.DirectInstall)
+            if (isAbDevice) {
+                radioOptions.add(InstallMethod.DirectInstallToInactiveSlot)
+            }
         }
         radioOptions.add(InstallMethod.HorizonKernel(summary = horizonKernelSummary))
     }
@@ -1332,69 +1337,67 @@ private fun SelectInstallMethod(
     var gkiExpanded by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        if (isGKI) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = cardAlpha),
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Row(
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = cardAlpha),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { lkmExpanded = !lkmExpanded }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { lkmExpanded = !lkmExpanded }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            .size(40.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(MaterialTheme.shapes.medium)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.TwoTone.AutoFixHigh,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.Lkm_install_methods),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
-                        )
                         Icon(
-                            imageVector = if (lkmExpanded) Icons.TwoTone.ExpandLess else Icons.TwoTone.ExpandMore,
+                            imageVector = Icons.TwoTone.AutoFixHigh,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.Lkm_install_methods),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = if (lkmExpanded) Icons.TwoTone.ExpandLess else Icons.TwoTone.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                    AnimatedVisibility(
-                        visible = lkmExpanded,
-                        enter = fadeIn() + expandVertically(),
-                        exit = shrinkVertically() + fadeOut()
+                AnimatedVisibility(
+                    visible = lkmExpanded,
+                    enter = fadeIn() + expandVertically(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(
+                            start = 14.dp,
+                            end = 14.dp,
+                            bottom = 14.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(
-                                start = 14.dp,
-                                end = 14.dp,
-                                bottom = 14.dp
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            radioOptions.filter { it !is InstallMethod.HorizonKernel }.forEach { option ->
-                                RadioOptionRow(
-                                    title = stringResource(id = option.label),
-                                    summary = option.summary,
-                                    selected = option.javaClass == selectedOption?.javaClass,
-                                    onClick = { onClick(option) }
-                                )
-                            }
+                        radioOptions.filter { it !is InstallMethod.HorizonKernel }.forEach { option ->
+                            RadioOptionRow(
+                                title = stringResource(id = option.label),
+                                summary = option.summary,
+                                selected = option.javaClass == selectedOption?.javaClass,
+                                onClick = { onClick(option) }
+                            )
                         }
                     }
                 }

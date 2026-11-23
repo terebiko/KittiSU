@@ -820,7 +820,7 @@ Important Note:\n
     <string name="install_mode_kernel_badge">Kernel 5.10+</string>
     <string name="install_mode_kernel_note_title">Kernel &amp; LKM Mode Notes</string>
     <string name="install_mode_kernel_note_body">Supports LKM boot patching for GKI 2.0 devices (Kernel 5.10+) or flashing custom built kernels.\n• Harder to update full kernel builds (requires rebuilding the kernel).\n• Runs natively inside the kernel — much easier to hide root and pass banking apps.</string>
-    <string name="install_mode_kernel_nongki_hint">Your current kernel (%1$s) is below 5.10 (Non-GKI), so automatic LKM patching is not available. Please build/flash a custom kernel or switch to the Boot Patch (APatch / FolkPatch) mode.</string>
+    <string name="install_mode_kernel_nongki_hint">Your current kernel (%1$s) is below 5.10 (Non-GKI), so direct LKM installation onto this device is disabled. You can still select and patch a .img file below (rescue / patch for another GKI 2.0 device), or switch to Boot Patch (APatch / FolkPatch) to root this device.</string>
     <string name="install_mode_folkpatch_title">Boot Patch</string>
     <string name="install_mode_folkpatch_badge">APatch / FolkPatch</string>
     <string name="install_mode_folkpatch_note_title">APatch / FolkPatch Mode Notes</string>
