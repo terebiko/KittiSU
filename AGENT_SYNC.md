@@ -83,6 +83,19 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 ---
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
+- **[2026-11-23 - Antigravity (Tiếp theo)]**:
+  - **Thêm menu quản lý KPM (KernelPatch Modules), mục Ứng dụng mới cài đặt kiểu BakaSU trên trang SuperUser, và Bảng điều khiển Root (`su`) tích hợp theo Material Design 3 Expressive**:
+    - **Quản lý KPM (`kp_jni.c`, `KernelPatchManager.kt`, `KpmScreen.kt`, `SettingsPage.kt`, `HomePage.kt`, `ModulePage.kt`, `Routes.kt`, `MainActivity.kt`)**:
+      - Mở toàn bộ 5 hàm JNI KPM (`nativeLoadKernelPatchModule`, `nativeUnloadKernelPatchModule`, `nativeControlKernelPatchModule`, `nativeKernelPatchModuleList`, `nativeKernelPatchModuleInfo`) trong `kp_jni.c` (compile sạch cho `arm64-v8a`, `armeabi-v7a`, `x86_64`, có `#if defined(__aarch64__)` guard an toàn) và ánh xạ sang `KernelPatchManager.kt`.
+      - Thiết kế màn hình `KpmScreen.kt` chuẩn M3 Expressive: nạp file `.kpm` kèm tham số khởi tạo, gửi lệnh `control` + xem phản hồi trực tiếp, gỡ nạp module có hộp thoại xác nhận, trạng thái rỗng/chưa kích hoạt KernelPatch kèm nút mở thẳng trình vá Boot.
+      - Gắn lối vào tại **Cài đặt → Công cụ → Mô-đun KPM** (luôn hiển thị), nút pill `KPM` trên thẻ trạng thái `HomePage` khi KernelPatch đang hoạt động, và nút lối tắt trên TopBar `ModulePage` khi KernelPatch đang hoạt động.
+    - **Mục Ứng dụng mới cài đặt kiểu BakaSU (`SuperUserPage.kt`)**:
+      - Thêm băng chuyền thẻ ngang M3 Expressive (`RecentlyInstalledAppsSection`) ngay đầu danh sách `SuperUserPage.kt`, hiển thị tối đa 8 ứng dụng người dùng cài đặt gần nhất (sắp xếp theo `firstInstallTime` giảm dần, thời gian tương đối qua `DateUtils.getRelativeTimeSpanString`, badge `ROOT`/`UMOUNT`, chạm để mở thẳng `AppProfile`), tách biệt rõ với danh sách *"Tất cả ứng dụng"*.
+    - **Bảng điều khiển Root (`su`) tích hợp không cần Termux (`RootConsoleScreen.kt`, `AndroidManifest.xml`, `SettingsPage.kt`)**:
+      - Mở từ **Cài đặt → Công cụ → Bảng điều khiển Root**. Khởi chạy sẵn shell `su` tương tác (ưu tiên KernelSU `libksud.so debug su`, KernelPatch `truncate <superKey>` / `libkpatch.so`, `su`, fallback `sh` nếu chưa có root).
+      - Bắt buộc hiển thị **hộp thoại cảnh báo M3 (`AlertDialog`)** ngay khi vào (*"Hãy cẩn thận khi sử dụng tính năng này! Bạn phải hiểu rõ mình đang làm gì với nó..."*) kết hợp thanh cảnh báo gọn phía trên terminal.
+      - Dùng trực tiếp bàn phím IME của người dùng (`BasicTextField`, `windowSoftInputMode="adjustResize"` + `imePadding()`), đi kèm **thanh phím bổ trợ M3 Expressive 2 hàng**: `ESC`, `CTRL`, `ALT`, `SHIFT` (trạng thái bật/tắt `primaryContainer`), `TAB` (tự động hoàn thiện đường dẫn), `^C` (ngắt lệnh SIGINT), **4 phím mũi tên** (`◀` / `▶` di chuyển con trỏ, `▲` / `▼` duyệt lịch sử lệnh) và các ký tự shell (`/`, `-`, `|`, `~`, `*`), hỗ trợ phân tích màu ANSI, sao chép, xóa log và khởi động lại phiên shell.
+    - Đã build thành công bản release (`out/SovaSU-release.apk`, `out/SovaSU-arm64-v8a-release.apk`, `out/SovaSU-universal-release.apk`), xác nhận đủ 5 symbol JNI KPM trong `arm64-v8a/libkernelsu.so` và kiểm thử trực quan 100% trên `emulator-5554` (0 crash).
 - **[2026-11-23 - Antigravity]**:
   - **Sửa triệt để lỗi cài đặt Kernel/LKM & Tích hợp hoàn chỉnh tương thích runtime APatch / FolkPatch (`KernelPatch 0.13.9` + `apd`) vào SovaSU**:
     - **Sửa lỗi chế độ Kernel / LKM (`ksuinit` + Android 11+ Scoped Storage)**:

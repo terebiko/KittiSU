@@ -850,4 +850,46 @@ Important Note:\n
     <string name="home_apd_install_success">APatch daemon (apd) installed!</string>
     <string name="home_apd_install_failed">Failed to install APatch daemon (apd).</string>
 
+    <!-- KPM Manager -->
+    <string name="kpm_title">KPM Modules</string>
+    <string name="kpm_summary">Load, control, and unload KernelPatch (.kpm) modules</string>
+    <string name="kpm_load_title">Load KPM Module</string>
+    <string name="kpm_load_action">Load KPM</string>
+    <string name="kpm_args_optional">Arguments (optional)</string>
+    <string name="kpm_load_success">KPM module loaded successfully</string>
+    <string name="kpm_load_failed">Failed to load KPM module (rc=%1$d)</string>
+    <string name="kpm_control_title">Control %1$s</string>
+    <string name="kpm_control_action">Control</string>
+    <string name="kpm_control_args_hint">Control argument</string>
+    <string name="kpm_control_send">Send</string>
+    <string name="kpm_unload_action">Unload</string>
+    <string name="kpm_unload_confirm_title">Unload KPM Module</string>
+    <string name="kpm_unload_confirm_msg">Are you sure you want to unload %1$s?</string>
+    <string name="kpm_unload_success">KPM module unloaded</string>
+    <string name="kpm_unload_failed">Failed to unload KPM module (rc=%1$d)</string>
+    <string name="kpm_empty_title">No KPM modules loaded</string>
+    <string name="kpm_empty_desc">Tap Load KPM to inject a .kpm kernel module into KernelPatch.</string>
+    <string name="kpm_not_active_title">KernelPatch not active</string>
+    <string name="kpm_not_active_desc">KPM modules require a KernelPatch (APatch / FolkPatch) patched boot.img and unlocked SuperKey.</string>
+    <string name="kpm_go_to_install">Open Boot Patch Installer</string>
+
+    <!-- SuperUser Recently Installed -->
+    <string name="superuser_recently_installed">Recently installed</string>
+    <string name="superuser_all_apps">All applications</string>
+
+    <!-- Built-in Root Console -->
+    <string name="root_console_title">Root Console</string>
+    <string name="root_console_summary">Built-in interactive su terminal without Termux</string>
+    <string name="root_console_warning_title">Caution — Root Privileges</string>
+    <string name="root_console_warning_message">Be careful when using this feature! You must understand what you are doing with it. Commands run directly as superuser (su) — mistakes can damage your system, erase data, or cause a bootloop.</string>
+    <string name="root_console_warning_accept">I understand, Continue</string>
+    <string name="root_console_caution_banner">Be careful: root shell is active — know what your commands do.</string>
+    <string name="root_console_welcome">SovaSU Root Console — ready. Type commands below or use extra keys.</string>
+    <string name="root_console_input_hint">Enter shell command...</string>
+    <string name="root_console_run">Run command</string>
+    <string name="root_console_copy">Copy output</string>
+    <string name="root_console_copied">Console output copied</string>
+    <string name="root_console_clear">Clear console</string>
+    <string name="root_console_restart">Restart shell</string>
+
 </resources>

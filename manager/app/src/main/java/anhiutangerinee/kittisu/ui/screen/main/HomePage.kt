@@ -321,6 +321,9 @@ fun HomePage(
                         onClickSuperKey = {
                             showSuperKeyDialog = true
                         },
+                        onClickKpm = {
+                            navigator.push(Route.Kpm)
+                        },
                         onClickInstallApd = {
                             loadingDialog.showLoading()
                             viewModel.installApdDaemon(context) { ok ->
@@ -698,6 +701,7 @@ private fun StatusCard(
     systemStatus: HomeViewModel.SystemStatus,
     onClickInstall: () -> Unit = {},
     onClickSuperKey: () -> Unit = {},
+    onClickKpm: () -> Unit = {},
     onClickInstallApd: () -> Unit = {},
     onClickJailbreak: () -> Unit = {}
 ) {
@@ -1072,30 +1076,61 @@ private fun StatusCard(
                                     )
                                 }
                             }
-                            if (systemStatus.isKernelPatchActive && !systemStatus.isApdInstalled) {
+                            if (systemStatus.isKernelPatchActive) {
                                 Spacer(Modifier.height(12.dp))
-                                Surface(
-                                    onClick = onClickInstallApd,
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f),
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    tonalElevation = 2.dp
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    Surface(
+                                        onClick = onClickKpm,
+                                        shape = CircleShape,
+                                        color = badgeContainerColor,
+                                        contentColor = statusOnContainer,
+                                        border = badgeBorder
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.TwoTone.Download,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.home_apd_install_button),
-                                            style = MaterialTheme.typography.labelLarge,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.TwoTone.Memory,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Text(
+                                                text = "KPM",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    }
+                                    if (!systemStatus.isApdInstalled) {
+                                        Surface(
+                                            onClick = onClickInstallApd,
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.94f),
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            tonalElevation = 2.dp
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.TwoTone.Download,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = stringResource(R.string.home_apd_install_button),
+                                                    style = MaterialTheme.typography.labelLarge,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }

@@ -30,6 +30,11 @@ object KernelPatchNatives {
     external fun nativeIsSafeMode(superKey: String): Boolean
     external fun nativeSuPath(superKey: String): String
     external fun nativeResetSuPath(superKey: String, path: String): Boolean
+    external fun nativeLoadKernelPatchModule(superKey: String, path: String, args: String): Long
+    external fun nativeUnloadKernelPatchModule(superKey: String, name: String): Long
+    external fun nativeControlKernelPatchModule(superKey: String, name: String, args: String): String
+    external fun nativeKernelPatchModuleList(superKey: String): String
+    external fun nativeKernelPatchModuleInfo(superKey: String, name: String): String
 }
 
 /**
@@ -353,6 +358,98 @@ object KernelPatchManager {
             }.onFailure {
                 Log.w(TAG, "persistPackageConfig failed", it)
             }
+        }
+    }
+
+    data class KpmModuleInfo(
+        val name: String,
+        val version: String = "",
+        val license: String = "",
+        val author: String = "",
+        val description: String = "",
+        val args: String = "",
+    )
+
+    fun listKpmModules(): List<KpmModuleInfo> {
+        if (!isKernelPatchActive) return emptyList()
+        val key = superKey.ifBlank { "su" }
+        val rawNames = runCatching {
+            KernelPatchNatives.nativeKernelPatchModuleList(key)
+        }.getOrDefault("")
+        if (rawNames.isBlank()) return emptyList()
+
+        return rawNames.lines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .map { modName ->
+                val infoRaw = runCatching {
+                    KernelPatchNatives.nativeKernelPatchModuleInfo(key, modName)
+                }.getOrDefault("")
+                parseKpmInfo(modName, infoRaw)
+            }
+    }
+
+    private fun parseKpmInfo(fallbackName: String, raw: String): KpmModuleInfo {
+        val fields = mutableMapOf<String, String>()
+        raw.lines().forEach { line ->
+            val idx = line.indexOf('=')
+            if (idx > 0) {
+                val k = line.substring(0, idx).trim().lowercase()
+                val v = line.substring(idx + 1).trim()
+                fields[k] = v
+            }
+        }
+        return KpmModuleInfo(
+            name = fields["name"].orEmpty().ifBlank { fallbackName },
+            version = fields["version"].orEmpty(),
+            license = fields["license"].orEmpty(),
+            author = fields["author"].orEmpty(),
+            description = fields["description"].orEmpty(),
+            args = fields["args"].orEmpty(),
+        )
+    }
+
+    fun loadKpmModule(kpmFile: File, args: String = ""): Long {
+        if (!isKernelPatchActive) return -1L
+        val key = superKey.ifBlank { "su" }
+        // Copy to a kernel-readable path under /data/adb/ap/kpm/ so SELinux/kernel open works reliably
+        val targetPath = "/data/adb/ap/kpm/${kpmFile.name.replace("[^a-zA-Z0-9._-]".toRegex(), "_")}"
+        val staged = runCatching {
+            val res = getRootShell().newJob().add(
+                "mkdir -p /data/adb/ap/kpm",
+                "cp -f ${kpmFile.absolutePath.shellQuote()} ${targetPath.shellQuote()}",
+                "chmod 0644 ${targetPath.shellQuote()}"
+            ).exec()
+            res.isSuccess
+        }.getOrDefault(false)
+
+        val loadPath = if (staged) targetPath else kpmFile.absolutePath
+        return runCatching {
+            KernelPatchNatives.nativeLoadKernelPatchModule(key, loadPath, args)
+        }.getOrDefault(-1L)
+    }
+
+    fun unloadKpmModule(name: String): Long {
+        if (!isKernelPatchActive) return -1L
+        val key = superKey.ifBlank { "su" }
+        return runCatching {
+            KernelPatchNatives.nativeUnloadKernelPatchModule(key, name)
+        }.getOrDefault(-1L)
+    }
+
+    fun controlKpmModule(name: String, args: String): Pair<Long, String> {
+        if (!isKernelPatchActive) return -1L to ""
+        val key = superKey.ifBlank { "su" }
+        val combined = runCatching {
+            KernelPatchNatives.nativeControlKernelPatchModule(key, name, args)
+        }.getOrDefault("-1\n")
+        val nl = combined.indexOf('\n')
+        return if (nl >= 0) {
+            val rc = combined.substring(0, nl).trim().toLongOrNull() ?: -1L
+            val msg = combined.substring(nl + 1).trim()
+            rc to msg
+        } else {
+            (combined.trim().toLongOrNull() ?: -1L) to ""
         }
     }
 }

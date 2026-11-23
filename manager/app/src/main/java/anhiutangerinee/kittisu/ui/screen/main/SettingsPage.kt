@@ -45,6 +45,7 @@ import androidx.compose.material.icons.twotone.DeleteForever
 import androidx.compose.material.icons.twotone.Fence
 import androidx.compose.material.icons.twotone.FolderOff
 import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.Memory
 import androidx.compose.material.icons.twotone.NewReleases
 import androidx.compose.material.icons.twotone.NotificationsActive
 import androidx.compose.material.icons.twotone.Policy
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.twotone.Save
 import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material.icons.twotone.Share
+import androidx.compose.material.icons.twotone.Terminal
 import androidx.compose.material.icons.twotone.Update
 import androidx.compose.material.icons.twotone.ElectricalServices
 import androidx.compose.material.icons.twotone.FolderDelete
@@ -739,6 +741,34 @@ fun SettingsPage(bottomPadding: Dp) {
                 SegmentedColumn(
                     title = stringResource(R.string.tools),
                     content = {
+                        item {
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Terminal,
+                                title = stringResource(R.string.root_console_title),
+                                description = stringResource(R.string.root_console_summary),
+                                onClick = {
+                                    navigator.push(Route.RootConsole)
+                                }
+                            )
+                        }
+
+                        item {
+                            val kpActive = anhiutangerinee.kittisu.KernelPatchManager.isKernelPatchActive
+                            val kpVer = anhiutangerinee.kittisu.KernelPatchManager.formatVersion()
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Memory,
+                                title = stringResource(R.string.kpm_title),
+                                description = if (kpActive && kpVer.isNotEmpty()) {
+                                    "KernelPatch $kpVer • ${stringResource(R.string.kpm_summary)}"
+                                } else {
+                                    stringResource(R.string.kpm_summary)
+                                },
+                                onClick = {
+                                    navigator.push(Route.Kpm)
+                                }
+                            )
+                        }
+
                         item {
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.BugReport,

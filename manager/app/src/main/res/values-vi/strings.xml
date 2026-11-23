@@ -659,4 +659,46 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="home_apd_install_button">Cài đặt APatch Daemon (apd)</string>
     <string name="home_apd_install_success">Đã cài đặt APatch daemon (apd) thành công!</string>
     <string name="home_apd_install_failed">Cài đặt APatch daemon (apd) thất bại.</string>
+
+    <!-- KPM Manager -->
+    <string name="kpm_title">Quản lý KPM</string>
+    <string name="kpm_summary">Nạp, điều khiển và gỡ các module KernelPatch (.kpm)</string>
+    <string name="kpm_load_title">Nạp module KPM</string>
+    <string name="kpm_load_action">Nạp KPM</string>
+    <string name="kpm_args_optional">Tham số (tùy chọn)</string>
+    <string name="kpm_load_success">Đã nạp module KPM thành công</string>
+    <string name="kpm_load_failed">Nạp module KPM thất bại (rc=%1$d)</string>
+    <string name="kpm_control_title">Điều khiển %1$s</string>
+    <string name="kpm_control_action">Điều khiển</string>
+    <string name="kpm_control_args_hint">Tham số điều khiển</string>
+    <string name="kpm_control_send">Gửi lệnh</string>
+    <string name="kpm_unload_action">Gỡ nạp</string>
+    <string name="kpm_unload_confirm_title">Gỡ nạp module KPM</string>
+    <string name="kpm_unload_confirm_msg">Bạn có chắc muốn gỡ nạp module %1$s?</string>
+    <string name="kpm_unload_success">Đã gỡ nạp module KPM</string>
+    <string name="kpm_unload_failed">Gỡ nạp module KPM thất bại (rc=%1$d)</string>
+    <string name="kpm_empty_title">Chưa có module KPM nào</string>
+    <string name="kpm_empty_desc">Nhấn Nạp KPM để nạp file .kpm trực tiếp vào KernelPatch.</string>
+    <string name="kpm_not_active_title">KernelPatch chưa được kích hoạt</string>
+    <string name="kpm_not_active_desc">Quản lý KPM yêu cầu máy đang chạy boot.img vá bằng APatch / FolkPatch (KernelPatch) và đã mở khóa SuperKey.</string>
+    <string name="kpm_go_to_install">Mở trình cài đặt Vá Boot</string>
+
+    <!-- SuperUser Recently Installed -->
+    <string name="superuser_recently_installed">Ứng dụng mới cài đặt</string>
+    <string name="superuser_all_apps">Tất cả ứng dụng</string>
+
+    <!-- Built-in Root Console -->
+    <string name="root_console_title">Root Console</string>
+    <string name="root_console_summary">Chạy trực tiếp lệnh su mà không cần cài Termux</string>
+    <string name="root_console_warning_title">Cảnh báo — Quyền Root</string>
+    <string name="root_console_warning_message">Hãy cẩn thận khi sử dụng tính năng này! Bạn phải hiểu rõ mình đang làm gì với nó. Mọi lệnh đều chạy trực tiếp với quyền su — lệnh sai có thể làm hỏng hệ thống, mất dữ liệu hoặc treo máy (bootloop).</string>
+    <string name="root_console_warning_accept">Tôi hiểu, Tiếp tục</string>
+    <string name="root_console_caution_banner">Hãy cẩn thận: Bạn phải hiểu rõ mình đang làm gì với Root Console!</string>
+    <string name="root_console_welcome">SovaSU Root Console — sẵn sàng. Nhập lệnh bên dưới hoặc dùng thanh phím chức năng.</string>
+    <string name="root_console_input_hint">Nhập lệnh shell...</string>
+    <string name="root_console_run">Chạy lệnh</string>
+    <string name="root_console_copy">Sao chép log</string>
+    <string name="root_console_copied">Đã sao chép nội dung console</string>
+    <string name="root_console_clear">Xóa màn hình</string>
+    <string name="root_console_restart">Khởi động lại shell</string>
 </resources>

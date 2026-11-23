@@ -1,5 +1,7 @@
 package anhiutangerinee.kittisu.ui.screen.main
 
+import android.content.pm.ApplicationInfo
+import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -45,6 +48,7 @@ import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material.icons.twotone.ChevronRight
 import androidx.compose.material.icons.twotone.Close
 import androidx.compose.material.icons.twotone.GridView
+import androidx.compose.material.icons.twotone.History
 import androidx.compose.material.icons.twotone.MoreVert
 import androidx.compose.material.icons.twotone.Refresh
 import androidx.compose.material.icons.twotone.RestoreFromTrash
@@ -388,6 +392,25 @@ private fun SuperUserContent(
             )
         },
     ) {
+        val recentlyInstalledGroups = remember(viewModel.appGroupList, viewModel.search, viewModel.selectedCategory) {
+            if (viewModel.search.isNotEmpty() || viewModel.selectedCategory != AppCategory.ALL) {
+                emptyList()
+            } else {
+                viewModel.appGroupList
+                    .filter { group ->
+                        group.apps.any { app ->
+                            val flags = app.packageInfo.applicationInfo?.flags ?: 0
+                            (flags and ApplicationInfo.FLAG_SYSTEM) == 0 &&
+                                app.packageInfo.firstInstallTime > 0L
+                        }
+                    }
+                    .sortedByDescending { group ->
+                        group.apps.maxOfOrNull { it.packageInfo.firstInstallTime } ?: 0L
+                    }
+                    .take(8)
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -403,6 +426,21 @@ private fun SuperUserContent(
                 )
             },
         ) {
+            if (recentlyInstalledGroups.isNotEmpty()) {
+                item(key = "recently_installed_section") {
+                    RecentlyInstalledAppsSection(
+                        groups = recentlyInstalledGroups,
+                        onAppClick = { appGroup ->
+                            if (viewModel.showBatchActions) {
+                                appGroup.packageNames.forEach { viewModel.toggleAppSelection(it) }
+                            } else {
+                                navigator.push(Route.AppProfile(appGroup))
+                            }
+                        }
+                    )
+                }
+            }
+
             lazySegmentColumn(
                 items = filteredAndSortedAppGroups,
                 key = { _, appGroup -> "${appGroup.uid}-${appGroup.mainApp.packageName}" },
@@ -861,5 +899,149 @@ private fun AppGroupItem(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RecentlyInstalledAppsSection(
+    groups: List<SuperUserViewModel.AppGroup>,
+    onAppClick: (SuperUserViewModel.AppGroup) -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp, bottom = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.TwoTone.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = stringResource(R.string.superuser_recently_installed),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "${groups.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(
+                items = groups,
+                key = { "recent-${it.uid}-${it.mainApp.packageName}" }
+            ) { appGroup ->
+                val mainApp = appGroup.mainApp
+                val installTime = remember(appGroup.uid, mainApp.packageInfo.firstInstallTime) {
+                    DateUtils.getRelativeTimeSpanString(
+                        mainApp.packageInfo.firstInstallTime,
+                        System.currentTimeMillis(),
+                        DateUtils.MINUTE_IN_MILLIS,
+                        DateUtils.FORMAT_ABBREV_RELATIVE
+                    ).toString()
+                }
+                val imageRequest = remember(mainApp.packageName) {
+                    ImageRequest.Builder(context)
+                        .data(mainApp.packageInfo)
+                        .crossfade(false)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                }
+
+                Surface(
+                    onClick = { onAppClick(appGroup) },
+                    shape = MaterialTheme.shapes.large,
+                    color = anhiutangerinee.kittisu.ui.theme.m3CardContainerColor().copy(
+                        alpha = anhiutangerinee.kittisu.ui.theme.CardConfig.cardAlpha
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (appGroup.allowSu) 1.dp else 0.5.dp,
+                        color = if (appGroup.allowSu) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                        }
+                    ),
+                    modifier = Modifier.width(126.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            AsyncImage(
+                                model = imageRequest,
+                                contentDescription = mainApp.label,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(MaterialTheme.shapes.small)
+                            )
+                            if (appGroup.allowSu) {
+                                LabelText(
+                                    label = "ROOT",
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else if (appGroup.shouldUmount) {
+                                LabelText(
+                                    label = "UMOUNT",
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = mainApp.label,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = installTime,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Text(
+            text = stringResource(R.string.superuser_all_apps),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+        )
     }
 }

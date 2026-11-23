@@ -109,6 +109,8 @@ import anhiutangerinee.kittisu.ui.screen.ExecuteModuleActionScreen
 import anhiutangerinee.kittisu.ui.screen.FlashIt
 import anhiutangerinee.kittisu.ui.screen.FlashScreen
 import anhiutangerinee.kittisu.ui.screen.InstallScreen
+import anhiutangerinee.kittisu.ui.screen.KpmScreen
+import anhiutangerinee.kittisu.ui.screen.RootConsoleScreen
 import anhiutangerinee.kittisu.ui.screen.SulogScreen
 import anhiutangerinee.kittisu.ui.screen.TemplateEditorScreen
 import anhiutangerinee.kittisu.ui.screen.UmountManagerScreen
@@ -677,6 +679,8 @@ class MainActivity : ComponentActivity() {
                                     entry<Route.SuSFSConfig> { SuSFSConfigScreen() }
                                     entry<Route.UmountManager> { UmountManagerScreen() }
                                     entry<Route.DynamicManager> { DynamicManagerScreen() }
+                                    entry<Route.Kpm> { KpmScreen() }
+                                    entry<Route.RootConsole> { RootConsoleScreen() }
                                     entry<Route.KernelFlash> { key ->
                                         KernelFlashScreen(
                                             key.kernelUri,

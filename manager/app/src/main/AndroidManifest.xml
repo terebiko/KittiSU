@@ -38,6 +38,7 @@
             android:launchMode="standard"
             android:documentLaunchMode="intoExisting"
             android:autoRemoveFromRecents="true"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.KernelSU">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

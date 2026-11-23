@@ -122,4 +122,12 @@ sealed interface Route : NavKey, Parcelable {
     @Parcelize
     @Serializable
     data class ModulePresetEditor(val preset: @Contextual LoadedPreset? = null) : Route
+
+    @Parcelize
+    @Serializable
+    data object Kpm : Route
+
+    @Parcelize
+    @Serializable
+    data object RootConsole : Route
 }

@@ -315,6 +315,16 @@ fun ModulePage(bottomPadding: Dp) {
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
                 dropdownContent = {
+                    if (anhiutangerinee.kittisu.KernelPatchManager.isKernelPatchActive) {
+                        IconButton(
+                            onClick = { navigator.push(Route.Kpm) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.TwoTone.Extension,
+                                contentDescription = stringResource(R.string.kpm_title),
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = { showBottomSheet = true },
                     ) {

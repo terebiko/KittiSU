@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -213,5 +214,97 @@ Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeResetSuPath(
 #else
     (void)env; (void)thiz; (void)super_key_jstr; (void)path_jstr;
     return JNI_FALSE;
+#endif
+}
+
+JNIEXPORT jlong JNICALL
+Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeLoadKernelPatchModule(
+    JNIEnv *env, jobject thiz, jstring super_key_jstr, jstring path_jstr, jstring args_jstr) {
+#if defined(__aarch64__)
+    if (!super_key_jstr || !path_jstr) return -1;
+    const char *key = (*env)->GetStringUTFChars(env, super_key_jstr, NULL);
+    const char *path = (*env)->GetStringUTFChars(env, path_jstr, NULL);
+    const char *args = args_jstr ? (*env)->GetStringUTFChars(env, args_jstr, NULL) : NULL;
+    long rc = sc_kpm_load((key && key[0] != '\0') ? key : "su", path, args ? args : "", NULL);
+    if (args) (*env)->ReleaseStringUTFChars(env, args_jstr, args);
+    (*env)->ReleaseStringUTFChars(env, path_jstr, path);
+    (*env)->ReleaseStringUTFChars(env, super_key_jstr, key);
+    return (jlong)rc;
+#else
+    (void)env; (void)thiz; (void)super_key_jstr; (void)path_jstr; (void)args_jstr;
+    return -1;
+#endif
+}
+
+JNIEXPORT jlong JNICALL
+Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeUnloadKernelPatchModule(
+    JNIEnv *env, jobject thiz, jstring super_key_jstr, jstring name_jstr) {
+#if defined(__aarch64__)
+    if (!super_key_jstr || !name_jstr) return -1;
+    const char *key = (*env)->GetStringUTFChars(env, super_key_jstr, NULL);
+    const char *name = (*env)->GetStringUTFChars(env, name_jstr, NULL);
+    long rc = sc_kpm_unload((key && key[0] != '\0') ? key : "su", name, NULL);
+    (*env)->ReleaseStringUTFChars(env, name_jstr, name);
+    (*env)->ReleaseStringUTFChars(env, super_key_jstr, key);
+    return (jlong)rc;
+#else
+    (void)env; (void)thiz; (void)super_key_jstr; (void)name_jstr;
+    return -1;
+#endif
+}
+
+JNIEXPORT jstring JNICALL
+Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeControlKernelPatchModule(
+    JNIEnv *env, jobject thiz, jstring super_key_jstr, jstring name_jstr, jstring args_jstr) {
+#if defined(__aarch64__)
+    if (!super_key_jstr || !name_jstr || !args_jstr) return (*env)->NewStringUTF(env, "-1\n");
+    const char *key = (*env)->GetStringUTFChars(env, super_key_jstr, NULL);
+    const char *name = (*env)->GetStringUTFChars(env, name_jstr, NULL);
+    const char *args = (*env)->GetStringUTFChars(env, args_jstr, NULL);
+    char out_buf[4096] = {0};
+    long rc = sc_kpm_control((key && key[0] != '\0') ? key : "su", name, args, out_buf, sizeof(out_buf) - 1);
+    (*env)->ReleaseStringUTFChars(env, args_jstr, args);
+    (*env)->ReleaseStringUTFChars(env, name_jstr, name);
+    (*env)->ReleaseStringUTFChars(env, super_key_jstr, key);
+    char combined[4160] = {0};
+    snprintf(combined, sizeof(combined) - 1, "%ld\n%s", rc, out_buf);
+    return (*env)->NewStringUTF(env, combined);
+#else
+    (void)thiz; (void)super_key_jstr; (void)name_jstr; (void)args_jstr;
+    return (*env)->NewStringUTF(env, "-1\n");
+#endif
+}
+
+JNIEXPORT jstring JNICALL
+Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeKernelPatchModuleList(
+    JNIEnv *env, jobject thiz, jstring super_key_jstr) {
+#if defined(__aarch64__)
+    if (!super_key_jstr) return (*env)->NewStringUTF(env, "");
+    const char *key = (*env)->GetStringUTFChars(env, super_key_jstr, NULL);
+    char buf[4096] = {0};
+    sc_kpm_list((key && key[0] != '\0') ? key : "su", buf, sizeof(buf) - 1);
+    (*env)->ReleaseStringUTFChars(env, super_key_jstr, key);
+    return (*env)->NewStringUTF(env, buf);
+#else
+    (void)thiz; (void)super_key_jstr;
+    return (*env)->NewStringUTF(env, "");
+#endif
+}
+
+JNIEXPORT jstring JNICALL
+Java_anhiutangerinee_kittisu_KernelPatchNatives_nativeKernelPatchModuleInfo(
+    JNIEnv *env, jobject thiz, jstring super_key_jstr, jstring name_jstr) {
+#if defined(__aarch64__)
+    if (!super_key_jstr || !name_jstr) return (*env)->NewStringUTF(env, "");
+    const char *key = (*env)->GetStringUTFChars(env, super_key_jstr, NULL);
+    const char *name = (*env)->GetStringUTFChars(env, name_jstr, NULL);
+    char buf[2048] = {0};
+    sc_kpm_info((key && key[0] != '\0') ? key : "su", name, buf, sizeof(buf) - 1);
+    (*env)->ReleaseStringUTFChars(env, name_jstr, name);
+    (*env)->ReleaseStringUTFChars(env, super_key_jstr, key);
+    return (*env)->NewStringUTF(env, buf);
+#else
+    (void)thiz; (void)super_key_jstr; (void)name_jstr;
+    return (*env)->NewStringUTF(env, "");
 #endif
 }
