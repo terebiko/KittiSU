@@ -623,4 +623,30 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="settings_classic_home_ui_summary">Sử dụng bố cục thẻ ngang gọn kiểu KernelSU cổ điển ở Trang chủ</string>
     <string name="settings_switch_icon">Biểu tượng trên nút gạt Switch</string>
     <string name="settings_switch_icon_summary">Hiển thị dấu tích và dấu X bên trong các nút công tắc</string>
+
+    <!-- Dual Install Mode (Kernel/LKM vs APatch/FolkPatch boot.img) -->
+    <string name="install_mode_title">Chọn chế độ cài đặt</string>
+    <string name="install_mode_kernel_title">Kernel / LKM</string>
+    <string name="install_mode_kernel_badge">Kernel 5.10+</string>
+    <string name="install_mode_kernel_note_title">Lưu ý chế độ Kernel &amp; LKM</string>
+    <string name="install_mode_kernel_note_body">Hỗ trợ vá LKM cho máy chạy Kernel 5.10 trở lên (GKI 2.0) hoặc flash Kernel build riêng.\n• Khó cập nhật hơn đối với bản Kernel (cần build lại kernel khi nâng cấp).\n• Dễ ẩn root và vượt qua các ứng dụng ngân hàng hơn rất nhiều.</string>
+    <string name="install_mode_kernel_nongki_hint">Kernel hiện tại (%1$s) thấp hơn 5.10 (Non-GKI) nên không hỗ trợ vá LKM tự động. Hãy build/flash Kernel tích hợp hoặc chuyển sang chế độ Vá Boot (APatch / FolkPatch) bên cạnh.</string>
+    <string name="install_mode_folkpatch_title">Vá Boot Image</string>
+    <string name="install_mode_folkpatch_badge">APatch / FolkPatch</string>
+    <string name="install_mode_folkpatch_note_title">Lưu ý chế độ APatch / FolkPatch</string>
+    <string name="install_mode_folkpatch_note_body">Vá trực tiếp file boot.img gốc theo cơ chế KernelPatch — hỗ trợ mọi phiên bản Kernel (3.18 – 6.x ARM64).\n• Dễ root và cập nhật nhanh hơn mà không cần build lại kernel.\n• Khó ẩn root hơn đối với các ứng dụng ngân hàng.</string>
+    <string name="install_folkpatch_methods">Vá ảnh Boot (KernelPatch / FolkPatch)</string>
+    <string name="install_folkpatch_select_boot">Chọn và vá file boot.img</string>
+    <string name="install_folkpatch_select_boot_summary">Chọn file boot.img gốc (không phải init_boot.img) — dùng được khi chưa có root</string>
+    <string name="install_folkpatch_selected_boot">Đã chọn boot.img: %1$s</string>
+    <string name="install_folkpatch_superkey_title">SuperKey (Siêu khóa)</string>
+    <string name="install_folkpatch_superkey_hint">8–63 ký tự gồm cả chữ cái và chữ số</string>
+    <string name="install_folkpatch_superkey_error">SuperKey phải dài 8–63 ký tự, chỉ gồm chữ và số (có đủ cả hai)</string>
+    <string name="install_folkpatch_superkey_generate">Tạo ngẫu nhiên</string>
+    <string name="install_folkpatch_custom_kpimg">Sử dụng file kpimg cục bộ (Tùy chọn)</string>
+    <string name="install_folkpatch_custom_kpimg_summary">Mặc định: dùng sẵn KernelPatch 0.13.9 (FolkPatch)</string>
+    <string name="install_folkpatch_selected_kpimg">Đã chọn kpimg: %1$s</string>
+    <string name="install_folkpatch_init_boot_warning_title">Cảnh báo chọn nhầm phân vùng</string>
+    <string name="install_folkpatch_init_boot_warning_msg">File bạn chọn có tên chứa init_boot hoặc vendor_boot. Chế độ APatch / FolkPatch vá trực tiếp nhân trong boot.img (KHÔNG phải init_boot.img). Bạn vẫn muốn tiếp tục?</string>
+    <string name="install_upload_lkm_file_summary">Tùy chọn: chọn file .ko cục bộ thay vì LKM tích hợp sẵn</string>
 </resources>

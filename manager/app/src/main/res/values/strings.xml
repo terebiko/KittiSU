@@ -814,4 +814,30 @@ Important Note:\n
     <string name="settings_switch_icon">Switch thumb icon</string>
     <string name="settings_switch_icon_summary">Show checkmark and cross icons inside toggle switches</string>
 
+    <!-- Dual Install Mode (Kernel/LKM vs APatch/FolkPatch boot.img) -->
+    <string name="install_mode_title">Choose Installation Mode</string>
+    <string name="install_mode_kernel_title">Kernel / LKM</string>
+    <string name="install_mode_kernel_badge">Kernel 5.10+</string>
+    <string name="install_mode_kernel_note_title">Kernel &amp; LKM Mode Notes</string>
+    <string name="install_mode_kernel_note_body">Supports LKM boot patching for GKI 2.0 devices (Kernel 5.10+) or flashing custom built kernels.\n• Harder to update full kernel builds (requires rebuilding the kernel).\n• Runs natively inside the kernel — much easier to hide root and pass banking apps.</string>
+    <string name="install_mode_kernel_nongki_hint">Your current kernel (%1$s) is below 5.10 (Non-GKI), so automatic LKM patching is not available. Please build/flash a custom kernel or switch to the Boot Patch (APatch / FolkPatch) mode.</string>
+    <string name="install_mode_folkpatch_title">Boot Patch</string>
+    <string name="install_mode_folkpatch_badge">APatch / FolkPatch</string>
+    <string name="install_mode_folkpatch_note_title">APatch / FolkPatch Mode Notes</string>
+    <string name="install_mode_folkpatch_note_body">Patches stock boot.img directly with KernelPatch (supports all ARM64 kernels 3.18 – 6.x without rebuilding kernel).\n• Much easier to root and update.\n• Harder to hide root from strict banking apps compared to Kernel / LKM mode.</string>
+    <string name="install_folkpatch_methods">Boot Image Patching (KernelPatch)</string>
+    <string name="install_folkpatch_select_boot">Select and patch boot.img</string>
+    <string name="install_folkpatch_select_boot_summary">Choose stock boot.img (not init_boot.img) — works without root</string>
+    <string name="install_folkpatch_selected_boot">Selected boot image: %1$s</string>
+    <string name="install_folkpatch_superkey_title">SuperKey</string>
+    <string name="install_folkpatch_superkey_hint">8–63 characters with letters &amp; numbers</string>
+    <string name="install_folkpatch_superkey_error">SuperKey must be 8–63 letters/digits and contain both</string>
+    <string name="install_folkpatch_superkey_generate">Generate</string>
+    <string name="install_folkpatch_custom_kpimg">Use custom kpimg file (Optional)</string>
+    <string name="install_folkpatch_custom_kpimg_summary">Default: built-in KernelPatch 0.13.9 (FolkPatch)</string>
+    <string name="install_folkpatch_selected_kpimg">Selected kpimg: %1$s</string>
+    <string name="install_folkpatch_init_boot_warning_title">Are you sure?</string>
+    <string name="install_folkpatch_init_boot_warning_msg">The selected file looks like init_boot or vendor_boot. APatch / FolkPatch mode patches the kernel inside boot.img, NOT init_boot.img. Continue anyway?</string>
+    <string name="install_upload_lkm_file_summary">Optional: pick a local .ko kernel module instead of built-in LKM</string>
+
 </resources>

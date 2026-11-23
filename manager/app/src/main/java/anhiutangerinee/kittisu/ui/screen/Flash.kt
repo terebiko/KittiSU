@@ -13,6 +13,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.Close
@@ -42,6 +44,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -49,11 +52,13 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,11 +95,13 @@ import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
+import anhiutangerinee.kittisu.ui.util.FolkPatchMode
 import anhiutangerinee.kittisu.ui.util.LkmSelection
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.flashModule
 import anhiutangerinee.kittisu.ui.util.hasMetaModule
 import anhiutangerinee.kittisu.ui.util.installBoot
+import anhiutangerinee.kittisu.ui.util.patchBootImageFolkPatch
 import anhiutangerinee.kittisu.ui.util.module.ModuleUtils
 import anhiutangerinee.kittisu.ui.util.module.PostInstallScript
 import anhiutangerinee.kittisu.ui.util.module.PresetPostInstallManager
@@ -543,116 +550,190 @@ fun FlashScreen(flashIt: FlashIt) {
         onBack()
     }
 
-    Scaffold(
-        topBar = {
-            TopBar(
-                currentFlashingStatus.value,
-                currentStatus,
-                onBack = onBack,
-                onSave = {
-                    scope.launch {
-                        val format = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-                        val date = format.format(Date())
-                        val file = File(
-                            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                            "KernelSU_install_log_${date}.log"
-                        )
-                        file.writeText(logContent.toString())
-                        snackBarHost.showSnackbar(logSavedString.format(file.absolutePath))
-                    }
-                },
-                scrollBehavior = scrollBehavior
-            )
-        },
-        floatingActionButton = {
-            val isSuccessNoPreset = currentFlashingStatus.value == FlashingStatus.SUCCESS &&
-                hasFlashCompleted &&
-                !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)
-            if (showFloatAction || isSuccessNoPreset) {
-                var actionInProgress by rememberSaveable { mutableStateOf(false) }
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        if (actionInProgress) return@ExtendedFloatingActionButton
-                        if (showFloatAction) {
-                            actionInProgress = true
-                            scope.launch {
-                                withContext(Dispatchers.IO) {
-                                    reboot()
-                                }
-                            }
-                        } else {
-                            onBack()
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            if (showFloatAction) Icons.TwoTone.Refresh else Icons.TwoTone.Close,
-                            contentDescription = stringResource(
-                                id = if (showFloatAction) R.string.reboot else R.string.close
-                            )
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = stringResource(
-                                id = if (showFloatAction) R.string.reboot else R.string.close
-                            )
-                        )
-                    },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    expanded = !actionInProgress
-                )
-            }
-        },
-        snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) },
-        containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onSurface
-    ) { innerPadding ->
-        KeyEventBlocker {
-            it.key == Key.VolumeDown || it.key == Key.VolumeUp
-        }
+    val hasCustomBackdrop = ThemeConfig.isFullScreenBackgroundEnabled
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize(1f)
-                .padding(innerPadding)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .blurSource(),
-        ) {
-            val progressInfo = when (flashIt) {
-                is FlashIt.FlashModules -> flashIt.currentIndex + 1 to flashIt.uris.size
-                is FlashIt.FlashScripts -> flashIt.currentIndex + 1 to flashIt.scripts.size
-                else -> null
-            }
-            progressInfo?.let { (currentIndex, totalCount) ->
-                ModuleInstallProgressBar(
-                    currentIndex = currentIndex,
-                    totalCount = totalCount,
-                    currentModuleName = currentStatus.currentModuleName,
-                    status = currentFlashingStatus.value,
-                    failedModules = currentStatus.failedModules
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Backdrop scrim overlay so custom backgrounds never clash with installer UI
+        if (hasCustomBackdrop) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(scrollState)
-            ) {
-                LaunchedEffect(text) {
-                    scrollState.animateScrollTo(scrollState.maxValue)
-                }
-                Text(
-                    modifier = Modifier.padding(16.dp),
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.onSurface
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.44f))
+            )
+        }
+
+        Scaffold(
+            topBar = {
+                TopBar(
+                    currentFlashingStatus.value,
+                    currentStatus,
+                    onBack = onBack,
+                    onSave = {
+                        scope.launch {
+                            val format = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
+                            val date = format.format(Date())
+                            val file = File(
+                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                                "KernelSU_install_log_${date}.log"
+                            )
+                            file.writeText(logContent.toString())
+                            snackBarHost.showSnackbar(logSavedString.format(file.absolutePath))
+                        }
+                    },
+                    scrollBehavior = scrollBehavior
                 )
+            },
+            floatingActionButton = {
+                val isSuccessNoPreset = currentFlashingStatus.value == FlashingStatus.SUCCESS &&
+                    hasFlashCompleted &&
+                    !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)
+                if (showFloatAction || isSuccessNoPreset) {
+                    var actionInProgress by rememberSaveable { mutableStateOf(false) }
+                    ExtendedFloatingActionButton(
+                        onClick = {
+                            if (actionInProgress) return@ExtendedFloatingActionButton
+                            if (showFloatAction) {
+                                actionInProgress = true
+                                scope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        reboot()
+                                    }
+                                }
+                            } else {
+                                onBack()
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                if (showFloatAction) Icons.TwoTone.Refresh else Icons.TwoTone.Close,
+                                contentDescription = stringResource(
+                                    id = if (showFloatAction) R.string.reboot else R.string.close
+                                )
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = stringResource(
+                                    id = if (showFloatAction) R.string.reboot else R.string.close
+                                )
+                            )
+                        },
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        expanded = !actionInProgress
+                    )
+                }
+            },
+            snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) },
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ) { innerPadding ->
+            KeyEventBlocker {
+                it.key == Key.VolumeDown || it.key == Key.VolumeUp
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize(1f)
+                    .padding(top = innerPadding.calculateTopPadding())
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .blurSource(),
+            ) {
+                val progressInfo = when (flashIt) {
+                    is FlashIt.FlashModules -> flashIt.currentIndex + 1 to flashIt.uris.size
+                    is FlashIt.FlashScripts -> flashIt.currentIndex + 1 to flashIt.scripts.size
+                    else -> null
+                }
+                progressInfo?.let { (currentIndex, totalCount) ->
+                    ModuleInstallProgressBar(
+                        currentIndex = currentIndex,
+                        totalCount = totalCount,
+                        currentModuleName = currentStatus.currentModuleName,
+                        status = currentFlashingStatus.value,
+                        failedModules = currentStatus.failedModules
+                    )
+                }
+
+                // Floating Console Island — high-contrast surface so log text never blends into custom backgrounds
+                val islandStatusColor = when (currentFlashingStatus.value) {
+                    FlashingStatus.FLASHING -> MaterialTheme.colorScheme.primary
+                    FlashingStatus.SUCCESS -> MaterialTheme.colorScheme.tertiary
+                    FlashingStatus.FAILED -> MaterialTheme.colorScheme.error
+                }
+                val islandStatusLabel = stringResource(
+                    when (currentFlashingStatus.value) {
+                        FlashingStatus.FLASHING -> R.string.flashing
+                        FlashingStatus.SUCCESS -> R.string.flash_success
+                        FlashingStatus.FAILED -> R.string.flash_failed
+                    }
+                )
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = innerPadding.calculateBottomPadding() + 16.dp
+                        ),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+                        alpha = if (hasCustomBackdrop) 0.94f else 1f
+                    ),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    tonalElevation = 4.dp,
+                    shadowElevation = if (hasCustomBackdrop) 6.dp else 2.dp,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Island header bar with status pill
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(islandStatusColor)
+                            )
+                            Text(
+                                text = islandStatusLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = islandStatusColor
+                            )
+                        }
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(scrollState)
+                        ) {
+                            LaunchedEffect(text) {
+                                scrollState.animateScrollTo(scrollState.maxValue)
+                            }
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -788,9 +869,13 @@ fun ModuleInstallProgressBar(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+                alpha = if (ThemeConfig.isFullScreenBackgroundEnabled) 0.94f else 1f
+            ),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(
@@ -932,15 +1017,15 @@ private fun TopBar(
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor =
-                if (ThemeConfig.isEnableBlur)
+                if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
             scrolledContainerColor =
-                if (ThemeConfig.isEnableBlur)
+                if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
         ),
         actions = {
             IconButton(onClick = onSave) {
@@ -995,6 +1080,12 @@ sealed class FlashIt : Parcelable {
         val ota: Boolean,
         val partition: String? = null,
         val backup: Boolean = false,
+    ) : FlashIt()
+    data class FlashFolkPatchBoot(
+        val boot: Uri? = null,
+        val kpimg: Uri? = null,
+        val superKey: String,
+        val mode: FolkPatchMode,
     ) : FlashIt()
     data class FlashModule(val uri: Uri) : FlashIt()
     data class FlashModules(
@@ -1076,6 +1167,15 @@ fun flashIt(
             onFinish,
             onStdout,
             onStderr
+        )
+        is FlashIt.FlashFolkPatchBoot -> patchBootImageFolkPatch(
+            bootUri = flashIt.boot,
+            kpimgUri = flashIt.kpimg,
+            superKey = flashIt.superKey,
+            mode = flashIt.mode,
+            onFinish = onFinish,
+            onStdout = onStdout,
+            onStderr = onStderr
         )
         is FlashIt.FlashModule -> flashModule(flashIt.uri, onFinish, onStdout, onStderr)
         is FlashIt.FlashModules -> {

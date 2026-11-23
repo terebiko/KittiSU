@@ -5,6 +5,7 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
@@ -130,73 +131,105 @@ fun ExecuteModuleActionScreen(moduleId: String) {
         isActionRunning = false
     }
 
-    Scaffold(
-        topBar = {
-            TopBar(
-                isActionRunning = isActionRunning,
-                onBack = {
-                    navigator.pop()
-                },
-                onSave = {
-                    if (!isActionRunning) {
-                        scope.launch {
-                            val format = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-                            val date = format.format(Date())
-                            val file = File(
-                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                                "KernelSU_module_action_log_${date}.log"
-                            )
-                            file.writeText(logContent.toString())
-                            snackBarHost.showSnackbar("Log saved to ${file.absolutePath}")
-                        }
-                    }
-                },
-                scrollBehavior = scrollBehavior,
+    val hasCustomBackdrop = ThemeConfig.isFullScreenBackgroundEnabled
+
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        if (hasCustomBackdrop) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.44f))
             )
-        },
-        floatingActionButton = {
-            if (!isActionRunning) {
-                val navigator = LocalNavigator.current
-                ExtendedFloatingActionButton(
-                    text = { Text(text = stringResource(R.string.close)) },
-                    icon = { Icon(Icons.TwoTone.Close, contentDescription = null) },
-                    onClick = {
+        }
+
+        Scaffold(
+            topBar = {
+                TopBar(
+                    isActionRunning = isActionRunning,
+                    onBack = {
                         navigator.pop()
+                    },
+                    onSave = {
+                        if (!isActionRunning) {
+                            scope.launch {
+                                val format = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
+                                val date = format.format(Date())
+                                val file = File(
+                                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                                    "KernelSU_module_action_log_${date}.log"
+                                )
+                                file.writeText(logContent.toString())
+                                snackBarHost.showSnackbar("Log saved to ${file.absolutePath}")
+                            }
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            },
+            floatingActionButton = {
+                if (!isActionRunning) {
+                    val navigator = LocalNavigator.current
+                    ExtendedFloatingActionButton(
+                        text = { Text(text = stringResource(R.string.close)) },
+                        icon = { Icon(Icons.TwoTone.Close, contentDescription = null) },
+                        onClick = {
+                            navigator.pop()
+                        }
+                    )
+                }
+            },
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            contentWindowInsets = WindowInsets.safeDrawing,
+            snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) }
+        ) { innerPadding ->
+            KeyEventBlocker {
+                it.key == Key.VolumeDown || it.key == Key.VolumeUp
+            }
+            LaunchedEffect(text) {
+                state.animateScrollToItem(1)
+            }
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = innerPadding.calculateTopPadding() + 8.dp,
+                        bottom = innerPadding.calculateBottomPadding() + 16.dp
+                    )
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .blurSource(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(
+                    alpha = if (hasCustomBackdrop) 0.94f else 1f
+                ),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                tonalElevation = 4.dp,
+                shadowElevation = if (hasCustomBackdrop) 6.dp else 2.dp,
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                )
+            ) {
+                LazyColumn(
+                    state = state,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    item {
+                        Text(
+                            modifier = Modifier.padding(16.dp),
+                            text = text,
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                )
-            }
-        },
-        containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) }
-    ) { innerPadding ->
-        KeyEventBlocker {
-            it.key == Key.VolumeDown || it.key == Key.VolumeUp
-        }
-        LaunchedEffect(text) {
-            state.animateScrollToItem(2) // Spacer(bottom)
-        }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(1f)
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .blurSource(),
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            }
-            item {
-                Text(
-                    modifier = Modifier.padding(8.dp),
-                    text = text,
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding()))
+                    item {
+                        Spacer(modifier = Modifier.height(64.dp))
+                    }
+                }
             }
         }
     }
@@ -233,15 +266,15 @@ private fun TopBar(
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor =
-                if (ThemeConfig.isEnableBlur)
+                if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
             scrolledContainerColor =
-                if (ThemeConfig.isEnableBlur)
+                if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
         ),
         windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp))
     )
