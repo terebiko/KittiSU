@@ -124,9 +124,7 @@ import anhiutangerinee.kittisu.ui.screen.modulePreset.ModulePresetsScreen
 import anhiutangerinee.kittisu.ui.screen.susfs.SuSFSConfigScreen
 import anhiutangerinee.kittisu.ui.theme.KernelSUTheme
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
-import anhiutangerinee.kittisu.ui.theme.backgroundImagePainter
 import anhiutangerinee.kittisu.ui.theme.blurSource
-import anhiutangerinee.kittisu.ui.theme.fullScreenBackgroundPainter
 import anhiutangerinee.kittisu.ui.util.LocalBlurState
 import anhiutangerinee.kittisu.ui.util.LocalHandlePageChange
 import anhiutangerinee.kittisu.ui.util.LocalPagerState
@@ -812,14 +810,7 @@ fun rememberMaterial3BlurBackdrop(enableBlur: Boolean): LayerBackdrop? {
         MaterialTheme.colorScheme.surfaceContainer
 
     return rememberLayerBackdrop {
-        if (ThemeConfig.isEnableBlurExp) {
-            if(false) {
-                val painter = backgroundImagePainter!!
-                with(painter) {
-                    draw(size = drawContext.size)
-                }
-            }
-        } else {
+        if (!ThemeConfig.isEnableBlurExp) {
             drawRect(backgroundColor)
         }
 
@@ -870,17 +861,24 @@ fun MainScreen() {
                     animateJob?.cancel()
                     animating = true
                     userScrollEnabled = false
-                    val job = coroutineScope.launch {
+                    var job: Job? = null
+                    job = coroutineScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
                         try {
-                            pagerState.animateScrollToPage(
-                                page = page,
-                                animationSpec = androidx.compose.animation.core.spring(
-                                    dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
-                                    stiffness = 450f
+                            if (abs(page - pagerState.currentPage) > 1) {
+                                // Jumping across non-adjacent tabs (e.g. Home -> Settings):
+                                // snap directly so intermediate tabs aren't composed mid-flight.
+                                pagerState.scrollToPage(page)
+                            } else {
+                                pagerState.animateScrollToPage(
+                                    page = page,
+                                    animationSpec = androidx.compose.animation.core.spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy,
+                                        stiffness = 450f
+                                    )
                                 )
-                            )
+                            }
                         } finally {
-                            if (animateJob === this) {
+                            if (animateJob === job) {
                                 userScrollEnabled = true
                                 animating = false
                                 animateJob = null
@@ -889,6 +887,7 @@ fun MainScreen() {
                     }
                     animateJob = job
                     lastRequestedPage = page
+                    job.start()
                 }
             }
         }
@@ -939,7 +938,7 @@ fun MainScreen() {
                                 .blurSource()
                                 .nestedScroll(bottomBarScrollConnection),
                             state = pagerState,
-                            beyondViewportPageCount = 1,
+                            beyondViewportPageCount = 0,
                             userScrollEnabled = userScrollEnabled,
                         ) { pageIndex ->
                             if (pages.isEmpty()) return@HorizontalPager
@@ -966,7 +965,7 @@ fun MainScreen() {
                         ) {
                             BottomBar(
                                 destinations = pages,
-                                selectedPage = pagerState.currentPage,
+                                selectedPage = uiSelectedPage,
                                 onPageChange = handlePageChange
                             )
                         }
@@ -980,7 +979,7 @@ fun MainScreen() {
                             .fillMaxSize()
                             .blurSource(),
                         state = pagerState,
-                        beyondViewportPageCount = 1,
+                        beyondViewportPageCount = 0,
                         userScrollEnabled = userScrollEnabled,
                     ) { pageIndex ->
                         if (pages.isEmpty()) return@HorizontalPager

@@ -654,8 +654,9 @@ private fun BackgroundLayer() {
         if (fullScreenUri.value == null) {
             fullScreenBackgroundPainter = null
             backgroundSeedColor = 0
-            prefs.edit(commit = true) {
+            prefs.edit {
                 remove("cached_seed_color")
+                remove("cached_seed_key")
             }
         }
     }
@@ -751,9 +752,6 @@ private suspend fun Bitmap.extractSeedColor(
 private fun BackgroundInitializer(uri: Uri) {
     val context = LocalContext.current
     val tick = ThemeConfig.backgroundRefreshTick
-    val dataModel = remember(uri, tick) {
-        if (uri.scheme == "file" && uri.path != null) File(uri.path!!) else uri
-    }
     val cacheKey = remember(uri, tick) {
         if (uri.scheme == "file" && uri.path != null) {
             val f = File(uri.path!!)
@@ -766,43 +764,41 @@ private fun BackgroundInitializer(uri: Uri) {
         ThemeConfig.backgroundImageLoaded = true
         ThemeConfig.isThemeChanging = false
         if (ThemeConfig.fullScreenBackgroundUri == null) {
-            val prefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
             val fallbackSeed = ThemeConfig.currentTheme.primaryLight.toArgb()
             val seed = withContext(Dispatchers.IO) {
-                runCatching {
+                val prefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+                val cachedKey = prefs.getString("cached_seed_key", null)
+                val cachedSeed = prefs.getInt("cached_seed_color", 0)
+                if (cachedKey == cacheKey && cachedSeed != 0) {
+                    return@withContext cachedSeed
+                }
+                val extracted = runCatching {
+                    val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 }
                     val bmp = if (uri.scheme == "file" && uri.path != null) {
-                        android.graphics.BitmapFactory.decodeFile(uri.path)
+                        android.graphics.BitmapFactory.decodeFile(uri.path, opts)
                     } else {
                         context.contentResolver.openInputStream(uri)?.use {
-                            android.graphics.BitmapFactory.decodeStream(it)
+                            android.graphics.BitmapFactory.decodeStream(it, null, opts)
                         }
                     }
                     bmp?.let {
-                        val extracted = it.extractSeedColor(fallbackColorArgb = fallbackSeed)
+                        val color = it.extractSeedColor(fallbackColorArgb = fallbackSeed)
                         it.recycle()
-                        extracted
+                        color
                     }
                 }.getOrNull()
+                if (extracted != null && extracted != 0) {
+                    prefs.edit {
+                        putInt("cached_seed_color", extracted)
+                        putString("cached_seed_key", cacheKey)
+                    }
+                }
+                extracted
             }
             if (seed != null && seed != 0) {
                 backgroundSeedColor = seed
-                prefs.edit(commit = true) {
-                    putInt("cached_seed_color", seed)
-                }
             }
         }
-    }
-    val painter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(context)
-            .data(dataModel)
-            .memoryCacheKey(cacheKey)
-            .diskCacheKey(cacheKey)
-            .allowHardware(false)
-            .crossfade(true)
-            .build()
-    )
-    SideEffect {
-        backgroundImagePainter = painter
     }
 }
 
@@ -816,16 +812,6 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
             colorResource(id = R.color.system_accent1_500).toArgb()
         else -12417548
 
-    val prefs = context
-        .getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
-
-    val calcedCachedSeedColor =
-        prefs
-            .getInt("cached_seed_color", dynamicColorFromSystem)
-
-    val dataModel = remember(uri, tick) {
-        if (uri.scheme == "file" && uri.path != null) File(uri.path!!) else uri
-    }
     val cacheKey = remember(uri, tick) {
         if (uri.scheme == "file" && uri.path != null) {
             val f = File(uri.path!!)
@@ -837,95 +823,95 @@ private fun FullScreenBackgroundInitializer(uri: Uri) {
 
     LaunchedEffect(uri, tick) {
         ThemeConfig.fullScreenBackgroundImageLoaded = true
-        backgroundSeedColor = calcedCachedSeedColor
         val seed = withContext(Dispatchers.IO) {
-            runCatching {
+            val prefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+            val cachedKey = prefs.getString("cached_seed_key", null)
+            val cachedSeed = prefs.getInt("cached_seed_color", 0)
+            if (cachedKey == cacheKey && cachedSeed != 0) {
+                return@withContext cachedSeed
+            }
+            val fallback = if (cachedSeed != 0) cachedSeed else dynamicColorFromSystem
+            val extracted = runCatching {
+                val opts = android.graphics.BitmapFactory.Options().apply { inSampleSize = 4 }
                 val bmp = if (uri.scheme == "file" && uri.path != null) {
-                    android.graphics.BitmapFactory.decodeFile(uri.path)
+                    android.graphics.BitmapFactory.decodeFile(uri.path, opts)
                 } else {
                     context.contentResolver.openInputStream(uri)?.use {
-                        android.graphics.BitmapFactory.decodeStream(it)
+                        android.graphics.BitmapFactory.decodeStream(it, null, opts)
                     }
                 }
                 bmp?.let {
-                    val extracted = it.extractSeedColor(fallbackColorArgb = calcedCachedSeedColor)
+                    val color = it.extractSeedColor(fallbackColorArgb = fallback)
                     it.recycle()
-                    extracted
+                    color
                 }
             }.getOrNull()
-        }
-        if (seed != null && seed != 0) {
-            backgroundSeedColor = seed
-            prefs.edit(commit = true) {
-                putInt("cached_seed_color", seed)
+            if (extracted != null && extracted != 0) {
+                prefs.edit {
+                    putInt("cached_seed_color", extracted)
+                    putString("cached_seed_key", cacheKey)
+                }
             }
+            extracted ?: fallback
         }
-    }
-
-    val painter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(context)
-            .data(dataModel)
-            .memoryCacheKey(cacheKey)
-            .diskCacheKey(cacheKey)
-            .allowHardware(false)
-            .crossfade(true)
-            .build()
-    )
-    SideEffect {
-        fullScreenBackgroundPainter = painter
+        if (seed != 0) {
+            backgroundSeedColor = seed
+        }
     }
 }
 
 @Composable
 private fun generateTypography(): androidx.compose.material3.Typography {
+    val typography = MaterialTheme.typography
+    if (!ThemeConfig.isHighContrastMode) return typography
     val darkMode = isInDarkTheme(ThemeConfig.forceDarkMode)
 
-    fun generateShadow(originalShadow: Shadow?): Shadow? {
-        if (!ThemeConfig.isHighContrastMode) return originalShadow
-        val shadow = originalShadow ?: Shadow(
-            offset = Offset(1.5f, 1.5f),
-            blurRadius = 0f
-        )
-        return shadow.copy(
-            color = if (darkMode) Color.Black.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.7f)
+    return remember(typography, darkMode) {
+        fun generateShadow(originalShadow: Shadow?): Shadow {
+            val shadow = originalShadow ?: Shadow(
+                offset = Offset(1.5f, 1.5f),
+                blurRadius = 0f
+            )
+            return shadow.copy(
+                color = if (darkMode) Color.Black.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        fun TextStyle.applyShadow() = this.copy(shadow = generateShadow(shadow))
+
+        typography.copy(
+            displayLarge = typography.displayLarge.applyShadow(),
+            displayMedium = typography.displayMedium.applyShadow(),
+            displaySmall = typography.displaySmall.applyShadow(),
+            headlineLarge = typography.headlineLarge.applyShadow(),
+            headlineMedium = typography.headlineMedium.applyShadow(),
+            headlineSmall = typography.headlineSmall.applyShadow(),
+            titleLarge = typography.titleLarge.applyShadow(),
+            titleMedium = typography.titleMedium.applyShadow(),
+            titleSmall = typography.titleSmall.applyShadow(),
+            bodyLarge = typography.bodyLarge.applyShadow(),
+            bodyMedium = typography.bodyMedium.applyShadow(),
+            bodySmall = typography.bodySmall.applyShadow(),
+            labelLarge = typography.labelLarge.applyShadow(),
+            labelMedium = typography.labelMedium.applyShadow(),
+            labelSmall = typography.labelSmall.applyShadow(),
+            displayLargeEmphasized = typography.displayLargeEmphasized.applyShadow(),
+            displayMediumEmphasized = typography.displayMediumEmphasized.applyShadow(),
+            displaySmallEmphasized = typography.displaySmallEmphasized.applyShadow(),
+            headlineLargeEmphasized = typography.headlineLargeEmphasized.applyShadow(),
+            headlineMediumEmphasized = typography.headlineMediumEmphasized.applyShadow(),
+            headlineSmallEmphasized = typography.headlineSmallEmphasized.applyShadow(),
+            titleLargeEmphasized = typography.titleLargeEmphasized.applyShadow(),
+            titleMediumEmphasized = typography.titleMediumEmphasized.applyShadow(),
+            titleSmallEmphasized = typography.titleSmallEmphasized.applyShadow(),
+            bodyLargeEmphasized = typography.bodyLargeEmphasized.applyShadow(),
+            bodyMediumEmphasized = typography.bodyMediumEmphasized.applyShadow(),
+            bodySmallEmphasized = typography.bodySmallEmphasized.applyShadow(),
+            labelLargeEmphasized = typography.labelLargeEmphasized.applyShadow(),
+            labelMediumEmphasized = typography.labelMediumEmphasized.applyShadow(),
+            labelSmallEmphasized = typography.labelSmallEmphasized.applyShadow(),
         )
     }
-
-    fun TextStyle.applyShadow() = this.copy(shadow = generateShadow(shadow))
-    val typography = MaterialTheme.typography
-
-    return typography.copy(
-        displayLarge = typography.displayLarge.applyShadow(),
-        displayMedium = typography.displayMedium.applyShadow(),
-        displaySmall = typography.displaySmall.applyShadow(),
-        headlineLarge = typography.headlineLarge.applyShadow(),
-        headlineMedium = typography.headlineMedium.applyShadow(),
-        headlineSmall = typography.headlineSmall.applyShadow(),
-        titleLarge = typography.titleLarge.applyShadow(),
-        titleMedium = typography.titleMedium.applyShadow(),
-        titleSmall = typography.titleSmall.applyShadow(),
-        bodyLarge = typography.bodyLarge.applyShadow(),
-        bodyMedium = typography.bodyMedium.applyShadow(),
-        bodySmall = typography.bodySmall.applyShadow(),
-        labelLarge = typography.labelLarge.applyShadow(),
-        labelMedium = typography.labelMedium.applyShadow(),
-        labelSmall = typography.labelSmall.applyShadow(),
-        displayLargeEmphasized = typography.displayLargeEmphasized.applyShadow(),
-        displayMediumEmphasized = typography.displayMediumEmphasized.applyShadow(),
-        displaySmallEmphasized = typography.displaySmallEmphasized.applyShadow(),
-        headlineLargeEmphasized = typography.headlineLargeEmphasized.applyShadow(),
-        headlineMediumEmphasized = typography.headlineMediumEmphasized.applyShadow(),
-        headlineSmallEmphasized = typography.headlineSmallEmphasized.applyShadow(),
-        titleLargeEmphasized = typography.titleLargeEmphasized.applyShadow(),
-        titleMediumEmphasized = typography.titleMediumEmphasized.applyShadow(),
-        titleSmallEmphasized = typography.titleSmallEmphasized.applyShadow(),
-        bodyLargeEmphasized = typography.bodyLargeEmphasized.applyShadow(),
-        bodyMediumEmphasized = typography.bodyMediumEmphasized.applyShadow(),
-        bodySmallEmphasized = typography.bodySmallEmphasized.applyShadow(),
-        labelLargeEmphasized = typography.labelLargeEmphasized.applyShadow(),
-        labelMediumEmphasized = typography.labelMediumEmphasized.applyShadow(),
-        labelSmallEmphasized = typography.labelSmallEmphasized.applyShadow(),
-    )
 }
 
 @Composable

@@ -180,42 +180,34 @@ class HomeViewModel : ViewModel() {
                 val (kernelRelease, androidVersion, deviceModel, managerVersion, selinuxStatus, seccompStatus) = loadBasicSystemInfo(
                     context
                 )
-                systemInfo = systemInfo.copy(
+                val moduleInfo = if (!isSimpleMode) loadModuleInfo() else null
+                val susfsInfo = if (!isHideSusfsStatus) loadSuSFSInfo() else null
+                val managerInfo = loadManagerInfo()
+
+                // Apply all extended fields in a single snapshot update to avoid
+                // four back-to-back HomePage recompositions during startup.
+                val updated = systemInfo.copy(
                     kernelRelease = kernelRelease,
                     androidVersion = androidVersion,
                     deviceModel = deviceModel,
                     managerVersion = managerVersion,
                     selinuxStatus = selinuxStatus,
-                    seccompStatus = seccompStatus
-                )
-
-                if (!isSimpleMode) {
-                    val moduleInfo = loadModuleInfo()
-                    systemInfo = systemInfo.copy(
-                        superuserCount = moduleInfo.first,
-                        moduleCount = moduleInfo.second,
-                        zygiskImplement = moduleInfo.third,
-                        metaModuleImplement = moduleInfo.fourth
-                    )
-                }
-
-                if (!isHideSusfsStatus) {
-                    val susfsInfo = loadSuSFSInfo()
-                    systemInfo = systemInfo.copy(
-                        susfsEnabled = susfsInfo.first,
-                        susfsVersionSupported = susfsInfo.first,
-                        susfsVersion = susfsInfo.second,
-                        susfsFeatures = susfsInfo.third,
-                    )
-                }
-
-                val managerInfo = loadManagerInfo()
-                systemInfo = systemInfo.copy(
+                    seccompStatus = seccompStatus,
+                    superuserCount = moduleInfo?.first ?: systemInfo.superuserCount,
+                    moduleCount = moduleInfo?.second ?: systemInfo.moduleCount,
+                    zygiskImplement = moduleInfo?.third ?: systemInfo.zygiskImplement,
+                    metaModuleImplement = moduleInfo?.fourth ?: systemInfo.metaModuleImplement,
+                    susfsEnabled = susfsInfo?.first ?: systemInfo.susfsEnabled,
+                    susfsVersionSupported = susfsInfo?.first ?: systemInfo.susfsVersionSupported,
+                    susfsVersion = susfsInfo?.second ?: systemInfo.susfsVersion,
+                    susfsFeatures = susfsInfo?.third ?: systemInfo.susfsFeatures,
                     managersList = managerInfo.first,
-                    isDynamicSignEnabled = managerInfo.second
+                    isDynamicSignEnabled = managerInfo.second,
                 )
-
-                isExtendedDataLoaded = true
+                withContext(Dispatchers.Main.immediate) {
+                    systemInfo = updated
+                    isExtendedDataLoaded = true
+                }
             } catch (_: Exception) {}
         }
         loadingJobs.add(job)

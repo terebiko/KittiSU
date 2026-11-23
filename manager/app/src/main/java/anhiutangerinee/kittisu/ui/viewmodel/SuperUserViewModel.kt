@@ -304,6 +304,7 @@ class SuperUserViewModel : ViewModel() {
     }
 
     private fun hasRealRootDaemon(): Boolean {
+        if (anhiutangerinee.kittisu.ui.util.isFakeRootNoKernel) return false
         if (BuildConfig.FAKE_ROOT) {
             val ksudFile = File(ksuApp.applicationInfo.nativeLibraryDir, "libksud.so")
             if (!ksudFile.isFile) return false
@@ -320,13 +321,15 @@ class SuperUserViewModel : ViewModel() {
     }
 
     private suspend fun awaitKsuBinder(onDisconnect: () -> Unit): IBinder? =
-        suspendCoroutine { continuation ->
+        kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
             val connection = object : ServiceConnection {
                 override fun onServiceDisconnected(name: ComponentName?) {
                     onDisconnect()
                 }
                 override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                    continuation.resume(binder)
+                    if (continuation.isActive) {
+                        continuation.resume(binder)
+                    }
                 }
             }
             val intent = Intent(ksuApp, KsuService::class.java)
@@ -337,13 +340,22 @@ class SuperUserViewModel : ViewModel() {
                 if (task == null) {
                     // No root: bindOrTask returns null and no callback ever arrives,
                     // which left the page spinning forever.
-                    continuation.resume(null)
+                    if (continuation.isActive) continuation.resume(null)
                 } else {
-                    Shell.getShell().execTask(task)
+                    // Never call Shell.getShell() synchronously on the Main Thread!
+                    // Use the async Shell.getShell(Executor, Callback) API instead.
+                    Shell.getShell(Shell.EXECUTOR) { shell ->
+                        try {
+                            shell.execTask(task)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed to exec KsuService bind task", e)
+                            if (continuation.isActive) continuation.resume(null)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to bind KsuService", e)
-                continuation.resume(null)
+                if (continuation.isActive) continuation.resume(null)
             }
         }
 

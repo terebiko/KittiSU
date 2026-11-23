@@ -596,9 +596,9 @@ private fun getMetaModuleWarningText(
     if (!showMetamoduleWarning) return null
     if (!viewModel.hasModuleRequireMount) return null
 
-    val metaProp = SuFile.open("/data/adb/metamodule/module.prop").exists()
-    val metaRemoved = SuFile.open("/data/adb/metamodule/remove").exists()
-    val metaDisabled = SuFile.open("/data/adb/metamodule/disable").exists()
+    val metaProp = runCatching { SuFile.open("/data/adb/metamodule/module.prop").exists() }.getOrDefault(false)
+    val metaRemoved = runCatching { SuFile.open("/data/adb/metamodule/remove").exists() }.getOrDefault(false)
+    val metaDisabled = runCatching { SuFile.open("/data/adb/metamodule/disable").exists() }.getOrDefault(false)
 
     return when {
         !metaProp ->

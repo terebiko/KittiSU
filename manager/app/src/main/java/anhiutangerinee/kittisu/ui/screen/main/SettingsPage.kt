@@ -123,15 +123,13 @@ import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.BootRecoveryState
+import anhiutangerinee.kittisu.ui.util.SettingsFeatureBatch
 import anhiutangerinee.kittisu.ui.util.backupModules
 import anhiutangerinee.kittisu.ui.util.execKsud
 import anhiutangerinee.kittisu.ui.util.getBugreportFile
 import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
-import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
-import anhiutangerinee.kittisu.ui.util.getFeatureStatus
 import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
-import anhiutangerinee.kittisu.ui.util.isWebuiModuleInstalled
-import anhiutangerinee.kittisu.ui.util.rootAvailable
+import anhiutangerinee.kittisu.ui.util.loadSettingsFeatureBatch
 import anhiutangerinee.kittisu.ui.util.restoreModules
 import anhiutangerinee.kittisu.ui.util.resetBootRecovery
 import anhiutangerinee.kittisu.ui.webui.WebUIActivity
@@ -150,6 +148,22 @@ import java.time.format.DateTimeFormatter
  */
 private val SPACING_MEDIUM = 8.dp
 private val SPACING_LARGE = 16.dp
+
+private data class SettingsLoadedState(
+    val batch: SettingsFeatureBatch = SettingsFeatureBatch(),
+    val isKernelUmountEnabled: Boolean = false,
+    val isSuEnabled: Boolean = true,
+    val isSuLogEnabled: Boolean = false,
+    val isSelinuxHideEnabled: Boolean = false,
+    val isDefaultUmountModules: Boolean = true,
+    val isLateLoadMode: Boolean = false,
+    val isLkmMode: Boolean = false,
+)
+
+private object SettingsStateCache {
+    @Volatile
+    var cached: SettingsLoadedState? = null
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -199,16 +213,55 @@ fun SettingsPage(bottomPadding: Dp) {
         var pendingRestoreArchive by remember { mutableStateOf<File?>(null) }
         var availableRestoreModules by remember { mutableStateOf(emptyList<String>()) }
         var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
-        var bootRecoveryState by remember { mutableStateOf<BootRecoveryState?>(null) }
+
+        val initialCached = remember { SettingsStateCache.cached }
+        var settingsState by remember { mutableStateOf(initialCached ?: SettingsLoadedState()) }
         var showBootRecoveryDialog by remember { mutableStateOf(false) }
-        var isToolkitInstalled by remember { mutableStateOf(false) }
-        var isKpatchNextInstalled by remember { mutableStateOf(false) }
+
+        var isKernelUmountEnabled by remember { mutableStateOf(settingsState.isKernelUmountEnabled) }
+        var suCompatMode by remember {
+            mutableIntStateOf(
+                settingsState.batch.suPersistValue?.let { v ->
+                    if (v == 0L) 2 else if (!settingsState.isSuEnabled) 1 else 0
+                } ?: if (!settingsState.isSuEnabled) 1 else 0
+            )
+        }
+        var isAdbRootEnabled by remember { mutableStateOf(settingsState.batch.adbRootEnabled) }
+        var isShellSuAdbOnlyEnabled by remember { mutableStateOf(settingsState.batch.shellSuAdbOnlyEnabled) }
+        var isSuLogEnabled by remember { mutableStateOf(settingsState.isSuLogEnabled) }
+        var isSelinuxHideEnabled by remember { mutableStateOf(settingsState.isSelinuxHideEnabled) }
+        var umountChecked by remember { mutableStateOf(settingsState.isDefaultUmountModules) }
+        var bootRecoveryState by remember { mutableStateOf(settingsState.batch.bootRecoveryState) }
+
+        val ksuValid = remember { ksuIsValid() }
+
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                bootRecoveryState = getBootRecoveryState()
-                isToolkitInstalled = isWebuiModuleInstalled("ksu_toolkit")
-                isKpatchNextInstalled = isWebuiModuleInstalled("KPatch-Next")
+            if (SettingsStateCache.cached != null) return@LaunchedEffect
+            val loaded = withContext(Dispatchers.IO) {
+                val batch = loadSettingsFeatureBatch()
+                SettingsLoadedState(
+                    batch = batch,
+                    isKernelUmountEnabled = runCatching { Natives.isKernelUmountEnabled() }.getOrDefault(false),
+                    isSuEnabled = runCatching { Natives.isSuEnabled() }.getOrDefault(true),
+                    isSuLogEnabled = runCatching { Natives.isSuLogEnabled() }.getOrDefault(false),
+                    isSelinuxHideEnabled = runCatching { Natives.isSelinuxHideEnabled() }.getOrDefault(false),
+                    isDefaultUmountModules = runCatching { Natives.isDefaultUmountModules() }.getOrDefault(true),
+                    isLateLoadMode = runCatching { Natives.isLateLoadMode }.getOrDefault(false),
+                    isLkmMode = runCatching { Natives.isLkmMode }.getOrDefault(false),
+                )
             }
+            SettingsStateCache.cached = loaded
+            settingsState = loaded
+            isKernelUmountEnabled = loaded.isKernelUmountEnabled
+            suCompatMode = loaded.batch.suPersistValue?.let { v ->
+                if (v == 0L) 2 else if (!loaded.isSuEnabled) 1 else 0
+            } ?: if (!loaded.isSuEnabled) 1 else 0
+            isAdbRootEnabled = loaded.batch.adbRootEnabled
+            isShellSuAdbOnlyEnabled = loaded.batch.shellSuAdbOnlyEnabled
+            isSuLogEnabled = loaded.isSuLogEnabled
+            isSelinuxHideEnabled = loaded.isSelinuxHideEnabled
+            umountChecked = loaded.isDefaultUmountModules
+            bootRecoveryState = loaded.batch.bootRecoveryState
         }
         val exportModulesLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/x-tar")
@@ -347,12 +400,6 @@ fun SettingsPage(bottomPadding: Dp) {
             )
         }
 
-        var isKernelUmountEnabled by rememberSaveable {
-            mutableStateOf(
-                Natives.isKernelUmountEnabled()
-            )
-        }
-
         LazyColumn(
             modifier =
                 Modifier
@@ -368,13 +415,14 @@ fun SettingsPage(bottomPadding: Dp) {
             )
         ) {
             // 配置卡片
-            if (ksuIsValid()) {
+            if (ksuValid) {
                 item {
                     val modeItems = listOf(
                         stringResource(id = R.string.settings_mode_default),
                         stringResource(id = R.string.settings_mode_disable_until_reboot),
                         stringResource(id = R.string.settings_mode_disable_always),
                     )
+                    val batch = settingsState.batch
 
                     SegmentedColumn(
                         title = stringResource(R.string.configuration),
@@ -392,21 +440,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             }
 
                             item {
-                                val currentSuEnabled = Natives.isSuEnabled()
-                                var suCompatMode by rememberSaveable { mutableIntStateOf(if (!currentSuEnabled) 1 else 0) }
-                                val suPersistValue by produceState(initialValue = null as Long?) {
-                                    value = getFeaturePersistValue("su_compat")
-                                }
-                                LaunchedEffect(suPersistValue) {
-                                    suPersistValue?.let { v ->
-                                        suCompatMode =
-                                            if (v == 0L) 2 else if (!currentSuEnabled) 1 else 0
-                                    }
-                                }
-
-                                val suStatus by produceState(initialValue = "") {
-                                    value = getFeatureStatus("su_compat")
-                                }
+                                val suStatus = batch.suStatus
                                 val suSummary = when (suStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -420,28 +454,43 @@ fun SettingsPage(bottomPadding: Dp) {
                                     enabled = suStatus == "supported",
                                     selectedIndex = suCompatMode,
                                     onSelectedIndexChange = { index ->
-                                        when (index) {
-                                            // Default: enable and save to persist
-                                            0 -> if (Natives.setSuEnabled(true)) {
-                                                execKsud("feature save", true)
-                                                prefs.edit { putInt("su_compat_mode", 0) }
-                                                suCompatMode = 0
-                                            }
-
-                                            // Temporarily disable: save enabled state first, then disable
-                                            1 -> if (Natives.setSuEnabled(true)) {
-                                                execKsud("feature save", true)
-                                                if (Natives.setSuEnabled(false)) {
+                                        scope.launch(Dispatchers.IO) {
+                                            val ok = when (index) {
+                                                // Default: enable and save to persist
+                                                0 -> if (Natives.setSuEnabled(true)) {
+                                                    execKsud("feature save", true)
                                                     prefs.edit { putInt("su_compat_mode", 0) }
-                                                    suCompatMode = 1
-                                                }
-                                            }
+                                                    true
+                                                } else false
 
-                                            // Permanently disable: disable and save
-                                            2 -> if (Natives.setSuEnabled(false)) {
-                                                execKsud("feature save", true)
-                                                prefs.edit { putInt("su_compat_mode", 2) }
-                                                suCompatMode = 2
+                                                // Temporarily disable: save enabled state first, then disable
+                                                1 -> if (Natives.setSuEnabled(true)) {
+                                                    execKsud("feature save", true)
+                                                    if (Natives.setSuEnabled(false)) {
+                                                        prefs.edit { putInt("su_compat_mode", 0) }
+                                                        true
+                                                    } else false
+                                                } else false
+
+                                                // Permanently disable: disable and save
+                                                2 -> if (Natives.setSuEnabled(false)) {
+                                                    execKsud("feature save", true)
+                                                    prefs.edit { putInt("su_compat_mode", 2) }
+                                                    true
+                                                } else false
+
+                                                else -> false
+                                            }
+                                            if (ok) {
+                                                withContext(Dispatchers.Main) {
+                                                    suCompatMode = index
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        isSuEnabled = index == 0,
+                                                        batch = settingsState.batch.copy(
+                                                            suPersistValue = if (index == 2) 0L else 1L
+                                                        )
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -449,13 +498,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             }
 
                             item {
-                                var savedUmountStatus by rememberSaveable { mutableStateOf("") }
-                                val umountStatus by produceState(initialValue = savedUmountStatus) {
-                                    value = withContext(Dispatchers.IO) {
-                                        savedUmountStatus = getFeatureStatus("kernel_umount")
-                                        return@withContext savedUmountStatus
-                                    }
-                                }
+                                val umountStatus = batch.umountStatus
                                 val umountSummary = when (umountStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -468,16 +511,23 @@ fun SettingsPage(bottomPadding: Dp) {
                                     enabled = umountStatus == "supported",
                                     checked = isKernelUmountEnabled,
                                     onCheckedChange = { checked ->
-                                        if (Natives.setKernelUmountEnabled(checked)) {
-                                            execKsud("feature save", true)
-                                            isKernelUmountEnabled = checked
+                                        scope.launch(Dispatchers.IO) {
+                                            if (Natives.setKernelUmountEnabled(checked)) {
+                                                execKsud("feature save", true)
+                                                withContext(Dispatchers.Main) {
+                                                    isKernelUmountEnabled = checked
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        isKernelUmountEnabled = checked
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 )
                             }
 
                             item(
-                                visible = Natives.isLateLoadMode
+                                visible = settingsState.isLateLoadMode
                             ) {
                                 var savedAutoJailbreakStatus by rememberSaveable {
                                     mutableStateOf(
@@ -518,16 +568,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             item(
                                 visible = Build.VERSION.SDK_INT > Build.VERSION_CODES.Q
                             ) {
-                                var isAdbRootEnabled by remember { mutableStateOf(false) }
-
-                                var savedAdbRootStatus by rememberSaveable { mutableStateOf("") }
-                                val adbRootStatus by produceState(initialValue = savedAdbRootStatus) {
-                                    value = withContext(Dispatchers.IO) {
-                                        savedAdbRootStatus = getFeatureStatus("adb_root")
-                                        isAdbRootEnabled = getFeaturePersistValue("adb_root") == 1L
-                                        return@withContext savedAdbRootStatus
-                                    }
-                                }
+                                val adbRootStatus = batch.adbRootStatus
                                 val adbRootSummary = when (adbRootStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -541,26 +582,24 @@ fun SettingsPage(bottomPadding: Dp) {
                                     checked = isAdbRootEnabled,
                                     enabled = adbRootStatus == "supported",
                                     onCheckedChange = { checked ->
-                                        if (execKsud("feature set adb_root ${if (checked) 1 else 0}", true)) {
-                                            ShellUtils.fastCmd("setprop ctl.restart adbd")
-                                            execKsud("feature save", true)
-                                        }
                                         isAdbRootEnabled = checked
+                                        scope.launch(Dispatchers.IO) {
+                                            if (execKsud("feature set adb_root ${if (checked) 1 else 0}", true)) {
+                                                runCatching { ShellUtils.fastCmd("setprop ctl.restart adbd") }
+                                                execKsud("feature save", true)
+                                                withContext(Dispatchers.Main) {
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        batch = settingsState.batch.copy(adbRootEnabled = checked)
+                                                    )
+                                                }
+                                            }
+                                        }
                                     }
                                 )
                             }
 
                             item {
-                                var isShellSuAdbOnlyEnabled by remember { mutableStateOf(false) }
-
-                                var savedShellSuAdbOnlyStatus by rememberSaveable { mutableStateOf("") }
-                                val shellSuAdbOnlyStatus by produceState(initialValue = savedShellSuAdbOnlyStatus) {
-                                    value = withContext(Dispatchers.IO) {
-                                        savedShellSuAdbOnlyStatus = getFeatureStatus("shell_su_adb_only")
-                                        isShellSuAdbOnlyEnabled = getFeaturePersistValue("shell_su_adb_only") == 1L
-                                        return@withContext savedShellSuAdbOnlyStatus
-                                    }
-                                }
+                                val shellSuAdbOnlyStatus = batch.shellSuAdbOnlyStatus
                                 val shellSuAdbOnlySummary = when (shellSuAdbOnlyStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -574,25 +613,23 @@ fun SettingsPage(bottomPadding: Dp) {
                                     checked = isShellSuAdbOnlyEnabled,
                                     enabled = shellSuAdbOnlyStatus == "supported",
                                     onCheckedChange = { checked ->
-                                        if (execKsud("feature set shell_su_adb_only ${if (checked) 1 else 0}", true)) {
-                                            execKsud("feature save", true)
-                                            isShellSuAdbOnlyEnabled = checked
+                                        scope.launch(Dispatchers.IO) {
+                                            if (execKsud("feature set shell_su_adb_only ${if (checked) 1 else 0}", true)) {
+                                                execKsud("feature save", true)
+                                                withContext(Dispatchers.Main) {
+                                                    isShellSuAdbOnlyEnabled = checked
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        batch = settingsState.batch.copy(shellSuAdbOnlyEnabled = checked)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 )
                             }
 
-
                             item {
-                                var isSuLogEnabled by remember { mutableStateOf(Natives.isSuLogEnabled()) }
-
-                                var savedSulogStatus by rememberSaveable { mutableStateOf("") }
-                                val sulogStatus by produceState(initialValue = savedSulogStatus) {
-                                    value = withContext(Dispatchers.IO) {
-                                        savedSulogStatus = getFeatureStatus("sulog")
-                                        return@withContext savedSulogStatus
-                                    }
-                                }
+                                val sulogStatus = batch.sulogStatus
                                 val sulogSummary = when (sulogStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -605,25 +642,23 @@ fun SettingsPage(bottomPadding: Dp) {
                                     enabled = sulogStatus == "supported",
                                     checked = isSuLogEnabled,
                                     onCheckedChange = { checked ->
-                                        if (Natives.setSuLogEnabled(checked)) {
-                                            execKsud("feature save", true)
-                                            isSuLogEnabled = checked
+                                        scope.launch(Dispatchers.IO) {
+                                            if (Natives.setSuLogEnabled(checked)) {
+                                                execKsud("feature save", true)
+                                                withContext(Dispatchers.Main) {
+                                                    isSuLogEnabled = checked
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        isSuLogEnabled = checked
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 )
                             }
 
-
                             item {
-                                var isSelinuxHideEnabled by remember { mutableStateOf(Natives.isSelinuxHideEnabled()) }
-
-                                var savedSelinuxHideStatus by rememberSaveable { mutableStateOf("") }
-                                val selinuxHideStatus by produceState(initialValue = savedSelinuxHideStatus) {
-                                    value = withContext(Dispatchers.IO) {
-                                        savedSelinuxHideStatus = getFeatureStatus("selinux_hide")
-                                        return@withContext savedSelinuxHideStatus
-                                    }
-                                }
+                                val selinuxHideStatus = batch.selinuxHideStatus
                                 val selinuxHideSummary = when (selinuxHideStatus) {
                                     "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
                                     "managed" -> stringResource(id = R.string.feature_status_managed_summary)
@@ -636,28 +671,34 @@ fun SettingsPage(bottomPadding: Dp) {
                                     enabled = selinuxHideStatus == "supported",
                                     checked = isSelinuxHideEnabled,
                                     onCheckedChange = { checked ->
-                                        val status = Natives.setSelinuxHideEnabled(checked)
-                                        execKsud("feature save", true)
-                                        isSelinuxHideEnabled = checked
-
-                                        when (status) {
-                                            0 -> {}
-                                            -OsConstants.EAGAIN -> {
-                                                Toast.makeText(
-                                                    context,
-                                                    R.string.settings_selinux_hide_reboot_required,
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            }
-                                            else -> {
-                                                Toast.makeText(
-                                                    context,
-                                                    ksuApp.getString(
-                                                        R.string.settings_selinux_hide_failed,
-                                                        status
-                                                    ),
-                                                    Toast.LENGTH_LONG
-                                                ).show()
+                                        scope.launch(Dispatchers.IO) {
+                                            val status = Natives.setSelinuxHideEnabled(checked)
+                                            execKsud("feature save", true)
+                                            withContext(Dispatchers.Main) {
+                                                isSelinuxHideEnabled = checked
+                                                SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                    isSelinuxHideEnabled = checked
+                                                )
+                                                when (status) {
+                                                    0 -> {}
+                                                    -OsConstants.EAGAIN -> {
+                                                        Toast.makeText(
+                                                            context,
+                                                            R.string.settings_selinux_hide_reboot_required,
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                                    else -> {
+                                                        Toast.makeText(
+                                                            context,
+                                                            ksuApp.getString(
+                                                                R.string.settings_selinux_hide_failed,
+                                                                status
+                                                            ),
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -666,15 +707,21 @@ fun SettingsPage(bottomPadding: Dp) {
 
                             item {
                                 // 卸载模块开关
-                                var umountChecked by rememberSaveable { mutableStateOf(Natives.isDefaultUmountModules()) }
                                 SettingsSwitchWidget(
                                     icon = Icons.TwoTone.FolderDelete,
                                     title = stringResource(id = R.string.settings_umount_modules_default),
                                     description = stringResource(id = R.string.settings_umount_modules_default_summary),
                                     checked = umountChecked,
-                                    onCheckedChange = {
-                                        if (Natives.setDefaultUmountModules(it)) {
-                                            umountChecked = it
+                                    onCheckedChange = { checked ->
+                                        scope.launch(Dispatchers.IO) {
+                                            if (Natives.setDefaultUmountModules(checked)) {
+                                                withContext(Dispatchers.Main) {
+                                                    umountChecked = checked
+                                                    SettingsStateCache.cached = SettingsStateCache.cached?.copy(
+                                                        isDefaultUmountModules = checked
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 )
@@ -699,7 +746,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             ) {}
                         }
 
-                        if (ksuIsValid()) {
+                        if (ksuValid) {
                             item {
                                 SettingsBaseWidget(
                                     icon = Icons.TwoTone.Save,
@@ -754,7 +801,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 )
                             }
 
-                            item(visible = isToolkitInstalled) {
+                            item(visible = settingsState.batch.isToolkitInstalled) {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.Settings,
                                     title = stringResource(R.string.settings_kernelsu_toolkit),
@@ -770,7 +817,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 )
                             }
 
-                            item(visible = isKpatchNextInstalled) {
+                            item(visible = settingsState.batch.isKpatchNextInstalled) {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.Settings,
                                     title = stringResource(R.string.settings_kpatch_next),
@@ -787,7 +834,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             }
                         }
 
-                        if (rootAvailable()) {
+                        if (settingsState.batch.isRootAvailable) {
                             item {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.BookmarkBorder,
@@ -800,7 +847,7 @@ fun SettingsPage(bottomPadding: Dp) {
                             }
                         }
 
-                        if (Natives.isLkmMode) {
+                        if (settingsState.isLkmMode) {
                             item {
                                 UninstallItem {
                                     loadingDialog.withLoading(it)

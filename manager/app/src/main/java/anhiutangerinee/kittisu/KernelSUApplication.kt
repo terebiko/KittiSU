@@ -30,8 +30,21 @@ lateinit var ksuApp: KernelSUApplication
 
 class KernelSUApplication : Application(), ViewModelStoreOwner {
 
-    lateinit var okhttpClient: OkHttpClient
     val UserAgent = "SovaSU/${BuildConfig.VERSION_CODE}"
+    val okhttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder().cache(Cache(File(cacheDir, "okhttp"), 10 * 1024 * 1024))
+            .addInterceptor { block ->
+                block.proceed(
+                    block.request().newBuilder()
+                        .header("User-Agent", UserAgent)
+                        .header("Accept-Language", Locale.getDefault().toLanguageTag()).build()
+                )
+            }
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .build()
+    }
     private val appViewModelStore by lazy { ViewModelStore() }
 
     @SuppressLint("RestrictedApi")
@@ -49,7 +62,9 @@ class KernelSUApplication : Application(), ViewModelStoreOwner {
 
         MainShell.setBuilder(generateMainShellBuilder())
 
-        runCatching { MonetCompat.enablePaletteCompat() }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            runCatching { MonetCompat.enablePaletteCompat() }
+        }
 
         // For faster response when first entering superuser or webui activity:
         // run all three initial loads in parallel instead of sequentially.
@@ -79,20 +94,6 @@ class KernelSUApplication : Application(), ViewModelStoreOwner {
 
         // Provide working env for rust's temp_dir()
         Os.setenv("TMPDIR", cacheDir.absolutePath, true)
-
-        okhttpClient =
-            OkHttpClient.Builder().cache(Cache(File(cacheDir, "okhttp"), 10 * 1024 * 1024))
-                .addInterceptor { block ->
-                    block.proceed(
-                        block.request().newBuilder()
-                            .header("User-Agent", UserAgent)
-                            .header("Accept-Language", Locale.getDefault().toLanguageTag()).build()
-                    )
-                }
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
-                .writeTimeout(5, TimeUnit.SECONDS)
-                .build()
     }
     override val viewModelStore: ViewModelStore
         get() = appViewModelStore

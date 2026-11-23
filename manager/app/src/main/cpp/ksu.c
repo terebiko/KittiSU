@@ -16,6 +16,7 @@
 #include "ksu.h"
 
 static int fd = -1;
+static bool driver_scanned = false;
 
 static inline int scan_driver_fd() {
 	const char *kName = "[ksu_driver]";
@@ -61,8 +62,13 @@ static inline int scan_driver_fd() {
 }
 
 static int ksuctl(unsigned long op, void* arg) {
-	if (fd < 0) {
+	if (fd < 0 && !driver_scanned) {
 		fd = scan_driver_fd();
+		driver_scanned = true;
+	}
+	if (fd < 0) {
+		errno = ENODEV;
+		return -1;
 	}
 	return ioctl(fd, op, arg);
 }

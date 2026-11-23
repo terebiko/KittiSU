@@ -83,12 +83,18 @@ object SuSFSConfigHelper {
             }
 
             val statusInfo = withContext(Dispatchers.IO) {
+                if (anhiutangerinee.kittisu.ui.util.isFakeRootNoKernel) {
+                    return@withContext SuSFSStatusInfo("", "", "")
+                }
                 val version = executeSusfsCommand("show version")
+                if (!version.success || version.stdout.isBlank()) {
+                    return@withContext SuSFSStatusInfo("", "", "")
+                }
                 val enabledFeatures = executeSusfsCommand("show enabled_features")
                 val variant = executeSusfsCommand("show variant")
 
                 SuSFSStatusInfo(
-                    version = version.stdout.takeIf { version.success }.orEmpty(),
+                    version = version.stdout,
                     enabledFeatures = enabledFeatures.stdout.takeIf { enabledFeatures.success }
                         .orEmpty(),
                     variant = variant.stdout.takeIf { variant.success }.orEmpty(),

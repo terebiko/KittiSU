@@ -330,8 +330,10 @@ fun HomePage(
                     }
                 }
 
-                val checkUpdate = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    .getBoolean("check_update", true)
+                val checkUpdate = remember {
+                    context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                        .getBoolean("check_update", true)
+                }
                 if (checkUpdate) {
                     UpdateCard()
                 }
@@ -375,18 +377,20 @@ fun HomePage(
 @Composable
 fun UpdateCard() {
     val context = LocalContext.current
-    val channel = UpdateChannel.fromPreference(
-        context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            .getString("update_channel", null)
-    )
-    val latestVersionInfo = LatestVersionInfo()
+    val channel = remember {
+        UpdateChannel.fromPreference(
+            context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                .getString("update_channel", null)
+        )
+    }
+    val latestVersionInfo = remember { LatestVersionInfo() }
     val newVersion by produceState(initialValue = latestVersionInfo, channel) {
         value = withContext(Dispatchers.IO) {
             checkManagerUpdate(channel)
         }
     }
 
-    val currentVersionCode = getManagerVersion(context).second
+    val currentVersionCode = remember { getManagerVersion(context).second }
     val newVersionUrl = newVersion.downloadUrl
     val changelog = newVersion.changelog
 

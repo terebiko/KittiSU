@@ -47,6 +47,8 @@ private const val PADDING_VERTICAL = 8
 
 private const val bouncyStiffness = 500f
 private const val bouncyDamping = 0.72f
+private val segmentedFloatSpring = spring<Float>(dampingRatio = bouncyDamping, stiffness = bouncyStiffness)
+private val segmentedDpSpring = spring<Dp>(dampingRatio = androidx.compose.animation.core.Spring.DampingRatioNoBouncy, stiffness = bouncyStiffness)
 
 @DslMarker
 annotation class SegmentedColumnDsl
@@ -164,14 +166,11 @@ fun SegmentedColumn(
             )
         }
 
-        val floatSpring = spring<Float>(dampingRatio = bouncyDamping, stiffness = bouncyStiffness)
-        val dpSpring = spring<Dp>(dampingRatio = bouncyDamping, stiffness = bouncyStiffness)
-
         val progresses = allItems.mapIndexed { index, item ->
             key(item.key ?: index) {
                 animateFloatAsState(
                     targetValue = if (item.visible) 1f else 0f,
-                    animationSpec = floatSpring,
+                    animationSpec = segmentedFloatSpring,
                     label = "progress"
                 )
             }
@@ -181,6 +180,7 @@ fun SegmentedColumn(
         val lastVisibleIndex = allItems.indexOfLast { it.visible }
 
         val focusManager = LocalFocusManager.current
+        val isDynamicDpSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
 
         Layout(
             content = {
@@ -198,32 +198,33 @@ fun SegmentedColumn(
                         val targetBottomRadius =
                             if (itemData.forceFlatBottom) 0.dp else baseBottomRadius
 
-                        val isDynamicDpSupported =
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
                         val currentTopRadius = if (isDynamicDpSupported) {
-                            animateDpAsState(targetTopRadius, dpSpring, label = "TopRadius").value
+                            animateDpAsState(targetTopRadius, segmentedDpSpring, label = "TopRadius")
+                                .value.coerceAtLeast(0.dp)
                         } else targetTopRadius
 
                         val currentBottomRadius = if (isDynamicDpSupported) {
                             animateDpAsState(
                                 targetBottomRadius,
-                                dpSpring,
+                                segmentedDpSpring,
                                 label = "BottomRadius"
-                            ).value
+                            ).value.coerceAtLeast(0.dp)
                         } else targetBottomRadius
 
-                        val shape = RoundedCornerShape(
-                            topStart = currentTopRadius,
-                            topEnd = currentTopRadius,
-                            bottomStart = currentBottomRadius,
-                            bottomEnd = currentBottomRadius
-                        )
+                        val shape = remember(currentTopRadius, currentBottomRadius) {
+                            RoundedCornerShape(
+                                topStart = currentTopRadius,
+                                topEnd = currentTopRadius,
+                                bottomStart = currentBottomRadius,
+                                bottomEnd = currentBottomRadius
+                            )
+                        }
 
                         val targetTopPadding = itemData.customTopPadding
                             ?: (if (isFirst) 0.dp else ListItemDefaults.SegmentedGap)
                         val currentTopPadding = if (isDynamicDpSupported) {
-                            animateDpAsState(targetTopPadding, dpSpring, label = "TopPadding").value
+                            animateDpAsState(targetTopPadding, segmentedDpSpring, label = "TopPadding")
+                                .value.coerceAtLeast(0.dp)
                         } else targetTopPadding
 
                         var hasFocus by remember { mutableStateOf(false) }
@@ -234,6 +235,8 @@ fun SegmentedColumn(
                             }
                         }
 
+                        val progressState = progresses[index]
+
                         Box(
                             modifier = Modifier
                                 .zIndex(if (itemData.visible) (allItems.size - index).toFloat() else -index.toFloat())
@@ -242,26 +245,30 @@ fun SegmentedColumn(
                                     if (!itemData.visible) hideFromAccessibility()
                                 }
                                 .graphicsLayer {
-                                    val currentProgress = progresses[index].value
-                                    val safeProgress = currentProgress.coerceAtLeast(0f)
-
-                                    clip = true
-                                    this.shape = object : Shape {
-                                        override fun createOutline(
-                                            size: Size,
-                                            layoutDirection: LayoutDirection,
-                                            density: Density
-                                        ) =
-                                            Outline.Rectangle(
-                                                Rect(
-                                                    0f,
-                                                    0f,
-                                                    size.width,
-                                                    size.height * safeProgress
+                                    val currentProgress = progressState.value
+                                    if (currentProgress >= 0.999f) {
+                                        clip = false
+                                        alpha = 1f
+                                    } else {
+                                        val safeProgress = currentProgress.coerceAtLeast(0f)
+                                        clip = true
+                                        this.shape = object : Shape {
+                                            override fun createOutline(
+                                                size: Size,
+                                                layoutDirection: LayoutDirection,
+                                                density: Density
+                                            ) =
+                                                Outline.Rectangle(
+                                                    Rect(
+                                                        0f,
+                                                        0f,
+                                                        size.width,
+                                                        size.height * safeProgress
+                                                    )
                                                 )
-                                            )
+                                        }
+                                        alpha = (currentProgress * 1.5f).coerceIn(0f, 1f)
                                     }
-                                    alpha = (currentProgress * 1.5f).coerceIn(0f, 1f)
                                 }
                         ) {
                             CompositionLocalProvider(LocalSegmentedItemShape provides shape) {
