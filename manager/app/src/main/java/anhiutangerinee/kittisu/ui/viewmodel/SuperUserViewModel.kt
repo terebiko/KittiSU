@@ -304,12 +304,8 @@ class SuperUserViewModel : ViewModel() {
     }
 
     private fun hasRealRootDaemon(): Boolean {
-        if (anhiutangerinee.kittisu.ui.util.isFakeRootNoKernel) return false
-        if (BuildConfig.FAKE_ROOT) {
-            val ksudFile = File(ksuApp.applicationInfo.nativeLibraryDir, "libksud.so")
-            if (!ksudFile.isFile) return false
-        }
-        return true
+        return anhiutangerinee.kittisu.ui.util.hasKsuDaemon() &&
+            anhiutangerinee.kittisu.ui.util.hasKsuManager
     }
 
     private suspend fun connectKsuService(onDisconnect: () -> Unit = {}): IBinder? {

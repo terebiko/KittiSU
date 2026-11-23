@@ -37,13 +37,11 @@ internal fun hasKsuDaemon(): Boolean {
 }
 
 /**
- * True when running a FAKE_ROOT test build without a real KernelSU kernel driver.
- * Cached lazily so non-rooted test devices don't waste seconds spawning failing
- * libksud.so / su processes or poisoning libsu's MainShell.
+ * True when the kernel driver recognizes this process as an authorized KernelSU manager.
  */
-internal val isFakeRootNoKernel: Boolean by lazy {
-    BuildConfig.FAKE_ROOT && runCatching {
-        Natives.getFullVersion() == "SovaSU-TEST-fake-root"
+internal val hasKsuManager: Boolean by lazy {
+    runCatching {
+        Natives.isManager && Natives.version > 0
     }.getOrDefault(false)
 }
 
@@ -63,12 +61,11 @@ fun getRootShell(globalMnt: Boolean = false): Shell {
 
 fun generateMainShellBuilder(): Shell.Builder {
     // Called from Application.onCreate on the main thread.
-    // IMPORTANT: Never call builder.setCommands(...) when no real KernelSU driver
-    // is present! If a custom command fails, libsu's MainShell.get() throws
-    // NoShellException without falling back to "sh" and leaves MainShell.isInitMain
-    // permanently stuck true, crashing any subsequent SuFile / Shell.getShell() call.
+    // Only bind libksud.so as the MainShell command when the kernel driver actually
+    // recognizes this manager; otherwise let libsu fall back cleanly to "sh" so
+    // MainShell.isInitMain never gets poisoned on non-rooted devices.
     val builder = Shell.Builder.create()
-    if (!isFakeRootNoKernel && hasKsuDaemon() && runCatching { Natives.isManager }.getOrDefault(false)) {
+    if (hasKsuManager && hasKsuDaemon()) {
         builder.setCommands(getKsuDaemonPath(), "debug", "su")
     }
     return builder
@@ -86,9 +83,6 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
     // every shell command. Keep it opt-in instead of enabling it for all debug builds.
     Shell.enableVerboseLogging = false
     val builder = Shell.Builder.create()
-    if (isFakeRootNoKernel) {
-        return builder.build("sh")
-    }
     return try {
         if (globalMnt) {
             builder.build(getKsuDaemonPath(), "debug", "su", "-g")
@@ -111,7 +105,7 @@ fun createRootShell(globalMnt: Boolean = false): Shell {
 }
 
 fun execKsud(args: String, newShell: Boolean = false): Boolean {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return false
+    if (!hasKsuDaemon()) return false
     return if (newShell) {
         withNewRootShell {
             ShellUtils.fastCmdResult(this, "${getKsuDaemonPath()} $args")
@@ -151,7 +145,7 @@ fun restoreModules(path: String, moduleIds: Collection<String> = emptyList()): B
 data class BootRecoveryState(val failures: Int, val modules: List<String>)
 
 fun getBootRecoveryState(): BootRecoveryState? {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return null
+    if (!hasKsuDaemon() || !hasKsuManager) return null
     val output = mutableListOf<String>()
     val result = runCatching {
         getRootShell().newJob()
@@ -179,7 +173,7 @@ fun clearDynamicManager(): Boolean =
     execKsud("kernel dynamic-manager clear", true)
 
 suspend fun getDynamicManagerConfig(): Natives.DynamicManagerConfig? = withContext(Dispatchers.IO) {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return@withContext null
+    if (!hasKsuDaemon() || !hasKsuManager) return@withContext null
     val result = runCatching {
         getRootShell().newJob()
             .add("${getKsuDaemonPath()} kernel dynamic-manager get")
@@ -200,7 +194,7 @@ internal fun parseDynamicManagerConfig(output: String): Natives.DynamicManagerCo
 }
 
 suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.IO) {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return@withContext "unsupported"
+    if (!hasKsuDaemon() || !hasKsuManager) return@withContext "unsupported"
     runCatching {
         val shell = getRootShell()
         val out = shell.newJob()
@@ -210,7 +204,7 @@ suspend fun getFeatureStatus(feature: String): String = withContext(Dispatchers.
 }
 
 suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatchers.IO) {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return@withContext null
+    if (!hasKsuDaemon() || !hasKsuManager) return@withContext null
     runCatching {
         val shell = getRootShell()
         val out = shell.newJob()
@@ -234,7 +228,7 @@ data class SettingsFeatureBatch(
     val bootRecoveryState: BootRecoveryState? = null,
     val isToolkitInstalled: Boolean = false,
     val isKpatchNextInstalled: Boolean = false,
-    val isRootAvailable: Boolean = BuildConfig.FAKE_ROOT,
+    val isRootAvailable: Boolean = false,
 )
 
 /**
@@ -242,8 +236,8 @@ data class SettingsFeatureBatch(
  * avoiding 12+ separate ksud subprocesses and preventing any Main-Thread shell calls.
  */
 suspend fun loadSettingsFeatureBatch(): SettingsFeatureBatch = withContext(Dispatchers.IO) {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) {
-        return@withContext SettingsFeatureBatch(isRootAvailable = BuildConfig.FAKE_ROOT)
+    if (!hasKsuDaemon() || !hasKsuManager) {
+        return@withContext SettingsFeatureBatch(isRootAvailable = rootAvailable())
     }
     runCatching {
         val shell = getRootShell()
@@ -309,18 +303,17 @@ suspend fun loadSettingsFeatureBatch(): SettingsFeatureBatch = withContext(Dispa
             bootRecoveryState = recoveryState,
             isToolkitInstalled = firstLine("@@TOOLKIT@@") == "1",
             isKpatchNextInstalled = firstLine("@@KPATCH@@") == "1",
-            isRootAvailable = BuildConfig.FAKE_ROOT || shell.isRoot,
+            isRootAvailable = shell.isRoot,
         )
     }.getOrElse {
         Log.w(TAG, "loadSettingsFeatureBatch failed", it)
-        SettingsFeatureBatch(isRootAvailable = BuildConfig.FAKE_ROOT)
+        SettingsFeatureBatch(isRootAvailable = false)
     }
 }
 
 fun install() {
-    // Test/fake-root builds have no real kernel driver or bundled ksud; don't pay for a failing shell.
-    if (isFakeRootNoKernel || !File(getKsuDaemonPath()).isFile) {
-        Log.w(TAG, "skip install: fake-root or libksud.so is missing")
+    if (!File(getKsuDaemonPath()).isFile) {
+        Log.w(TAG, "skip install: libksud.so is missing")
         return
     }
     val start = SystemClock.elapsedRealtime()
@@ -338,7 +331,7 @@ fun hasMetaModule(): Boolean {
 }
 
 fun listModules(): String {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return "[]"
+    if (!hasKsuDaemon() || !hasKsuManager) return "[]"
     return runCatching {
         val shell = getRootShell()
         val out = shell.newJob()
@@ -626,11 +619,10 @@ fun reboot(reason: String = "") {
 }
 
 fun rootAvailable(): Boolean {
-    // TEST BUILD ONLY: fake APK always claims root so the UI is browsable
-    // on a non-rooted device. Delete this early return to restore detection.
-    if (BuildConfig.FAKE_ROOT) return true
-    val shell = getRootShell()
-    return shell.isRoot
+    return runCatching {
+        val shell = getRootShell()
+        shell.isRoot
+    }.getOrDefault(false)
 }
 
 
@@ -681,7 +673,7 @@ suspend fun getAvailablePartitions(): List<String> = withContext(Dispatchers.IO)
 }
 
 fun hasMagisk(): Boolean {
-    if (isFakeRootNoKernel || (BuildConfig.FAKE_ROOT && !hasKsuDaemon())) return false
+    if (!hasKsuManager) return false
     return runCatching {
         val shell = getRootShell(true)
         val result = shell.newJob().add("which magisk").exec()
@@ -774,7 +766,7 @@ fun restartApp(packageName: String) {
 }
 
 fun isWebuiModuleInstalled(modId: String): Boolean {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return false
+    if (!hasKsuDaemon() || !hasKsuManager) return false
     return runCatching {
         ShellUtils.fastCmdResult(
             getRootShell(),
@@ -784,27 +776,27 @@ fun isWebuiModuleInstalled(modId: String): Boolean {
 }
 
 fun getSuSFSStatus(): String {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return ""
+    if (!hasKsuDaemon() || !hasKsuManager) return ""
     val shell = getRootShell()
     return ShellUtils.fastCmd(shell, "${getKsuDaemonPath()} susfs show variant").trim()
 }
 
 fun getSuSFSVersion(): String {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return ""
+    if (!hasKsuDaemon() || !hasKsuManager) return ""
     val shell = getRootShell()
     val result = ShellUtils.fastCmd(shell, "${getKsuDaemonPath()} susfs show version")
     return result
 }
 
 fun getSuSFSFeatures(): String {
-    if (isFakeRootNoKernel || !hasKsuDaemon()) return ""
+    if (!hasKsuDaemon() || !hasKsuManager) return ""
     val shell = getRootShell()
     val cmd = "${getKsuDaemonPath()} susfs show enabled_features"
     return runCmd(shell, cmd)
 }
 
 fun getMetaModuleImplement(): String {
-    if (isFakeRootNoKernel || (BuildConfig.FAKE_ROOT && !hasKsuDaemon())) return "None"
+    if (!hasKsuManager) return "None"
     try {
         val metaModuleProp = SuFile.open("/data/adb/metamodule/module.prop")
         if (!metaModuleProp.isFile) {
@@ -825,7 +817,7 @@ fun getMetaModuleImplement(): String {
 }
 
 fun getZygiskImplement(): String {
-    if (isFakeRootNoKernel || (BuildConfig.FAKE_ROOT && !hasKsuDaemon())) return "None"
+    if (!hasKsuManager) return "None"
     val zygiskModuleIds = listOf(
         "zygisksu",
         "rezygisk",

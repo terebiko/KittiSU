@@ -5,11 +5,10 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 ---
 
 ## 📌 1. Trạng thái Dự án Hiện tại (Project Context)
-- **Repo / Branch**: `KittiSU-test` (hiện đang rebrand tên hiển thị thành **SovaSU** trong `manager/app/build.gradle.kts` & `manager/settings.gradle.kts`).
-- **Chế độ Test (Fake Root)**:
-  - Trong `manager/app/build.gradle.kts`: `buildConfigField("boolean", "FAKE_ROOT", "true")`.
-  - Trong `manager/app/src/main/cpp/ksu.c`: Khi không có kernel thật trả lời `KSU_IOCTL_GET_INFO`, fallback trả về `FAKE_KSU_VERSION = 35461u`, `FAKE_KSU_FLAGS = KSU_GET_INFO_FLAG_MANAGER | KSU_GET_INFO_FLAG_LKM`, full version `"SovaSU-TEST-fake-root"`, hook type `"kprobes"`.
-  - *Lưu ý cho các agent*: Khi build bản Production thật, cần tắt `FAKE_ROOT` về `false`, bỏ fallback trong `ksu.c`, và bundle `libksud.so` vào `manager/app/src/main/jniLibs/<abi>/`.
+- **Repo / Branch**: `KittiSU-test` (tên hiển thị **SovaSU**, package `anhiutangerinee.kittisu`).
+- **Chế độ Root Thật (Production Real-Root)**:
+  - Đã gỡ bỏ hoàn toàn chế độ giả lập `FAKE_ROOT` (`build.gradle.kts`, `ksu.c`, `KsuCli.kt`, `SuperUserViewModel.kt`, `SuSFSConfigHelper.kt`). App hiện nhận diện kernel driver & quyền root thật 100%, kèm `libksud.so` biên dịch mới nhất bằng Rust `nightly` (`arm64-v8a` & `x86_64`).
+  - Các bản APK thật được xuất tại `out/SovaSU-release.apk` (`arm64-v8a`), `out/SovaSU-arm64-v8a-release.apk`, và `out/SovaSU-universal-release.apk`.
 - **Môi trường Build trên máy local**:
   - Project yêu cầu **JDK 21** (`JavaVersion.VERSION_21`), nhưng `/usr/bin/java` mặc định là OpenJDK 17.
   - Khi chạy `./gradlew` trên máy này, luôn export:
@@ -85,6 +84,12 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
 - **[2026-11-23 - Antigravity]**:
+  - **Chuyển sang bản Production Root Thật (`SovaSU-release.apk`) + Biên dịch mới `libksud.so`**:
+    - Gỡ bỏ hoàn toàn chế độ giả lập `FAKE_ROOT` trong `manager/app/build.gradle.kts`, `manager/app/src/main/cpp/ksu.c`, `KsuCli.kt`, `SuperUserViewModel.kt`, `SuSFSConfigHelper.kt`.
+    - Khôi phục nhận diện kernel driver & root thật (`Natives.isManager`, `Natives.version`, `getRootShell().isRoot`), giữ nguyên toàn bộ các bản vá chống crash `MainShell` và tối ưu hiệu năng batch `loadSettingsFeatureBatch()`.
+    - Biên dịch lại `libksud.so` mới nhất bằng Rust `nightly` + `cargo-ndk` (kèm bản vá `waitsys` BakaSU và `profile.rs` KOWX712) cho `arm64-v8a` và `x86_64`.
+    - Xuất APK bản thật ra `out/SovaSU-release.apk` (`arm64-v8a`), `out/SovaSU-arm64-v8a-release.apk`, và `out/SovaSU-universal-release.apk`.
+    - Chữ ký APK V2 hiện tại (để khai báo Dynamic Manager / build kernel): `size = 0x2e8` (`744`), `sha256 = 76eaf07585cb9e74163cadc7f6619a547aa0a3ac6a099c7c25ddc440445a0dd5`.
   - **Sửa triệt để lỗi crash khi mới mở app vào thẳng tab Cài đặt (Settings) & Tối ưu chống lag toàn diện**:
     - **Nguyên nhân gốc của lỗi crash cold-start -> Settings**:
       1. `KsuCli.generateMainShellBuilder()` gọi `builder.setCommands(libksud.so, "debug", "su")` vô điều kiện. Khi chạy bản `FAKE_ROOT` trên máy chưa có kernel driver thật, lệnh `libksud.so debug su` thất bại khiến `libsu` `MainShell.get()` ném `NoShellException` và **kẹt cờ `MainShell.isInitMain = true` vĩnh viễn** (`mainShell[0] == null`).

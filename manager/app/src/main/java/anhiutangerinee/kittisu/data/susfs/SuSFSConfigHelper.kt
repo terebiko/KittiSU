@@ -83,7 +83,7 @@ object SuSFSConfigHelper {
             }
 
             val statusInfo = withContext(Dispatchers.IO) {
-                if (anhiutangerinee.kittisu.ui.util.isFakeRootNoKernel) {
+                if (!anhiutangerinee.kittisu.ui.util.hasKsuDaemon() || !anhiutangerinee.kittisu.ui.util.hasKsuManager) {
                     return@withContext SuSFSStatusInfo("", "", "")
                 }
                 val version = executeSusfsCommand("show version")

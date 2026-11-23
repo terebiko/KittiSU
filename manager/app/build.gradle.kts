@@ -134,8 +134,6 @@ android {
 
         val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
         buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
-        // TEST BUILD ONLY: forces rootAvailable() true. Flip to false to restore.
-        buildConfigField("boolean", "FAKE_ROOT", "true")
         buildConfigField("String", "GIT_COMMIT", "\"$managerCommit\"")
 
         externalNativeBuild {
