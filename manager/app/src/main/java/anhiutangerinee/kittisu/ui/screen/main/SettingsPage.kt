@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
@@ -346,10 +347,12 @@ fun SettingsPage(bottomPadding: Dp) {
         LazyColumn(
             modifier =
                 Modifier
+                    .fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding())
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                     .blurSource(),
             contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding() + 5.dp,
+                top = 5.dp,
                 start = 0.dp,
                 end = 0.dp,
                 bottom = innerPadding.calculateBottomPadding() + bottomPadding + 15.dp
@@ -1137,12 +1140,12 @@ private fun TopBar(
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
             scrolledContainerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha)
+                    MaterialTheme.colorScheme.surfaceContainer
         ),
         windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
         scrollBehavior = scrollBehavior

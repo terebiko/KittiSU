@@ -262,20 +262,18 @@ fun ModuleRepoScreen() {
             ) {
                 LazyColumn(
                     state = rememberLazyListState(),
-                    modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+                    modifier = Modifier
+                        .padding(top = innerPadding.calculateTopPadding())
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
                     contentPadding = remember {
                         PaddingValues(
                             start = 16.dp,
-                            top = 0.dp,
+                            top = 4.dp,
                             end = 16.dp,
                             bottom = 0.dp
                         )
                     }
                 ) {
-                    item {
-                        Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-                    }
-
                     items(viewModel.modules) { module ->
                         OnlineModuleItem(
                             module,

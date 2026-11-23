@@ -221,15 +221,15 @@ fun MoreSettingsScreen() {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor =
-                        if (ThemeConfig.isEnableBlur)
+                        if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                             Color.Transparent
                         else
-                            MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                            MaterialTheme.colorScheme.surfaceContainer,
                     scrolledContainerColor =
-                        if (ThemeConfig.isEnableBlur)
+                        if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                             Color.Transparent
                         else
-                            MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                            MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
                 scrollBehavior = scrollBehavior
@@ -241,13 +241,10 @@ fun MoreSettingsScreen() {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = paddingValues.calculateTopPadding())
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .blurSource()
         ) {
-            item {
-                Spacer(modifier = Modifier.height(paddingValues.calculateTopPadding()))
-            }
-
             item {
                 // 外观设置
                 AppearanceSettings(

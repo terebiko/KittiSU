@@ -84,15 +84,15 @@ fun AboutScreen() {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor =
-                        if (ThemeConfig.isEnableBlur)
+                        if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                             Color.Transparent
                         else
-                            MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                            MaterialTheme.colorScheme.surfaceContainer,
                     scrolledContainerColor =
-                        if (ThemeConfig.isEnableBlur)
+                        if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                             Color.Transparent
                         else
-                            MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                            MaterialTheme.colorScheme.surfaceContainer,
                 ),
             )
         },
@@ -104,13 +104,10 @@ fun AboutScreen() {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .blurSource(),
         ) {
-            item {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            }
-
             item {
                 Box(
                     modifier = Modifier

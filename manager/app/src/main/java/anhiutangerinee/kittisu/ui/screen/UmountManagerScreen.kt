@@ -169,9 +169,10 @@ fun UmountManagerScreen() {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                     contentPadding = PaddingValues(
-                        top = paddingValues.calculateTopPadding() + 5.dp,
+                        top = 5.dp,
                         start = 0.dp,
                         end = 0.dp,
                         bottom = paddingValues.calculateBottomPadding() + 72.dp + 5.dp + 5.dp // FAB

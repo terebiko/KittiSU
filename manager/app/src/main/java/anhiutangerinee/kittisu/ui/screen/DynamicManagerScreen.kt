@@ -91,9 +91,13 @@ fun DynamicManagerScreen() {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection).blurSource(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = padding.calculateTopPadding())
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .blurSource(),
                 contentPadding = PaddingValues(
-                    top = padding.calculateTopPadding() + 5.dp,
+                    top = 5.dp,
                     bottom = padding.calculateBottomPadding() + 16.dp,
                 ),
             ) {

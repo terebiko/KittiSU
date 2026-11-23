@@ -202,15 +202,12 @@ fun AppProfileTemplateScreen() {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding())
                     .nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentPadding = remember {
                     PaddingValues(bottom = 16.dp + 56.dp + 16.dp /* Scaffold Fab Spacing + Fab container height */)
                 }
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-                }
-
                 lazySegmentColumn(
                     items = viewModel.templateList,
                     key = { _, app -> app.id }) { _, app ->

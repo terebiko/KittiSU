@@ -142,10 +142,13 @@ fun ModulePresetsScreen() {
             }
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding())
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentPadding = PaddingValues(
                     start = 16.dp,
-                    top = innerPadding.calculateTopPadding(),
+                    top = 4.dp,
                     end = 16.dp,
                     bottom = innerPadding.calculateBottomPadding() + 80.dp
                 )

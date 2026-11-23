@@ -940,20 +940,16 @@ private fun ModuleList(
 
         LazyColumn(
             state = listState,
-            modifier = modifier,
+            modifier = modifier.padding(top = topPadding),
             contentPadding = remember {
                 PaddingValues(
                     start = 16.dp,
-                    top = 0.dp,
+                    top = 4.dp,
                     end = 16.dp,
                     bottom = 72.dp + 5.dp + 5.dp // FAB + bottom padding of FAB
                 )
             },
         ) {
-            item {
-                Spacer(modifier = Modifier.height(topPadding + 1.dp))
-            }
-
             if (metaModuleWarningText != null) {
                 item(
                     key = "warning"

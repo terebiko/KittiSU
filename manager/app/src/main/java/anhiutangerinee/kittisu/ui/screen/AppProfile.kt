@@ -209,11 +209,7 @@ private fun AppProfileInner(
 ) {
     val isRootGranted = profile.allowSu
 
-    LazyColumn(modifier = modifier) {
-        item {
-            Spacer(modifier = Modifier.height(topPadding))
-        }
-
+    LazyColumn(modifier = modifier.padding(top = topPadding)) {
         item {
             SettingsDropDownPopupMenuWidget(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

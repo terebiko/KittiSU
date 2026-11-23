@@ -198,10 +198,10 @@ fun HomePage(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(top = innerPadding.calculateTopPadding() + 2.dp)
                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                     .verticalScroll(scrollState)
                     .padding(
-                        top = innerPadding.calculateTopPadding() + 2.dp,
                         start = 16.dp,
                         end = 16.dp
                     ),
@@ -517,12 +517,12 @@ private fun TopBar(
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
             scrolledContainerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+                    MaterialTheme.colorScheme.surfaceContainer,
         ),
         actions = {
             if (viewModel.isCoreDataLoaded) {
@@ -588,23 +588,36 @@ private fun StatusCard(
     } else {
         MaterialTheme.colorScheme.errorContainer
     }
-    val statusOnContainer = if (systemStatus.ksuVersion != null) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onErrorContainer
-    }
     val hasCustomCardBg = ThemeConfig.customBackgroundUri != null
-    val hasAnyCustomBg = hasCustomCardBg || ThemeConfig.isFullScreenBackgroundEnabled
-    val badgeContainerColor = if (hasAnyCustomBg) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.34f)
-    } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.50f)
+    val statusOnContainer = when {
+        hasCustomCardBg -> Color.White
+        systemStatus.ksuVersion != null -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onErrorContainer
     }
-    val badgeBorder = remember(statusOnContainer, hasAnyCustomBg) {
+    val hasAnyCustomBg = hasCustomCardBg || ThemeConfig.isFullScreenBackgroundEnabled
+    val badgeContainerColor = when {
+        hasCustomCardBg -> Color.Black.copy(alpha = 0.38f)
+        hasAnyCustomBg -> MaterialTheme.colorScheme.surface.copy(alpha = 0.38f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.50f)
+    }
+    val badgeBorder = remember(statusOnContainer, hasCustomCardBg, hasAnyCustomBg) {
         androidx.compose.foundation.BorderStroke(
-            width = 0.8.dp,
-            color = statusOnContainer.copy(alpha = if (hasAnyCustomBg) 0.28f else 0.18f)
+            width = 0.9.dp,
+            color = when {
+                hasCustomCardBg -> Color.White.copy(alpha = 0.42f)
+                hasAnyCustomBg -> statusOnContainer.copy(alpha = 0.28f)
+                else -> statusOnContainer.copy(alpha = 0.18f)
+            }
         )
+    }
+    val customBgTextShadow = remember(hasCustomCardBg) {
+        if (hasCustomCardBg) {
+            androidx.compose.ui.graphics.Shadow(
+                color = Color.Black.copy(alpha = 0.75f),
+                offset = androidx.compose.ui.geometry.Offset(0f, 2f),
+                blurRadius = 8f
+            )
+        } else null
     }
 
     ElevatedCard(
@@ -616,7 +629,10 @@ private fun StatusCard(
                     contentColor = statusOnContainer
                 )
             } else {
-                it
+                CardDefaults.elevatedCardColors(
+                    containerColor = statusContainer.copy(alpha = CardConfig.cardAlpha),
+                    contentColor = statusOnContainer
+                )
             }
         },
         elevation = getCardElevation(),
@@ -660,11 +676,11 @@ private fun StatusCard(
                         .background(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colors = listOf(
-                                    statusContainer.copy(
-                                        alpha = (0.24f + dimAlpha * 0.50f).coerceIn(0f, 0.88f)
+                                    Color.Black.copy(
+                                        alpha = (0.28f + dimAlpha * 0.55f).coerceIn(0f, 0.88f)
                                     ),
-                                    statusContainer.copy(
-                                        alpha = (0.44f + dimAlpha * 0.45f).coerceIn(0f, 0.92f)
+                                    Color.Black.copy(
+                                        alpha = (0.48f + dimAlpha * 0.45f).coerceIn(0f, 0.92f)
                                     )
                                 )
                             )
@@ -697,7 +713,9 @@ private fun StatusCard(
                         
                         Text(
                             text = workingModeText,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = customBgTextShadow
+                            ),
                             color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
@@ -734,7 +752,9 @@ private fun StatusCard(
                             systemStatus.ksuFullVersion?.let {
                                 Text(
                                     text = stringResource(R.string.home_working_version, it),
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        shadow = customBgTextShadow
+                                    ),
                                     color = statusOnContainer,
                                 )
                             }
@@ -743,7 +763,9 @@ private fun StatusCard(
                     systemStatus.kernelVersion.isGKI() -> {
                         Text(
                             text = stringResource(R.string.home_not_installed),
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = customBgTextShadow
+                            ),
                             color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
@@ -757,7 +779,9 @@ private fun StatusCard(
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.home_click_to_install),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                shadow = customBgTextShadow
+                            ),
                             color = statusOnContainer
                         )
                         if (systemStatus.isSELinuxPermissive) {
@@ -776,14 +800,18 @@ private fun StatusCard(
                     else -> {
                         Text(
                             text = stringResource(R.string.home_unsupported),
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = customBgTextShadow
+                            ),
                             color = statusOnContainer,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
                             text = stringResource(R.string.home_unsupported_reason),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                shadow = customBgTextShadow
+                            ),
                             color = statusOnContainer
                         )
                     }

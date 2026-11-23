@@ -176,7 +176,7 @@ object CardStyleProvider {
 
     @Composable
     private fun determineContentColor(originalColor: Color): Color {
-        val isDarkTheme = isSystemInDarkTheme()
+        val isDarkTheme = isInDarkTheme(ThemeConfig.forceDarkMode)
 
         return when {
             ThemeConfig.isThemeChanging -> {
@@ -185,9 +185,24 @@ object CardStyleProvider {
             CardConfig.isUserLightModeEnabled -> Color.Black
             CardConfig.isUserDarkModeEnabled -> Color.White
             else -> {
-                val luminance = originalColor.luminance()
-                val threshold = if (isDarkTheme) 0.4f else 0.6f
-                if (luminance > threshold) Color.Black else Color.White
+                val m3ContentColor = androidx.compose.material3.MaterialTheme.colorScheme.let { scheme ->
+                    when (originalColor) {
+                        scheme.surfaceContainerHighest,
+                        scheme.surfaceContainerHigh,
+                        scheme.surfaceContainer,
+                        scheme.surface -> scheme.onSurface
+                        scheme.secondaryContainer -> scheme.onSecondaryContainer
+                        scheme.primaryContainer -> scheme.onPrimaryContainer
+                        scheme.errorContainer -> scheme.onErrorContainer
+                        else -> Color.Unspecified
+                    }
+                }
+                if (m3ContentColor != Color.Unspecified) {
+                    m3ContentColor
+                } else {
+                    val luminance = originalColor.luminance()
+                    if (luminance > 0.5f) Color.Black else Color.White
+                }
             }
         }
     }

@@ -226,7 +226,7 @@ fun SearchAppBar(
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha)
+                    MaterialTheme.colorScheme.surfaceContainer
             )
             .then(
                 if (haze) {
@@ -260,10 +260,10 @@ fun SearchAppBar(
             windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor =
-                    if (ThemeConfig.backgroundImageLoaded || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
+                    if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer,
                 scrolledContainerColor =
-                    if (ThemeConfig.backgroundImageLoaded || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
+                    if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
                     else MaterialTheme.colorScheme.surfaceContainer,
             ),
         )

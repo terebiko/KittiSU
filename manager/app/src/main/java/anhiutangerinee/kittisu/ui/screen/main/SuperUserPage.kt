@@ -392,19 +392,17 @@ private fun SuperUserContent(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             contentPadding = remember {
                 PaddingValues(
                     start = 0.dp,
-                    top = 0.dp,
+                    top = 4.dp,
                     end = 0.dp,
                     bottom = 72.dp + 5.dp + 5.dp // FAB + bottom padding of FAB x2
                 )
             },
         ) {
-            item {
-                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
-            }
             lazySegmentColumn(
                 items = filteredAndSortedAppGroups,
                 key = { _, appGroup -> "${appGroup.uid}-${appGroup.mainApp.packageName}" },

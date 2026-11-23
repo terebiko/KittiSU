@@ -253,10 +253,11 @@ private fun SulogScreenContent(
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(top = innerPadding.calculateTopPadding())
                         .nestedScroll(scrollBehavior.nestedScrollConnection),
                 ) {
                     item {
-                        Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding() + 8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     item {
