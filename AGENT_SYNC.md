@@ -85,6 +85,11 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
 - **[2026-11-23 - Antigravity]**:
+  - **Đồng bộ Upstream từ `Baka-SU/BakaSU` (`7b65bde0..63ad1ea3`)**:
+    - `kernel/` & `userspace/`: Đồng bộ toàn bộ 15 commit mới nhất từ `BakaSU` (chia tách `selinux_hide` thành `common/auto/susfs` và vá điểm phát hiện `/sys/fs/selinux/access` seqno + timing side-channel, thêm LSM hook `inode_setxattr`, hỗ trợ Vivo `logd` đọc thuộc tính tiến trình root, sửa thanh ghi tham số đầu syscall `arm64` trên Linux 7.3+, sửa căn chỉnh ELF `preinit_runner` và `is_compat_task` / `do_syscall_64` trên `x86_64`, cập nhật binary `waitsys`, đồng bộ `susfs` `priority_uid_filter` + `sus_path_uid_filter` + `package_list`).
+    - `js/` & `manager/ui/webui/`: Bổ sung giao diện WebUI File I/O (`KsuIO`, `FileInterface`, `FileInputStreamInterface`, `FileOutputStreamInterface`, `RandomAccessFileInterface`), trình tải Blob/File (`BlobDownloadHandler`, `Download`, `WebUIDownloadInterface`, `assets/webview/download.js`) và giao diện PackageManager mới `ksu.pm()` (`KsuPm.kt`).
+    - `manager/ui/screen/susfs/`: Bổ sung 2 tab cấu hình SuSFS mới `PriorityUidFilterTab` (Bộ lọc UID ưu tiên) và `SusPathUidFilterTab` (Hiển thị đường dẫn SUS theo UID) kèm `SuSFSAppSelectionList.kt`.
+    - `manager/ui/screen/main/SettingsPage.kt` & `KsuCli.kt`: Bổ sung tùy chọn `Restrict shell root to ADB` (`shell_su_adb_only`) và hỗ trợ cài đặt nóng mô-đun (`moduleNeedsReboot` không bắt khởi động lại nếu mô-đun hỗ trợ hot-install).
   - Thêm hộp thoại cắt ảnh tương tác trực tiếp trong app (`ImageCropDialog.kt`) cho phép người dùng tự căn chỉnh vùng cắt (kéo di chuyển, chụm 2 ngón thu phóng, thanh trượt zoom 100%–400%, lưới 1/3 và khung bo góc đúng tỉ lệ thẻ Working `16:9` hoặc toàn màn hình) trước khi lưu.
   - Cập nhật `BackgroundUtils.cropAndSaveImage` để áp dụng chính xác `BackgroundTransformation(scale, offsetX, offsetY)` do người dùng chọn.
   - Nâng cấp thanh tiêu đề trang chủ (`HomePage.kt`) sang `LargeFlexibleTopAppBar` đồng bộ với toàn app, kết hợp typography M3 Expressive (`ExtraBold`/`Black` với điểm nhấn màu `primary` cho hậu tố `"SU"`, kerning `-0.5sp` và `subtitle` hiển thị phiên bản sắc nét).

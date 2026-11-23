@@ -52,11 +52,13 @@ import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.OpenRedirectTab
+import anhiutangerinee.kittisu.ui.screen.susfs.subpages.PriorityUidFilterTab
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.StandardFeaturesTab
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.StatusTab
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.SusKstatTab
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.SusMapTab
 import anhiutangerinee.kittisu.ui.screen.susfs.subpages.SusPathTab
+import anhiutangerinee.kittisu.ui.screen.susfs.subpages.SusPathUidFilterTab
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
@@ -173,6 +175,26 @@ fun SuSFSConfigScreen() {
             title = stringResource(R.string.susfs_tab_sus_map),
         ) { innerPadding, nestedScrollConnection ->
             SusMapTab(
+                nestedScrollConnection = nestedScrollConnection,
+                innerPadding = innerPadding,
+                onRegisterRefresh = onRegisterRefresh,
+            )
+        },
+        SuSFSConfigSubpage(
+            requirePersist = true,
+            title = stringResource(R.string.susfs_priority_uid_filter_title),
+        ) { innerPadding, nestedScrollConnection ->
+            PriorityUidFilterTab(
+                nestedScrollConnection = nestedScrollConnection,
+                innerPadding = innerPadding,
+                onRegisterRefresh = onRegisterRefresh,
+            )
+        },
+        SuSFSConfigSubpage(
+            requirePersist = true,
+            title = stringResource(R.string.susfs_sus_path_uid_filter_title),
+        ) { innerPadding, nestedScrollConnection ->
+            SusPathUidFilterTab(
                 nestedScrollConnection = nestedScrollConnection,
                 innerPadding = innerPadding,
                 onRegisterRefresh = onRegisterRefresh,

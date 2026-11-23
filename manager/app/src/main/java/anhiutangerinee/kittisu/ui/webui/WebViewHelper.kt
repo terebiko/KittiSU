@@ -30,6 +30,26 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 
+private const val WEB_DOMAIN = "mui.kernelsu.org"
+private const val KSU_SCHEME = "ksu"
+private const val ICON_HOST = "icon"
+private const val INTERNAL_BLOB_DOWNLOAD_HOST = "blob-download.kernelsu.internal"
+
+private fun loadDownloadJs(context: Context): String =
+    context.assets.open("webview/download.js").bufferedReader(Charsets.UTF_8).use { it.readText() }
+
+fun Activity.setTaskDescription(label: String) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        @Suppress("DEPRECATION")
+        setTaskDescription(ActivityManager.TaskDescription(label))
+    } else {
+        val taskDescription = ActivityManager.TaskDescription.Builder()
+            .setLabel(label)
+            .build()
+        setTaskDescription(taskDescription)
+    }
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 internal suspend fun prepareWebView(
     activity: Activity,
@@ -105,7 +125,10 @@ internal suspend fun prepareWebView(
             webView.webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                     val url = request.url
-                    if (url.scheme.equals("ksu", ignoreCase = true) && url.host.equals("icon", ignoreCase = true)) {
+
+                    BlobDownloadHandler.shouldInterceptRequest(request)?.let { return it }
+
+                    if (url.scheme.equals(KSU_SCHEME, ignoreCase = true) && url.host.equals(ICON_HOST, ignoreCase = true)) {
                         val packageName = url.path?.substring(1)
                         if (!packageName.isNullOrEmpty()) {
                             val icon = AppIconUtil.loadAppIconSync(activity, packageName, 512)
@@ -117,6 +140,17 @@ internal suspend fun prepareWebView(
                                     mapOf("Access-Control-Allow-Origin" to "*"),
                                     ByteArrayInputStream(stream.toByteArray())
                                 )
+                            } else {
+                                val errorMsg = "No such package"
+                                val errorStream = ByteArrayInputStream(errorMsg.toByteArray(Charsets.UTF_8))
+                                return WebResourceResponse(
+                                    "text/plain",
+                                    "utf-8",
+                                    404,
+                                    "Not Found",
+                                    mapOf("Access-Control-Allow-Origin" to "*"),
+                                    errorStream,
+                                )
                             }
                         }
                     }
@@ -126,6 +160,7 @@ internal suspend fun prepareWebView(
                 override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                     webUIState.webCanGoBack = view?.canGoBack() ?: false
                     if (webUIState.isInsetsEnabled) webUIState.webView?.evaluateJavascript(webUIState.currentInsets.js, null)
+                    view?.evaluateJavascript(loadDownloadJs(activity), null)
                     super.doUpdateVisitedHistory(view, url, isReload)
                 }
             }
@@ -167,8 +202,18 @@ internal suspend fun prepareWebView(
 
             // JS Interface
             val webviewInterface = WebViewInterface(webUIState)
+            val downloadInterface = WebUIDownloadInterface(webUIState)
+            webUIState.webViewInterface = webviewInterface
+            webUIState.downloadInterface = downloadInterface
             webUIState.webView = webView
             webView.addJavascriptInterface(webviewInterface, "ksu")
+            webView.addJavascriptInterface(downloadInterface, "ksu_download")
+            webView.setDownloadListener { url, _, _, _, _ ->
+                if (Uri.parse(url).host != INTERNAL_BLOB_DOWNLOAD_HOST) {
+                    downloadInterface.openExternal(url)
+                }
+            }
+            webView.evaluateJavascript(loadDownloadJs(activity), null)
             webUIState.uiEvent = WebUIEvent.WebViewReady
         }
     }

@@ -15,6 +15,8 @@ import anhiutangerinee.kittisu.ui.util.createRootShell
 import anhiutangerinee.kittisu.ui.util.listModules
 import anhiutangerinee.kittisu.ui.util.withNewRootShell
 import anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel
+import anhiutangerinee.kittisu.ui.webui.file.KsuIO
+import anhiutangerinee.kittisu.ui.webui.pm.KsuPm
 import com.topjohnwu.superuser.CallbackList
 import com.topjohnwu.superuser.ShellUtils
 import com.topjohnwu.superuser.internal.UiThreadHandler
@@ -263,6 +265,16 @@ class WebViewInterface(private val state: WebUIState) {
     @JavascriptInterface
     fun exit() {
         state.requestExit()
+    }
+
+    @JavascriptInterface
+    fun io() = KsuIO
+
+    @JavascriptInterface
+    fun pm() = KsuPm()
+
+    fun destroy() {
+        KsuIO.destroy()
     }
 
 }

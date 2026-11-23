@@ -794,4 +794,16 @@ Important Note:\n
     <string name="preset_post_install_saved">%1$d post-install script(s) saved</string>
     <string name="preset_running_script">Running script %1$d/%2$d: %3$s</string>
 
+    <string name="open">Open</string>
+    <string name="settings_shell_su_adb_only">Restrict shell root to ADB</string>
+    <string name="settings_shell_su_adb_only_summary">Enable additional checks for shells: Only shell processes initiated by adbd or a KernelSU root process can obtain root access</string>
+    <string name="susfs_priority_uid_filter_title">Priority UID filter</string>
+    <string name="susfs_priority_uid_filter_description">Select apps whose UIDs should be hidden from priority and I/O priority syscalls. Applies to app UIDs 10000–19999. Changes take effect immediately and are restored after reboot. Apps sharing a UID are affected together.</string>
+    <string name="susfs_priority_uid_filter_search">Search apps</string>
+    <string name="susfs_priority_uid_filter_loading">Loading apps…</string>
+    <string name="susfs_sus_path_uid_filter_title">SUS path visibility</string>
+    <string name="susfs_sus_path_uid_filter_description">Select apps that can see paths hidden by SUSFS. Other ordinary apps cannot see these paths. Only app UIDs 10000–19999 can be selected. Changes take effect immediately and are restored after reboot. Apps sharing a UID are affected together.</string>
+    <string name="susfs_uid_filter_search">Search apps</string>
+    <string name="susfs_uid_filter_loading">Loading apps…</string>
+
 </resources>

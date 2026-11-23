@@ -604,4 +604,15 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="boot_recovery_summary">Số lần khởi động chưa hoàn tất: %1$d</string>
     <string name="boot_recovery_details">Số lần khởi động chưa hoàn tất: %1$d\n\nModule liên quan:\n%2$s</string>
     <string name="boot_recovery_reset">Xóa trạng thái</string>
+    <string name="open">Mở</string>
+    <string name="settings_shell_su_adb_only">Giới hạn quyền root Shell chỉ qua ADB</string>
+    <string name="settings_shell_su_adb_only_summary">Bật kiểm tra bổ sung cho Shell: Chỉ các tiến trình shell được khởi tạo bởi adbd hoặc tiến trình root KernelSU mới được cấp quyền root</string>
+    <string name="susfs_priority_uid_filter_title">Bộ lọc UID ưu tiên</string>
+    <string name="susfs_priority_uid_filter_description">Chọn các ứng dụng cần ẩn UID khỏi các lệnh hệ thống priority và I/O priority (áp dụng cho UID 10000–19999). Thay đổi có hiệu lực ngay và được khôi phục sau khi khởi động lại.</string>
+    <string name="susfs_priority_uid_filter_search">Tìm kiếm ứng dụng</string>
+    <string name="susfs_priority_uid_filter_loading">Đang tải ứng dụng…</string>
+    <string name="susfs_sus_path_uid_filter_title">Hiển thị đường dẫn SUS</string>
+    <string name="susfs_sus_path_uid_filter_description">Chọn các ứng dụng được phép nhìn thấy đường dẫn đã ẩn bởi SUSFS (áp dụng cho UID 10000–19999). Thay đổi có hiệu lực ngay và được khôi phục sau khi khởi động lại.</string>
+    <string name="susfs_uid_filter_search">Tìm kiếm ứng dụng</string>
+    <string name="susfs_uid_filter_loading">Đang tải ứng dụng…</string>
 </resources>

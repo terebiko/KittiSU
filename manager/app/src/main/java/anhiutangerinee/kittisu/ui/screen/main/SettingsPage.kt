@@ -541,6 +541,38 @@ fun SettingsPage(bottomPadding: Dp) {
                                 )
                             }
 
+                            item {
+                                var isShellSuAdbOnlyEnabled by remember { mutableStateOf(false) }
+
+                                var savedShellSuAdbOnlyStatus by rememberSaveable { mutableStateOf("") }
+                                val shellSuAdbOnlyStatus by produceState(initialValue = savedShellSuAdbOnlyStatus) {
+                                    value = withContext(Dispatchers.IO) {
+                                        savedShellSuAdbOnlyStatus = getFeatureStatus("shell_su_adb_only")
+                                        isShellSuAdbOnlyEnabled = getFeaturePersistValue("shell_su_adb_only") == 1L
+                                        return@withContext savedShellSuAdbOnlyStatus
+                                    }
+                                }
+                                val shellSuAdbOnlySummary = when (shellSuAdbOnlyStatus) {
+                                    "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
+                                    "managed" -> stringResource(id = R.string.feature_status_managed_summary)
+                                    else -> stringResource(id = R.string.settings_shell_su_adb_only_summary)
+                                }
+
+                                SettingsSwitchWidget(
+                                    icon = Icons.TwoTone.Security,
+                                    title = stringResource(id = R.string.settings_shell_su_adb_only),
+                                    description = shellSuAdbOnlySummary,
+                                    checked = isShellSuAdbOnlyEnabled,
+                                    enabled = shellSuAdbOnlyStatus == "supported",
+                                    onCheckedChange = { checked ->
+                                        if (execKsud("feature set shell_su_adb_only ${if (checked) 1 else 0}", true)) {
+                                            execKsud("feature save", true)
+                                            isShellSuAdbOnlyEnabled = checked
+                                        }
+                                    }
+                                )
+                            }
+
 
                             item {
                                 var isSuLogEnabled by remember { mutableStateOf(Natives.isSuLogEnabled()) }

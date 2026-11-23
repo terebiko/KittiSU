@@ -260,6 +260,33 @@ object SuSFSConfigHelper {
         return executeConfigMutation("sus_map remove ${shellQuote(path)}")
     }
 
+    suspend fun setPriorityUidFilter(packages: Set<String>): Boolean {
+        val apps = shellQuote(packages.sorted().joinToString(","))
+        return executeConfigMutation(
+            command = "priority_uid_filter add $apps",
+            currentKernelCommands = listOf("set_priority_uid_filter $apps"),
+        )
+    }
+
+    suspend fun setSusPathUidFilter(packages: Set<String>): Boolean {
+        val apps = shellQuote(packages.sorted().joinToString(","))
+        return executeConfigMutation(
+            command = "sus_path_uid_filter add $apps",
+            currentKernelCommands = listOf("set_sus_path_uid_filter $apps"),
+        )
+    }
+
+    suspend fun loadUidFilterApps(): List<SuSFSUidFilterApp> = withContext(Dispatchers.IO) {
+        if (anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel.apps.isEmpty()) {
+            anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel().fetchAppList()
+        }
+        anhiutangerinee.kittisu.ui.viewmodel.SuperUserViewModel.apps
+            .filter { (it.packageInfo.applicationInfo?.uid ?: -1) in 10000..19999 }
+            .distinctBy { it.packageName }
+            .map { SuSFSUidFilterApp(it.packageName, it.label.ifBlank { it.packageName }, it.packageInfo) }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+    }
+
     suspend fun showVersion(): String = loadStatusInfo().version
 
     suspend fun showEnabledFeatures(): String = loadStatusInfo().enabledFeatures
@@ -485,6 +512,10 @@ data class SuSFSConfig(
     val open_redirect: Set<OpenRedirectItem>,
     @SerializedName("sus_map")
     val sus_map: Set<String>,
+    @SerializedName("priority_uid_filter")
+    val priority_uid_filter: Set<String>? = emptySet(),
+    @SerializedName("sus_path_uid_filter")
+    val sus_path_uid_filter: Set<String>? = emptySet(),
 ) {
     companion object {
         fun createDefault(): SuSFSConfig {
@@ -500,7 +531,15 @@ data class SuSFSConfig(
                 sus_kstat = emptySet(),
                 open_redirect = emptySet(),
                 sus_map = emptySet(),
+                priority_uid_filter = emptySet(),
+                sus_path_uid_filter = emptySet(),
             )
         }
     }
 }
+
+data class SuSFSUidFilterApp(
+    val packageName: String,
+    val label: String,
+    val packageInfo: android.content.pm.PackageInfo? = null,
+)
