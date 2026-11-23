@@ -201,6 +201,33 @@ jobs:
           chmod +x randomizer
           ./randomizer
 
+      - name: Fetch KernelPatch & FolkPatch runtime assets
+        run: |
+          set -e
+          mkdir -p app/src/main/assets app/src/main/jniLibs/arm64-v8a app/src/main/jniLibs/x86_64
+          KP_TAG="0.13.9"
+          FP_TAG="115404"
+          FP_APK="FolkPatch_115404_0f3f42ba_on_main-release.apk"
+
+          curl -fSL "https://github.com/LyraVoid/KernelPatch/releases/download/${KP_TAG}/kpimg-android" \
+            -o app/src/main/assets/kpimg
+          curl -fSL "https://github.com/LyraVoid/KernelPatch/releases/download/${KP_TAG}/kptools-android" \
+            -o app/src/main/jniLibs/arm64-v8a/libkptools.so
+
+          curl -fSL "https://github.com/LyraVoid/FolkPatch/releases/download/${FP_TAG}/${FP_APK}" \
+            -o /tmp/folkpatch.apk
+          unzip -o -j /tmp/folkpatch.apk \
+            "lib/arm64-v8a/libapd.so" \
+            "lib/arm64-v8a/libkpatch.so" \
+            "lib/arm64-v8a/libresetprop.so" \
+            -d app/src/main/jniLibs/arm64-v8a/
+          rm -f /tmp/folkpatch.apk
+
+          cp -f ../userspace/ksud/bin/aarch64/busybox app/src/main/jniLibs/arm64-v8a/libbusybox.so
+          cp -f ../userspace/ksud/bin/x86_64/busybox app/src/main/jniLibs/x86_64/libbusybox.so
+          chmod 755 app/src/main/jniLibs/arm64-v8a/*.so app/src/main/jniLibs/x86_64/*.so
+          ls -lh app/src/main/assets/kpimg app/src/main/jniLibs/arm64-v8a/ app/src/main/jniLibs/x86_64/
+
       - name: Write key
         if: ${{ github.event_name == 'workflow_dispatch' || ( github.event_name != 'pull_request') || github.ref_type == 'tag' }}
         run: |
@@ -246,9 +273,9 @@ jobs:
           if [ "${{ matrix.manager_type }}" != "spoofed" ] && [ "${{ github.event_name }}" == "pull_request" ]; then
             export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.pr${{github.event.pull_request.number}}"
             export BUILD_EXTRA_ARGS="-PKSU_PACKAGE_NAME=$KSU_PACKAGE_NAME"
-          elif [ "${{ matrix.manager_type }}" != "spoofed" ] && [ "${{ github.ref_type }}" != "tag" ] && [ "${{ github.ref_name }}" != "main" ]; then
+          elif [ "${{ matrix.manager_type }}" != "spoofed" ] && [ "${{ github.ref_type }}" != "tag" ] && [ "${{ github.ref_name }}" != "main" ] && [ "${{ github.ref_name }}" != "SovaSU" ]; then
             export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.dev"
-            export KSU_NAME="KittiSU-DEV"
+            export KSU_NAME="SovaSU-DEV"
             export BUILD_EXTRA_ARGS="-PKSU_PACKAGE_NAME=$KSU_PACKAGE_NAME -PKSU_NAME=$KSU_NAME"
           fi
 
@@ -595,7 +622,7 @@ jobs:
           BUILD_DATE=$(date -u +'%Y%m%d')
           REF_NAME="${{ github.ref_name }}"
           IS_MAIN=false
-          if [ "$REF_NAME" = "main" ]; then
+          if [ "$REF_NAME" = "main" ] || [ "$REF_NAME" = "SovaSU" ]; then
             IS_MAIN=true
           fi
 
@@ -613,10 +640,10 @@ jobs:
 
           if [ "$IS_MAIN" = "true" ]; then
             PRERELEASE=false
-            RELEASE_TITLE="KittiSU $BUILD_DATE"
+            RELEASE_TITLE="SovaSU $BUILD_DATE"
           else
             PRERELEASE=true
-            RELEASE_TITLE="KittiSU Pre-release [${REF_NAME}] - $BUILD_DATE"
+            RELEASE_TITLE="SovaSU Pre-release [${REF_NAME}] - $BUILD_DATE"
           fi
 
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT

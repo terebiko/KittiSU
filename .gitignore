@@ -4,4 +4,8 @@ build.sh
 *.code-workspace
 .trae
 /userspace/ksud/.lkm_image_bootstrap.o
+/userspace/ksud/bin/*/ksuinit
+/manager/app/src/main/assets/kpimg
+AGENT_SYNC.md
+CODEBASE_LEARNING.md
 out

@@ -86,7 +86,7 @@ jobs:
         run: |
           if [ "${{github.event_name}}" == "pull_request" ]; then
             export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.pr${{github.event.pull_request.number}}"
-          elif [ "${{github.ref_type}}" != "tag" ] && [ "${{github.ref_name}}" != "main" ]; then
+          elif [ "${{github.ref_type}}" != "tag" ] && [ "${{github.ref_name}}" != "main" ] && [ "${{github.ref_name}}" != "SovaSU" ]; then
             export KSU_PACKAGE_NAME="anhiutangerinee.kittisu.dev"
           fi
 
