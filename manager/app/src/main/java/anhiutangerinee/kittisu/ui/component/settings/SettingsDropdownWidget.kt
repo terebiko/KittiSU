@@ -9,16 +9,22 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.UnfoldMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,10 +65,10 @@ fun SettingsDropdownWidget(
     onSelectedIndexChange: (Int) -> Unit
 ) {
     val alpha = if (enabled) 1f else 0.38f
-    var currentIndex by remember { mutableIntStateOf(selectedIndex) }
     var showDialog by remember { mutableStateOf(false) }
+    var currentIndex by remember(selectedIndex, showDialog) { mutableIntStateOf(selectedIndex) }
 
-    fun setCurrentIndex(index: Int) {// 快别叫唤未使用了
+    fun setCurrentIndex(index: Int) {
         currentIndex = index
     }
 
@@ -71,6 +77,7 @@ fun SettingsDropdownWidget(
     }
 
     val itemsNotEmpty = items.isNotEmpty()
+    val safeSelectedIndex = selectedIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0))
 
     SettingsBaseWidget(
         icon = icon,
@@ -88,20 +95,38 @@ fun SettingsDropdownWidget(
         foreContent = foreContent,
         descriptionColumnContent = {
             if (itemsNotEmpty) {
-                val color = if (isError) MaterialTheme.colorScheme.error
-                else descriptionColor
-                Text(
-                    text = items[selectedIndex],
-                    color = color.copy(alpha = alpha),
-                    style = MaterialTheme.typography.bodyMediumEmphasized,
-                    fontSize = MaterialTheme.typography.bodyMediumEmphasized.fontSize,
-                    fontFamily = MaterialTheme.typography.bodySmallEmphasized.fontFamily,
-                    lineHeight = MaterialTheme.typography.bodyMediumEmphasized.lineHeight,
-                    fontWeight = MaterialTheme.typography.bodyMediumEmphasized.fontWeight,
-                )
+                Spacer(modifier = Modifier.height(6.dp))
+                val pillContainer = if (isError) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.72f)
+                }
+                val pillContent = if (isError) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+                Surface(
+                    shape = MaterialTheme.shapes.extraSmall,
+                    color = pillContainer
+                ) {
+                    Text(
+                        text = items[safeSelectedIndex],
+                        color = pillContent.copy(alpha = alpha),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
         }
-    ) {}
+    ) {
+        Icon(
+            imageVector = Icons.TwoTone.UnfoldMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+    }
 
     if (showDialog && itemsNotEmpty) {
         AlertDialog(

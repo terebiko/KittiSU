@@ -190,6 +190,8 @@ object CardStyleProvider {
                         scheme.surfaceContainerHighest,
                         scheme.surfaceContainerHigh,
                         scheme.surfaceContainer,
+                        scheme.surfaceContainerLow,
+                        scheme.surfaceContainerLowest,
                         scheme.surface -> scheme.onSurface
                         scheme.secondaryContainer -> scheme.onSecondaryContainer
                         scheme.primaryContainer -> scheme.onPrimaryContainer
@@ -214,3 +216,18 @@ fun getCardColors(originalColor: Color) = CardStyleProvider.getCardColors(origin
 
 @Composable
 fun getCardElevation() = CardStyleProvider.getCardElevation()
+
+/**
+ * Material 3 Expressive surface role for routine cards and segmented list items:
+ * crisp elevated white (`surfaceContainerLowest`) on a tinted `surfaceContainer` canvas
+ * in light theme, and lifted `surfaceContainerHigh` in dark theme.
+ */
+@Composable
+fun m3CardContainerColor(): Color {
+    val isDark = isInDarkTheme(ThemeConfig.forceDarkMode)
+    return if (isDark) {
+        androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh
+    } else {
+        androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerLowest
+    }
+}

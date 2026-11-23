@@ -41,6 +41,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import anhiutangerinee.kittisu.ui.theme.CardConfig
+import anhiutangerinee.kittisu.ui.theme.m3CardContainerColor
 
 /**
  * A [CompositionLocal] that provides the dynamically calculated [Shape] for items
@@ -117,7 +118,7 @@ fun SettingsBaseWidget(
             val color = if (selected) {
                 MaterialTheme.colorScheme.primaryContainer
             } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
+                m3CardContainerColor()
             }
 
             color.copy(
@@ -136,7 +137,7 @@ fun SettingsBaseWidget(
         ?: if (selected) {
             baseContentColor
         } else {
-            MaterialTheme.colorScheme.onSurface
+            MaterialTheme.colorScheme.onSurfaceVariant
         }
 
     val finalDescriptionColor = when {

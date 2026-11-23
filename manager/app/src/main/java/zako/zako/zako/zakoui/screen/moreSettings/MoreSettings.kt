@@ -556,7 +556,7 @@ private fun AppearanceSettings(
             topPadding = 1.dp,
         ) { shape ->
             Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(
+                color = anhiutangerinee.kittisu.ui.theme.m3CardContainerColor().copy(
                     alpha = CardConfig.cardAlpha
                 ),
                 shape = shape

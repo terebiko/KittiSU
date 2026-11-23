@@ -1,6 +1,7 @@
 package anhiutangerinee.kittisu.ui.activity.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -8,13 +9,16 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,9 +30,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -45,17 +51,27 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import anhiutangerinee.kittisu.ui.screen.BottomBarDestination
+import anhiutangerinee.kittisu.ui.theme.CardConfig
+import anhiutangerinee.kittisu.ui.theme.m3CardContainerColor
 import kotlin.math.roundToInt
 
 /**
- * Vertical space the floating bottom bar occupies: 72.dp pill + 14.dp padding on
- * each side. Pages add this to their scaffold insets so FABs and list content
+ * Vertical space the floating bottom bar occupies: 64.dp capsule + 14.dp vertical padding
+ * on each side. Pages add this to their scaffold insets so FABs and list content
  * clear the bar instead of sliding underneath it.
  */
-val BottomBarHeight = 100.dp
+val BottomBarHeight = 92.dp
 
 @Composable
 fun BottomBar(
@@ -67,19 +83,13 @@ fun BottomBar(
     if (destinations.isEmpty()) return
 
     val density = LocalDensity.current
-
-    val itemSize = 56.dp
     val itemSpacing = 4.dp
-    val containerPadding = 7.dp
+    val containerPadding = 6.dp
+    val pillHeight = 52.dp
 
-    val itemSizePx = with(density) { itemSize.toPx() }
     val itemSpacingPx = with(density) { itemSpacing.toPx() }
     val containerPaddingPx = with(density) { containerPadding.toPx() }
-    val extraTouchAreaPx = with(density) { 20.dp.toPx() }
-
-    val navBarWidth = (itemSize * destinations.size) +
-            (itemSpacing * (destinations.size - 1)) +
-            (containerPadding * 2)
+    val extraTouchAreaPx = with(density) { 18.dp.toPx() }
 
     var lastValidSelection by remember { mutableIntStateOf(selectedPage.coerceIn(0, destinations.lastIndex)) }
 
@@ -99,13 +109,13 @@ fun BottomBar(
         animationSpec = if (isDraggingPill) {
             spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
         } else {
-            spring(dampingRatio = 0.72f, stiffness = 420f)
+            spring(dampingRatio = 0.74f, stiffness = 420f)
         },
         label = "bottom_bar_selected_index"
     )
 
     val pillScale by animateFloatAsState(
-        targetValue = if (isDraggingPill) 1.08f else 1f,
+        targetValue = if (isDraggingPill) 1.05f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "bottom_bar_pill_scale"
     )
@@ -128,9 +138,19 @@ fun BottomBar(
         ) {
             val horizontalScreenPadding = when {
                 maxWidth > 600.dp -> 32.dp
-                maxWidth > 400.dp -> 24.dp
-                else -> 16.dp
+                maxWidth > 400.dp -> 20.dp
+                else -> 12.dp
             }
+
+            val maxAvailableForItems =
+                (maxWidth - horizontalScreenPadding * 2 - containerPadding * 2 - itemSpacing * (destinations.size - 1))
+                    .coerceAtLeast(56.dp * destinations.size)
+            val preferredItemWidth = if (destinations.size <= 2) 96.dp else if (destinations.size == 3) 84.dp else 74.dp
+            val itemWidth = minOf(preferredItemWidth, maxAvailableForItems / destinations.size)
+            val itemWidthPx = with(density) { itemWidth.toPx() }
+            val navBarWidth = (itemWidth * destinations.size) +
+                (itemSpacing * (destinations.size - 1)) +
+                (containerPadding * 2)
 
             Box(
                 modifier = Modifier
@@ -140,23 +160,27 @@ fun BottomBar(
             ) {
                 Surface(
                     modifier = Modifier.wrapContentWidth(),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    tonalElevation = 3.dp,
-                    shadowElevation = 6.dp,
-                    color = MaterialTheme.colorScheme.surfaceContainer
+                    shape = CircleShape,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(
+                        width = 0.8.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)
+                    ),
+                    color = m3CardContainerColor().copy(
+                        alpha = CardConfig.cardAlpha.coerceAtLeast(0.92f)
+                    )
                 ) {
                     Box(
                         modifier = Modifier
                             .width(navBarWidth)
-                            .height(72.dp)
-                            .pointerInput(destinations) {
-                                // Tap: short press without significant movement switches the tab
-                                // whose slot the pointer landed in.
+                            .height(64.dp)
+                            .pointerInput(destinations, itemWidthPx) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         if (!isDraggingPill) {
                                             val index = ((offset.x - containerPaddingPx) /
-                                                    (itemSizePx + itemSpacingPx))
+                                                    (itemWidthPx + itemSpacingPx))
                                                 .toInt()
                                                 .coerceIn(0, destinations.lastIndex)
                                             onPageChange(index)
@@ -164,16 +188,13 @@ fun BottomBar(
                                     }
                                 )
                             }
-                            .pointerInput(destinations, effectiveSelectedIndex) {
-                                // Drag: only activated when the gesture starts on the active pill
-                                // area (with a small extra touch slop). Tracks finger X in real
-                                // time and snaps to the nearest tab on release.
+                            .pointerInput(destinations, effectiveSelectedIndex, itemWidthPx) {
                                 detectDragGestures(
                                     onDragStart = { offset: Offset ->
                                         val pillLeft = containerPaddingPx +
-                                                effectiveSelectedIndex * (itemSizePx + itemSpacingPx) -
+                                                effectiveSelectedIndex * (itemWidthPx + itemSpacingPx) -
                                                 extraTouchAreaPx
-                                        val pillRight = pillLeft + itemSizePx + (extraTouchAreaPx * 2)
+                                        val pillRight = pillLeft + itemWidthPx + (extraTouchAreaPx * 2)
 
                                         if (offset.x in pillLeft..pillRight) {
                                             isDraggingPill = true
@@ -197,7 +218,7 @@ fun BottomBar(
                                             change.consume()
                                             dragPointerX = change.position.x
                                             val index = ((change.position.x - containerPaddingPx) /
-                                                    (itemSizePx + itemSpacingPx))
+                                                    (itemWidthPx + itemSpacingPx))
                                                 .roundToInt()
                                                 .coerceIn(0, destinations.lastIndex)
                                             dragTargetIndex = index
@@ -215,24 +236,21 @@ fun BottomBar(
                                 .onSizeChanged { totalWidth = it.width }
                         ) {
                             if (totalWidth > 0 && destinations.isNotEmpty()) {
-                                // During a pill drag, follow the finger in real time; otherwise
-                                // use the spring-animated slot-based offset.
                                 val indicatorOffset = if (isDraggingPill && dragPointerX >= 0f) {
-                                    (dragPointerX - containerPaddingPx - itemSizePx / 2f)
+                                    (dragPointerX - containerPaddingPx - itemWidthPx / 2f)
                                         .coerceIn(
                                             0f,
-                                            (itemSizePx + itemSpacingPx) * destinations.lastIndex
+                                            (itemWidthPx + itemSpacingPx) * destinations.lastIndex
                                         )
                                 } else {
-                                    (itemSizePx + itemSpacingPx) * animatedSelectedIndex
+                                    (itemWidthPx + itemSpacingPx) * animatedSelectedIndex
                                 }
 
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .padding(vertical = 8.dp)
                                         .offset { IntOffset(x = indicatorOffset.roundToInt(), y = 0) }
-                                        .width(itemSize)
+                                        .width(itemWidth)
                                         .graphicsLayer {
                                             scaleX = pillScale
                                             scaleY = pillScale
@@ -241,10 +259,11 @@ fun BottomBar(
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(itemSize)
+                                            .width(itemWidth)
+                                            .height(pillHeight)
                                             .background(
                                                 color = MaterialTheme.colorScheme.secondaryContainer,
-                                                shape = MaterialTheme.shapes.large
+                                                shape = CircleShape
                                             )
                                     )
                                 }
@@ -257,21 +276,48 @@ fun BottomBar(
                             ) {
                                 destinations.forEachIndexed { index, destination ->
                                     val isSelected = index == if (isDraggingPill) dragTargetIndex else effectiveSelectedIndex
+                                    val labelText = stringResource(destination.label)
+                                    val contentTint by animateColorAsState(
+                                        targetValue = if (isSelected) {
+                                            MaterialTheme.colorScheme.onSecondaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        label = "bottom_bar_item_tint"
+                                    )
 
-                                    Box(
+                                    Column(
                                         modifier = Modifier
-                                            .size(itemSize)
-                                            .clip(MaterialTheme.shapes.large),
-                                        contentAlignment = Alignment.Center
+                                            .width(itemWidth)
+                                            .height(pillHeight)
+                                            .clip(CircleShape)
+                                            .semantics(mergeDescendants = true) {
+                                                role = Role.Tab
+                                                selected = isSelected
+                                                contentDescription = labelText
+                                            },
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
                                     ) {
                                         Icon(
                                             imageVector = if (isSelected) destination.iconSelected else destination.iconNotSelected,
-                                            contentDescription = stringResource(destination.label),
-                                            tint = if (isSelected) {
-                                                MaterialTheme.colorScheme.primary
-                                            } else {
-                                                MaterialTheme.colorScheme.onSurfaceVariant
-                                            }
+                                            contentDescription = null,
+                                            tint = contentTint,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = labelText,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 10.sp,
+                                                lineHeight = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                                            ),
+                                            color = contentTint,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.padding(horizontal = 4.dp)
                                         )
                                     }
                                 }

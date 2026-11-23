@@ -19,6 +19,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
@@ -138,52 +139,44 @@ private fun WarningCardInner(
         colors = cardColors,
         elevation = getCardElevation(),
     ) {
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
                 .then(onClick?.let { Modifier.clickable { it() } } ?: Modifier)
-                .padding(20.dp)
+                .padding(
+                    start = 18.dp,
+                    top = if (onClose != null) 10.dp else 16.dp,
+                    end = if (onClose != null) 6.dp else 18.dp,
+                    bottom = if (onClose != null) 10.dp else 16.dp
+                )
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.CenterStart)
-                    .padding(end = 40.dp)
-            ) {
-                if (icon != null) {
-                    icon()
-                } else {
-                    Icon(
-                        imageVector = Icons.TwoTone.Error,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                content()
-            }
-
-
-            if (onClose != null) {
+            if (icon != null) {
+                icon()
+            } else {
                 Icon(
-                    imageVector = Icons.TwoTone.Close,
-                    contentDescription = stringResource(android.R.string.cancel),
-                    modifier = Modifier
-                        .clickable {
-                            onClose()
-                        }
-                        .size(18.dp)
-                        .align(Alignment.TopEnd)
+                    imageVector = Icons.TwoTone.Error,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Box(
-                modifier = Modifier.align(Alignment.TopEnd)
-            ) {
-                end()
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Box(modifier = Modifier.weight(1f)) {
+                content()
+            }
+
+            end()
+
+            if (onClose != null) {
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.TwoTone.Close,
+                        contentDescription = stringResource(android.R.string.cancel),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }

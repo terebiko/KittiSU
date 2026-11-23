@@ -45,6 +45,8 @@ import androidx.compose.material.icons.twotone.DeleteForever
 import androidx.compose.material.icons.twotone.Fence
 import androidx.compose.material.icons.twotone.FolderOff
 import androidx.compose.material.icons.twotone.Info
+import androidx.compose.material.icons.twotone.NewReleases
+import androidx.compose.material.icons.twotone.NotificationsActive
 import androidx.compose.material.icons.twotone.Policy
 import androidx.compose.material.icons.twotone.RadioButtonChecked
 import androidx.compose.material.icons.twotone.RadioButtonUnchecked
@@ -737,13 +739,13 @@ fun SettingsPage(bottomPadding: Dp) {
                     title = stringResource(R.string.tools),
                     content = {
                         item {
-                            SettingsBaseWidget(
+                            SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.BugReport,
                                 title = stringResource(R.string.send_log),
                                 onClick = {
                                     showBottomsheet = true
                                 }
-                            ) {}
+                            )
                         }
 
                         if (ksuValid) {
@@ -869,7 +871,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 mutableStateOf(prefs.getBoolean("check_update", true))
                             }
                             SettingsSwitchWidget(
-                                icon = Icons.TwoTone.Update,
+                                icon = Icons.TwoTone.NotificationsActive,
                                 title = stringResource(R.string.settings_check_update),
                                 description = stringResource(R.string.settings_check_update_summary),
                                 checked = checkUpdate,
@@ -896,7 +898,7 @@ fun SettingsPage(bottomPadding: Dp) {
                                 )
                             }
                             SettingsDropdownWidget(
-                                icon = Icons.TwoTone.Update,
+                                icon = Icons.TwoTone.NewReleases,
                                 title = stringResource(R.string.update_channel),
                                 description = stringResource(R.string.update_channel_summary),
                                 items = channels,
@@ -918,7 +920,6 @@ fun SettingsPage(bottomPadding: Dp) {
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.Settings,
                                 title = stringResource(R.string.more_settings),
-                                description = stringResource(R.string.more_settings),
                                 onClick = {
                                     navigator.push(Route.MoreSettings)
                                 }

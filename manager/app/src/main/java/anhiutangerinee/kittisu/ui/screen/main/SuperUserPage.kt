@@ -626,15 +626,22 @@ private fun CategoryChip(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .scale(scale)
-            .clickable(interactionSource = interactionSource, indication = null) { onClick() },
+            .scale(scale),
+        onClick = onClick,
+        interactionSource = interactionSource,
         shape = MaterialTheme.shapes.large,
         color = if (isSelected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
         },
-        tonalElevation = if (isSelected) 4.dp else 0.dp
+        border = if (!isSelected) {
+            androidx.compose.foundation.BorderStroke(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+        } else null,
+        tonalElevation = if (isSelected) 2.dp else 0.dp
     ) {
         Column(
             modifier = Modifier
@@ -775,7 +782,7 @@ private fun AppGroupItem(
                 } else if (!appGroup.allowSu) {
                     LabelText(
                         label = "DEFAULT",
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 }
                 if (appGroup.apps.size > 1) {

@@ -156,11 +156,13 @@ fun SegmentedColumn(
         if (title.isNotEmpty()) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                ),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
                     start = PADDING_HORIZONTAL.dp,
-                    top = PADDING_VERTICAL.dp,
+                    top = 10.dp,
                     bottom = 8.dp
                 )
             )
@@ -191,8 +193,8 @@ fun SegmentedColumn(
                         val isLast =
                             index == lastVisibleIndex || (index == allItems.lastIndex && !itemData.visible)
 
-                        val baseTopRadius = if (isFirst) 24.dp else 8.dp
-                        val baseBottomRadius = if (isLast) 24.dp else 8.dp
+                        val baseTopRadius = if (isFirst) 20.dp else 6.dp
+                        val baseBottomRadius = if (isLast) 20.dp else 6.dp
 
                         val targetTopRadius = if (itemData.forceFlatTop) 0.dp else baseTopRadius
                         val targetBottomRadius =

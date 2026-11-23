@@ -1278,8 +1278,12 @@ fun ModuleItem(
     val hapticFeedback = LocalHapticFeedback.current
 
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(CardConfig.cardAlpha),
-        shape = MaterialTheme.shapes.large
+        color = anhiutangerinee.kittisu.ui.theme.m3CardContainerColor().copy(CardConfig.cardAlpha),
+        shape = MaterialTheme.shapes.large,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+        )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             if (useBanner && !module.banner.isNullOrBlank()) {
@@ -1393,6 +1397,7 @@ fun ModuleItem(
                             fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                             fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textDecoration = textDecoration,
                         )
     
@@ -1401,6 +1406,7 @@ fun ModuleItem(
                             fontSize = MaterialTheme.typography.bodySmall.fontSize,
                             lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
                             fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textDecoration = textDecoration,
                         )
     
@@ -1476,10 +1482,8 @@ fun ModuleItem(
     
                 Text(
                     text = module.description,
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    fontFamily = MaterialTheme.typography.bodySmall.fontFamily,
-                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                    fontWeight = MaterialTheme.typography.bodySmall.fontWeight,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 4,
                     textDecoration = textDecoration,
@@ -1533,7 +1537,7 @@ fun ModuleItem(
                             Icon(
                                 modifier = Modifier.size(20.dp),
                                 imageVector = Icons.TwoTone.PlayArrow,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.action)
                             )
                         }
                     }
@@ -1549,7 +1553,7 @@ fun ModuleItem(
                             Icon(
                                 modifier = Modifier.size(20.dp),
                                 imageVector = Icons.AutoMirrored.TwoTone.Wysiwyg,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.open)
                             )
                         }
                     }
@@ -1567,7 +1571,7 @@ fun ModuleItem(
                             Icon(
                                 modifier = Modifier.size(20.dp),
                                 imageVector = Icons.TwoTone.Download,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.module_update)
                             )
                         }
                     }
@@ -1575,13 +1579,21 @@ fun ModuleItem(
                     FilledTonalButton(
                         modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
                         onClick = { onUninstallClicked(module) },
+                        colors = if (!module.remove) {
+                            ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f),
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        } else {
+                            ButtonDefaults.filledTonalButtonColors()
+                        },
                         contentPadding = ButtonDefaults.TextButtonContentPadding,
                     ) {
                         if (!module.remove) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
                                 imageVector = Icons.TwoTone.Delete,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.uninstall),
                             )
                         } else {
                             Icon(
@@ -1589,7 +1601,7 @@ fun ModuleItem(
                                     .size(20.dp)
                                     .rotate(180f),
                                 imageVector = Icons.TwoTone.Refresh,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.restore)
                             )
                         }
                     }

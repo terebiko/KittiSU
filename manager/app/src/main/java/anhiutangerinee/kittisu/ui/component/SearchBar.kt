@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -27,10 +29,12 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.Close
 import androidx.compose.material.icons.twotone.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarDefaults.inputFieldColors
@@ -59,12 +63,14 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import anhiutangerinee.kittisu.ui.component.settings.AppBackButton
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
 import anhiutangerinee.kittisu.ui.theme.blurEffect
+import anhiutangerinee.kittisu.ui.theme.m3CardContainerColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -133,20 +139,28 @@ private fun CompactSearchBar(
         textFieldState.clearText()
     }
 
+    val borderColor by animateColorAsState(
+        targetValue = if (focused) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+        } else {
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+        },
+        label = "search_bar_border"
+    )
+    val baseContainer = m3CardContainerColor().copy(alpha = CardConfig.cardAlpha)
+
     BasicTextField(
         state = textFieldState,
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp, max = 52.dp)
             .clip(CircleShape)
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = CardConfig.cardAlpha)
-            )
-            .heightIn(0.dp, 45.dp)
+            .border(width = 1.dp, color = borderColor, shape = CircleShape)
             .focusRequester(focusRequester)
             .focusProperties {
                 canFocus = allowFocus
             },
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
             color = MaterialTheme.colorScheme.onSurface
         ),
         interactionSource = interactionSource,
@@ -176,17 +190,13 @@ private fun CompactSearchBar(
                     { Box(Modifier.offset(x = (-4).dp)) { trailing() } }
                 },
             colors = colors,
-            contentPadding = PaddingValues(),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
             container = {
                 val containerColor =
                     animateColorAsState(
-                        targetValue =
-                            colors.containerColor(
-                                enabled = true,
-                                isError = false,
-                                focused = focused,
-                            ),
+                        targetValue = baseContainer,
                         animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+                        label = "search_bar_container"
                     )
                 Box(Modifier.textFieldBackground(containerColor::value, shape))
             },
@@ -271,7 +281,7 @@ fun SearchAppBar(
         CompactSearchBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 0.dp),
+                .padding(horizontal = 16.dp, vertical = 2.dp),
             textFieldState = textFieldState,
             onSearch = {
                 keyboardController?.hide()
@@ -279,16 +289,30 @@ fun SearchAppBar(
             placeholder = {
                 Text(
                     text = searchBarPlaceHolderText,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             leadingIcon = {
                 Icon(
                     Icons.TwoTone.Search,
                     contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             },
+            trailingIcon = if (textFieldState.text.isNotEmpty()) {
+                {
+                    IconButton(onClick = { textFieldState.clearText() }) {
+                        Icon(
+                            imageVector = Icons.TwoTone.Close,
+                            contentDescription = stringResource(android.R.string.cancel),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            } else null,
         )
 
         Spacer(modifier = Modifier.height(8.dp))

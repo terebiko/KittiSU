@@ -84,6 +84,24 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
 - **[2026-11-23 - Antigravity]**:
+  - **Redesign toàn diện UI theo chuẩn Material Design 3 & M3 Expressive (`@material-design-3-ui`)**:
+    - **Hệ thống phân cấp bề mặt (`CardManage.kt`, `SettingsBaseWidget.kt`, `SegmentedColumn.kt`, `MoreSettings.kt`)**:
+      - Tạo helper semantic `m3CardContainerColor()`: dùng `surfaceContainerLowest` (trắng nổi sắc nét) trên nền canvas `surfaceContainer` ở Light Mode và `surfaceContainerHigh` ở Dark Mode — loại bỏ hoàn toàn tình trạng thẻ bị phẳng/nhạt màu ở `Settings`, `MoreSettings`, `Home`, và `Module`.
+      - Tinh chỉnh bo góc `SegmentedColumn` (`20.dp` góc ngoài / `6.dp` góc nối trong), tiêu đề nhóm `titleSmall` `FontWeight.SemiBold`, và chuyển icon mặc định của `SettingsBaseWidget` sang `onSurfaceVariant` (đúng chuẩn M3 ListItem, dịu mắt và không tranh chấp thị giác với tiêu đề).
+    - **Thanh điều hướng nổi (`BottomBar.kt`)**:
+      - Thiết kế lại thành **M3 Expressive Floating Navigation Dock** (`64.dp` `CircleShape`, viền mảnh `outlineVariant`, bóng nhẹ, nền `m3CardContainerColor()`), viên thuốc chỉ báo bo tròn `secondaryContainer`, hiển thị **Icon + nhãn ngắn gọn** rõ ràng, tự động co giãn theo `BoxWithConstraints` để không bao giờ tràn khi có 2–4 tab, đồng thời giữ nguyên thao tác chạm & kéo mượt và bổ sung đầy đủ semantics (`Role.Tab`, `selected`, `contentDescription`).
+    - **Màn hình Trang chủ (`HomePage.kt`)**:
+      - **Hero `StatusCard`**: Thêm huy hiệu icon trạng thái tròn, lớp phủ gradient scrim sâu hơn trên ảnh nền tùy chỉnh, và chuyển dòng chữ *"Nhấn để cài đặt"* thành nút **CTA pill nổi (`Click to install` + icon tải xuống)** rõ ràng (cả chế độ hiện đại lẫn Classic Home UI).
+      - **`InfoCard`**: Bọc từng icon trong badge bo góc `secondaryContainer` đồng bộ (`36.dp`), đảo thứ bậc chữ chuẩn M3 (`labelMedium` `onSurfaceVariant` cho nhãn + `bodyMedium` `Medium` `onSurface` cho giá trị), thêm đường kẻ phân tách mảnh thụt lề (`HorizontalDivider`), và hỗ trợ **chạm để sao chép** nhanh kèm rung nhẹ + Toast.
+      - **`DonateCard` & `LearnMoreCard`**: Bổ sung badge icon tonal (`Favorite`, `MenuBook`), icon `OpenInNew` phía sau, căn lề cân đối và tăng khoảng trống cuộn cuối trang tránh bị `BottomBar` che khuất.
+    - **Cài đặt & Thành phần dùng chung (`SettingsPage.kt`, `SettingsDropdownWidget.kt`, `SearchBar.kt`, `WarningCard.kt`, `EmptyState.kt`, `ModulePage.kt`, `SuperUserPage.kt`)**:
+      - `SettingsDropdownWidget.kt`: Hiển thị giá trị đang chọn trong **chip pill tonal** (`secondaryContainer`) kèm icon `UnfoldMore` phía sau, và đồng bộ lại `currentIndex` mỗi lần mở dialog.
+      - `SettingsPage.kt`: Thay icon trùng lặp ở mục kiểm tra cập nhật (`NotificationsActive`) & kênh cập nhật (`NewReleases`), bỏ phụ đề lặp chữ *"More settings / More settings"*, thêm mũi tên chevron cho mục `Send logs`.
+      - `SearchBar.kt`: Nâng chiều cao lên `48–52.dp` (đạt chuẩn chạm tối thiểu M3), xóa lớp nền vẽ trùng 2 lần, thêm viền focus mượt và nút xóa nhanh (`Close` `IconButton`).
+      - `WarningCard.kt`: Thay icon đóng `18.dp` thành `IconButton` chuẩn `48dp` và sửa bố cục `Row` loại bỏ khoảng trống thừa `40.dp` bên phải khi không có nút đóng.
+      - `EmptyState.kt`: Bọc icon trong vòng tròn tonal `88.dp` và nâng thứ bậc tiêu đề lên `titleLarge` SemiBold.
+      - `ModulePage.kt` & `SuperUserPage.kt`: Chuyển thẻ module sang `m3CardContainerColor()` + viền mảnh, làm dịu màu metadata (`onSurfaceVariant`), tô màu ngữ nghĩa `errorContainer` cho nút gỡ cài đặt module, bổ sung `contentDescription` cho toàn bộ nút hành động, và hoàn thiện viền/ripple cho `CategoryChip`.
+    - Build thành công bản APK release thật (`out/SovaSU-release.apk`, `out/SovaSU-arm64-v8a-release.apk`, `out/SovaSU-universal-release.apk`) và kiểm tra trực quan qua ảnh chụp cả Light Mode lẫn Dark Mode trên `emulator-5554` (0 crash).
   - **Nâng cấp màn hình Cài đặt (`Install.kt`) với 2 Chế độ Cài đặt & Tích hợp bộ vá `boot.img` kiểu APatch / FolkPatch (`BootImagePatcher.kt`) + Fix lỗi icon LKM cục bộ**:
     - Tích hợp hoàn chỉnh engine vá `boot.img` từ `LyraVoid/FolkPatch` / `LyraVoid/KernelPatch` v0.13.9 (`assets/kpimg`, `assets/kp_boot_patch.sh`, `assets/kp_boot_extract.sh`, `assets/kp_util_functions.sh`, `jniLibs/arm64-v8a/libkptools.so`, `jniLibs/*/libbusybox.so`) và kết nối trực tiếp vào `FlashScreen` (`FlashIt.FlashFolkPatchBoot`).
     - Thiết kế lại `Install.kt` theo Material Design 3 Expressive với **2 thẻ chọn chế độ cài đặt rõ ràng**:
