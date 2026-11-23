@@ -160,7 +160,7 @@ def get_caption():
         commit_line=commit_line,
         run_url=escape_markdown_url(RUN_URL),
     )
-    if BRANCH != "main" and GITHUB_REF_TYPE != "tag":
+    if BRANCH not in ("main", "SovaSU") and GITHUB_REF_TYPE != "tag":
         msg += "\n⚠️⚠️*DEV VERSION, PLEASE BACKUP BEFORE INSTALLATION*⚠️⚠️"
         msg += "\n⚠️⚠️*测试版，安装前请备份*⚠️⚠️"
     return msg
@@ -174,7 +174,7 @@ def get_caption_for_debug():
         commit_line=commit_line,
         run_url=escape_markdown_url(RUN_URL),
     )
-    if BRANCH != "main" and GITHUB_REF_TYPE != "tag":
+    if BRANCH not in ("main", "SovaSU") and GITHUB_REF_TYPE != "tag":
         msg += "\n⚠️⚠️*DEV VERSION, PLEASE BACKUP BEFORE INSTALLATION*⚠️⚠️"
         msg += "\n⚠️⚠️*测试版，安装前请备份*⚠️⚠️"
     return msg

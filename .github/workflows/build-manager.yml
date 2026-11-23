@@ -504,14 +504,14 @@ jobs:
         run: |
           if [ "${{ matrix.manager_type }}" == "spoofed" ]; then
             echo "title=Spoofed-Manager" >> $GITHUB_OUTPUT
-            echo "topicid=${{ vars.MESSAGE_SPOOFED_THREAD_ID || vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+            echo "topicid=${{ vars.MESSAGE_SPOOFED_THREAD_ID || vars.MESSAGE_THREAD_ID || '3' }}" >> $GITHUB_OUTPUT
           else
             echo "title=Manager" >> $GITHUB_OUTPUT
-            echo "topicid=${{ vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+            echo "topicid=${{ vars.MESSAGE_THREAD_ID || '3' }}" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref_type }}" != "tag" ]]; then
-            echo "topicid=${{ vars.MESSAGE_DEVELOPING_MANAGER_THREAD_ID || vars.MESSAGE_THREAD_ID }}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" != "refs/heads/main" && "${{ github.ref }}" != "refs/heads/SovaSU" && "${{ github.ref_type }}" != "tag" ]]; then
+            echo "topicid=${{ vars.MESSAGE_DEVELOPING_MANAGER_THREAD_ID || vars.MESSAGE_THREAD_ID || '3' }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Download Debug artifact
