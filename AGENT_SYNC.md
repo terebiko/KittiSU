@@ -85,6 +85,12 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
 - **[2026-11-23 - Antigravity]**:
+  - **Đồng bộ các tính năng & bản vá từ `KOWX712/KernelSU` (`kowsu/master` & `kowsu/waydroid`) + Bổ sung tùy biến UI**:
+    - `kernel/` & `userspace/`: Sửa `find_kernel_symbol_exact_cb` dừng ngay ở kết quả khớp đầu tiên (`#3999`), kiểm tra `if (g)` trong `ksu_observer_exit`, và thêm `profile_path()` chống path traversal trong `ksud/src/android/profile.rs`.
+    - Hỗ trợ **Flash trực tiếp file APK trong Custom Recovery (TWRP / OrangeFox)** (`6e227de08`): Đóng gói `META-INF/com/google/android/update-binary` & `updater-script` vào APK (`mergeScripts` trong `build.gradle.kts`). Đổi tên `.apk` thành `.zip` để flash LKM hoặc `uninstall.zip` để gỡ cài đặt trong Recovery.
+    - Tích hợp **Eruda WebUI DevTools Console** (`692e7cf5d`): Nhúng `assets/eruda.min.js` và tự động nạp bảng DevTools nổi ngay trong WebUI trên điện thoại khi bật `Web Debugging`.
+    - Thêm lối tắt mở nhanh WebUI **KernelSU Toolkit** (`ksu_toolkit`) và **KPatch Next** (`KPatch-Next`) trong trang Cài đặt (`ddbfca957`), nâng cấp nút Đóng / Khởi động lại chống nhấn đúp ở màn hình `Flash.kt` (`#3998`).
+    - Thêm các tùy chọn cá nhân hóa mới trong `MoreSettings.kt`: **Giao diện thẻ Working cổ điển (`Classic Home UI`)**, **Biểu tượng trên nút gạt Switch (`Switch thumb icon`)**, và **Thanh trượt chỉnh độ tối lớp phủ riêng cho thẻ Working (`WorkingCardDimSlider`)**.
   - **Đồng bộ Upstream từ `Baka-SU/BakaSU` (`7b65bde0..63ad1ea3`)**:
     - `kernel/` & `userspace/`: Đồng bộ toàn bộ 15 commit mới nhất từ `BakaSU` (chia tách `selinux_hide` thành `common/auto/susfs` và vá điểm phát hiện `/sys/fs/selinux/access` seqno + timing side-channel, thêm LSM hook `inode_setxattr`, hỗ trợ Vivo `logd` đọc thuộc tính tiến trình root, sửa thanh ghi tham số đầu syscall `arm64` trên Linux 7.3+, sửa căn chỉnh ELF `preinit_runner` và `is_compat_task` / `do_syscall_64` trên `x86_64`, cập nhật binary `waitsys`, đồng bộ `susfs` `priority_uid_filter` + `sus_path_uid_filter` + `package_list`).
     - `js/` & `manager/ui/webui/`: Bổ sung giao diện WebUI File I/O (`KsuIO`, `FileInterface`, `FileInputStreamInterface`, `FileOutputStreamInterface`, `RandomAccessFileInterface`), trình tải Blob/File (`BlobDownloadHandler`, `Download`, `WebUIDownloadInterface`, `assets/webview/download.js`) và giao diện PackageManager mới `ksu.pm()` (`KsuPm.kt`).

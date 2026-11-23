@@ -130,9 +130,12 @@ import anhiutangerinee.kittisu.ui.util.getBootRecoveryState
 import anhiutangerinee.kittisu.ui.util.getFeaturePersistValue
 import anhiutangerinee.kittisu.ui.util.getFeatureStatus
 import anhiutangerinee.kittisu.ui.util.inspectModuleBackup
+import anhiutangerinee.kittisu.ui.util.isWebuiModuleInstalled
 import anhiutangerinee.kittisu.ui.util.rootAvailable
 import anhiutangerinee.kittisu.ui.util.restoreModules
 import anhiutangerinee.kittisu.ui.util.resetBootRecovery
+import anhiutangerinee.kittisu.ui.webui.WebUIActivity
+import androidx.core.net.toUri
 import com.topjohnwu.superuser.ShellUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -198,8 +201,14 @@ fun SettingsPage(bottomPadding: Dp) {
         var selectedRestoreModules by remember { mutableStateOf(emptySet<String>()) }
         var bootRecoveryState by remember { mutableStateOf<BootRecoveryState?>(null) }
         var showBootRecoveryDialog by remember { mutableStateOf(false) }
+        var isToolkitInstalled by remember { mutableStateOf(false) }
+        var isKpatchNextInstalled by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) {
-            bootRecoveryState = withContext(Dispatchers.IO) { getBootRecoveryState() }
+            withContext(Dispatchers.IO) {
+                bootRecoveryState = getBootRecoveryState()
+                isToolkitInstalled = isWebuiModuleInstalled("ksu_toolkit")
+                isKpatchNextInstalled = isWebuiModuleInstalled("KPatch-Next")
+            }
         }
         val exportModulesLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.CreateDocument("application/x-tar")
@@ -741,6 +750,38 @@ fun SettingsPage(bottomPadding: Dp) {
                                     description = stringResource(R.string.umount_path_manager_summary),
                                     onClick = {
                                         navigator.push(Route.UmountManager)
+                                    }
+                                )
+                            }
+
+                            item(visible = isToolkitInstalled) {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.Settings,
+                                    title = stringResource(R.string.settings_kernelsu_toolkit),
+                                    description = stringResource(R.string.settings_kernelsu_toolkit_summary),
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(context, WebUIActivity::class.java)
+                                                .setData("kernelsu://webui/ksu_toolkit".toUri())
+                                                .putExtra("id", "ksu_toolkit")
+                                                .putExtra("name", "KernelSU Toolkit")
+                                        )
+                                    }
+                                )
+                            }
+
+                            item(visible = isKpatchNextInstalled) {
+                                SettingsJumpPageWidget(
+                                    icon = Icons.TwoTone.Settings,
+                                    title = stringResource(R.string.settings_kpatch_next),
+                                    description = stringResource(R.string.settings_kpatch_next_summary),
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(context, WebUIActivity::class.java)
+                                                .setData("kernelsu://webui/KPatch-Next".toUri())
+                                                .putExtra("id", "KPatch-Next")
+                                                .putExtra("name", "KPatch-Next")
+                                        )
                                     }
                                 )
                             }

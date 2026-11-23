@@ -37,6 +37,7 @@ import java.util.zip.GZIPInputStream
  * ```
  */
 class SuFilePathHandler(
+    private val context: Context,
     directory: File,
     private val shell: Shell,
     private val insetsSupplier: InsetsSupplier,
@@ -112,6 +113,15 @@ class SuFilePathHandler(
                 "utf-8",
                 ByteArrayInputStream(css.toByteArray(StandardCharsets.UTF_8))
             )
+        }
+
+        if (path == "internal/eruda.min.js") {
+            try {
+                val inputStream = context.assets.open("eruda.min.js")
+                return WebResourceResponse("application/javascript", "UTF-8", inputStream)
+            } catch (e: IOException) {
+                Log.e(TAG, "Error loading eruda.min.js", e)
+            }
         }
 
         try {

@@ -98,6 +98,8 @@ object ThemeConfig {
     var isEnableBlur by mutableStateOf(false)
     var isEnableBlurExp by mutableStateOf(false)
     var isUseBackgroundSeedColor by mutableStateOf(false)
+    var isClassicHomeUi by mutableStateOf(false)
+    var showSwitchIcon by mutableStateOf(true)
 
     // Full-screen 9:16 background state
     var fullScreenBackgroundUri by mutableStateOf<Uri?>(null)
@@ -275,6 +277,20 @@ object BackgroundManager {
         }
     }
 
+    fun saveClassicHomeUi(context: Context, enable: Boolean) {
+        ThemeConfig.isClassicHomeUi = enable
+        context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit {
+            putBoolean("classic_home_ui", enable)
+        }
+    }
+
+    fun saveShowSwitchIcon(context: Context, enable: Boolean) {
+        ThemeConfig.showSwitchIcon = enable
+        context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE).edit {
+            putBoolean("show_switch_icon", enable)
+        }
+    }
+
     fun saveAndApplyCustomBackground(
         context: Context,
         uri: Uri,
@@ -322,6 +338,8 @@ object BackgroundManager {
         ThemeConfig.isEnableBlurExp = prefs.getBoolean("enable_blur_exp", false)
         ThemeConfig.isUseBackgroundSeedColor = prefs.getBoolean("use_background_seed_color", true)
         ThemeConfig.isHighContrastMode = prefs.getBoolean("high_contrast_mode", false)
+        ThemeConfig.isClassicHomeUi = prefs.getBoolean("classic_home_ui", false)
+        ThemeConfig.showSwitchIcon = prefs.getBoolean("show_switch_icon", true)
     }
 
     fun saveFullScreenBackground(

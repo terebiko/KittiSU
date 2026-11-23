@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.Close
 import androidx.compose.material.icons.twotone.Error
 import androidx.compose.material.icons.twotone.Refresh
 import androidx.compose.material.icons.twotone.Save
@@ -430,6 +431,8 @@ fun FlashScreen(flashIt: FlashIt) {
                 if (showReboot && !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)) {
                     text += "\n\n\n"
                     showFloatAction = true
+                } else if (code == 0 && !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)) {
+                    text += "\n\n\n"
                 }
 
                 hasFlashCompleted = true
@@ -562,27 +565,43 @@ fun FlashScreen(flashIt: FlashIt) {
             )
         },
         floatingActionButton = {
-            if (showFloatAction) {
+            val isSuccessNoPreset = currentFlashingStatus.value == FlashingStatus.SUCCESS &&
+                hasFlashCompleted &&
+                !(flashIt is FlashIt.FlashModules && flashIt.fromPreset)
+            if (showFloatAction || isSuccessNoPreset) {
+                var actionInProgress by rememberSaveable { mutableStateOf(false) }
                 ExtendedFloatingActionButton(
                     onClick = {
-                        scope.launch {
-                            withContext(Dispatchers.IO) {
-                                reboot()
+                        if (actionInProgress) return@ExtendedFloatingActionButton
+                        if (showFloatAction) {
+                            actionInProgress = true
+                            scope.launch {
+                                withContext(Dispatchers.IO) {
+                                    reboot()
+                                }
                             }
+                        } else {
+                            onBack()
                         }
                     },
                     icon = {
                         Icon(
-                            Icons.TwoTone.Refresh,
-                            contentDescription = stringResource(id = R.string.reboot)
+                            if (showFloatAction) Icons.TwoTone.Refresh else Icons.TwoTone.Close,
+                            contentDescription = stringResource(
+                                id = if (showFloatAction) R.string.reboot else R.string.close
+                            )
                         )
                     },
                     text = {
-                        Text(text = stringResource(id = R.string.reboot))
+                        Text(
+                            text = stringResource(
+                                id = if (showFloatAction) R.string.reboot else R.string.close
+                            )
+                        )
                     },
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    expanded = true
+                    expanded = !actionInProgress
                 )
             }
         },

@@ -52,8 +52,10 @@ import androidx.compose.material.icons.twotone.Translate
 import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Wallpaper
 import androidx.compose.material.icons.twotone.Animation
+import androidx.compose.material.icons.twotone.DashboardCustomize
 import androidx.compose.material.icons.twotone.SwapHoriz
 import androidx.compose.material.icons.twotone.Style
+import androidx.compose.material.icons.twotone.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -569,13 +571,21 @@ private fun AppearanceSettings(
             }
         }
 
-        item {
-            CustomBackgroundSettings(
-                state = state,
-                handlers = handlers,
-                pickImageLauncher = pickImageLauncher,
-            )
-        }
+        expandableItem(
+            expanded = state.isCustomBackgroundEnabled,
+            topContent = {
+                CustomBackgroundSettings(
+                    state = state,
+                    handlers = handlers,
+                    pickImageLauncher = pickImageLauncher,
+                )
+            },
+            bottomContent = {
+                item(topPadding = 1.dp) {
+                    WorkingCardDimSlider(state, handlers, coroutineScope)
+                }
+            }
+        )
 
         item(topPadding = 1.dp) {
             val context = LocalContext.current
@@ -612,6 +622,7 @@ private fun CustomizationSettings(
     state: MoreSettingsState,
     handlers: MoreSettingsHandlers
 ) {
+    val context = LocalContext.current
     SegmentedColumn(title = stringResource(R.string.custom_settings)) {
         item {
             // 图标切换
@@ -621,6 +632,30 @@ private fun CustomizationSettings(
                 description = stringResource(R.string.icon_switch_summary),
                 checked = state.useAltIcon,
                 onCheckedChange = handlers::handleIconChange
+            )
+        }
+
+        item {
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.DashboardCustomize,
+                title = stringResource(R.string.settings_classic_home_ui),
+                description = stringResource(R.string.settings_classic_home_ui_summary),
+                checked = ThemeConfig.isClassicHomeUi,
+                onCheckedChange = { enabled ->
+                    BackgroundManager.saveClassicHomeUi(context, enabled)
+                }
+            )
+        }
+
+        item {
+            SettingsSwitchWidget(
+                icon = Icons.TwoTone.Tune,
+                title = stringResource(R.string.settings_switch_icon),
+                description = stringResource(R.string.settings_switch_icon_summary),
+                checked = ThemeConfig.showSwitchIcon,
+                onCheckedChange = { enabled ->
+                    BackgroundManager.saveShowSwitchIcon(context, enabled)
+                }
             )
         }
 
@@ -1040,6 +1075,55 @@ private fun AlphaSlider(
             Text(
                 text = "${(state.cardAlpha * 100).roundToInt()}%",
                 style = MaterialTheme.typography.labelMediumEmphasized
+            )
+        }
+    }
+}
+
+@Composable
+private fun WorkingCardDimSlider(
+    state: MoreSettingsState,
+    handlers: MoreSettingsHandlers,
+    coroutineScope: CoroutineScope
+) {
+    val context = LocalContext.current
+    SettingsBaseWidget(
+        icon = Icons.TwoTone.LightMode,
+        title = stringResource(R.string.settings_background_dim),
+        descriptionColumnContent = {
+            val dimSliderValue by animateFloatAsState(
+                targetValue = ThemeConfig.backgroundDim,
+                label = "Working Card Dim Slider Animation"
+            )
+
+            Slider(
+                value = dimSliderValue,
+                onValueChange = { newValue ->
+                    ThemeConfig.backgroundDim = newValue.coerceIn(0f, 0.85f)
+                },
+                onValueChangeFinished = {
+                    coroutineScope.launch(Dispatchers.IO) {
+                        BackgroundManager.saveBackgroundDim(context, ThemeConfig.backgroundDim)
+                    }
+                },
+                valueRange = 0f..0.85f,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            )
+        }
+    ) {
+        Box(contentAlignment = Alignment.CenterEnd) {
+            Text(
+                text = "100%",
+                style = MaterialTheme.typography.labelMediumEmphasized,
+                modifier = Modifier.alpha(0f)
+            )
+            Text(
+                text = "${(ThemeConfig.backgroundDim * 100).roundToInt()}%",
+                style = MaterialTheme.typography.labelMediumEmphasized,
             )
         }
     }

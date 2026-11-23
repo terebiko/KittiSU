@@ -688,7 +688,142 @@ private fun StatusCard(
                 )
             }
             
-            Column(
+            val isClassicUi = ThemeConfig.isClassicHomeUi
+            if (isClassicUi) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (systemStatus.isRootAvailable || systemStatus.kernelVersion.isGKI()) {
+                                onClickInstall()
+                            }
+                        }
+                        .padding(24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val statusIcon = when {
+                        systemStatus.ksuVersion != null && isSafeMode -> Icons.TwoTone.Warning
+                        systemStatus.ksuVersion != null -> Icons.TwoTone.TaskAlt
+                        systemStatus.kernelVersion.isGKI() -> Icons.TwoTone.Warning
+                        else -> Icons.TwoTone.Block
+                    }
+                    Icon(
+                        imageVector = statusIcon,
+                        contentDescription = null,
+                        tint = statusOnContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(20.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        when {
+                            systemStatus.ksuVersion != null -> {
+                                val workingModeText = if (isSafeMode) {
+                                    stringResource(id = R.string.safe_mode)
+                                } else {
+                                    stringResource(id = R.string.home_working)
+                                }
+                                val workingModeSurfaceText = if (systemStatus.lkmMode == true) "LKM" else "Built-in"
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = workingModeText,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            shadow = customBgTextShadow
+                                        ),
+                                        color = statusOnContainer,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    LabelText(
+                                        label = workingModeSurfaceText,
+                                        containerColor = badgeContainerColor,
+                                        contentColor = statusOnContainer,
+                                        border = badgeBorder
+                                    )
+                                    if (isLateLoadMode) {
+                                        Spacer(Modifier.width(6.dp))
+                                        LabelText(
+                                            label = stringResource(id = R.string.jailbreak_mode),
+                                            containerColor = badgeContainerColor,
+                                            contentColor = statusOnContainer,
+                                            border = badgeBorder
+                                        )
+                                    }
+                                    if (machine != "aarch64") {
+                                        Spacer(Modifier.width(6.dp))
+                                        LabelText(
+                                            label = machine,
+                                            containerColor = badgeContainerColor,
+                                            contentColor = statusOnContainer,
+                                            border = badgeBorder
+                                        )
+                                    }
+                                }
+                                val isHideVersion = LocalContext.current
+                                    .getSharedPreferences("settings", Context.MODE_PRIVATE)
+                                    .getBoolean("is_hide_version", false)
+                                if (!isHideVersion) {
+                                    Spacer(Modifier.height(4.dp))
+                                    systemStatus.ksuFullVersion?.let {
+                                        Text(
+                                            text = stringResource(R.string.home_working_version, it),
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                shadow = customBgTextShadow
+                                            ),
+                                            color = statusOnContainer,
+                                        )
+                                    }
+                                }
+                            }
+                            systemStatus.kernelVersion.isGKI() -> {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = stringResource(R.string.home_not_installed),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            shadow = customBgTextShadow
+                                        ),
+                                        color = statusOnContainer,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    LabelText(
+                                        label = "Legacy",
+                                        containerColor = badgeContainerColor,
+                                        contentColor = statusOnContainer,
+                                        border = badgeBorder
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.home_click_to_install),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        shadow = customBgTextShadow
+                                    ),
+                                    color = statusOnContainer
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = stringResource(R.string.home_unsupported),
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        shadow = customBgTextShadow
+                                    ),
+                                    color = statusOnContainer,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.home_unsupported_reason),
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        shadow = customBgTextShadow
+                                    ),
+                                    color = statusOnContainer
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
@@ -815,6 +950,7 @@ private fun StatusCard(
                             color = statusOnContainer
                         )
                     }
+                }
                 }
             }
         }

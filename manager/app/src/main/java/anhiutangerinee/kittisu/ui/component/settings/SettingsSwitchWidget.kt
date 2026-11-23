@@ -92,13 +92,15 @@ fun SettingsSwitchWidget(
                 checkedIconColor = MaterialTheme.colorScheme.primary,
                 uncheckedIconColor = MaterialTheme.colorScheme.surfaceContainerHighest
             ),
-            thumbContent = {
-                Icon(
-                    imageVector = if (checked) Icons.TwoTone.Check else Icons.TwoTone.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(SwitchDefaults.IconSize)
-                )
-            },
+            thumbContent = if (anhiutangerinee.kittisu.ui.theme.ThemeConfig.showSwitchIcon) {
+                {
+                    Icon(
+                        imageVector = if (checked) Icons.TwoTone.Check else Icons.TwoTone.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(SwitchDefaults.IconSize)
+                    )
+                }
+            } else null,
             // Pass null to disable internal touch handling and let BaseWidget calculate the exact ripple coordinates
             onCheckedChange = null
         )

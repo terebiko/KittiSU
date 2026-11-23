@@ -648,6 +648,11 @@ fun restartApp(packageName: String) {
     launchApp(packageName)
 }
 
+fun isWebuiModuleInstalled(modId: String): Boolean {
+    if (!hasKsuDaemon()) return false
+    return SuFile("/data/adb/modules/$modId/webroot/index.html").exists()
+}
+
 fun getSuSFSStatus(): String {
     if (!hasKsuDaemon()) return ""
     val shell = getRootShell()

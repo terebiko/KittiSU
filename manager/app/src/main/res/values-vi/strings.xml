@@ -615,4 +615,12 @@ Bật: Kích hoạt tính năng giả mạo sus tcontext của \'su\' thành \'u
     <string name="susfs_sus_path_uid_filter_description">Chọn các ứng dụng được phép nhìn thấy đường dẫn đã ẩn bởi SUSFS (áp dụng cho UID 10000–19999). Thay đổi có hiệu lực ngay và được khôi phục sau khi khởi động lại.</string>
     <string name="susfs_uid_filter_search">Tìm kiếm ứng dụng</string>
     <string name="susfs_uid_filter_loading">Đang tải ứng dụng…</string>
+    <string name="settings_kernelsu_toolkit">KernelSU Toolkit</string>
+    <string name="settings_kernelsu_toolkit_summary">Công cụ tiện ích mở rộng cho KernelSU</string>
+    <string name="settings_kpatch_next">KPatch Next</string>
+    <string name="settings_kpatch_next_summary">Trình quản lý hỗ trợ KPM độc lập</string>
+    <string name="settings_classic_home_ui">Giao diện thẻ Working cổ điển</string>
+    <string name="settings_classic_home_ui_summary">Sử dụng bố cục thẻ ngang gọn kiểu KernelSU cổ điển ở Trang chủ</string>
+    <string name="settings_switch_icon">Biểu tượng trên nút gạt Switch</string>
+    <string name="settings_switch_icon_summary">Hiển thị dấu tích và dấu X bên trong các nút công tắc</string>
 </resources>

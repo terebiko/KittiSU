@@ -805,5 +805,13 @@ Important Note:\n
     <string name="susfs_sus_path_uid_filter_description">Select apps that can see paths hidden by SUSFS. Other ordinary apps cannot see these paths. Only app UIDs 10000–19999 can be selected. Changes take effect immediately and are restored after reboot. Apps sharing a UID are affected together.</string>
     <string name="susfs_uid_filter_search">Search apps</string>
     <string name="susfs_uid_filter_loading">Loading apps…</string>
+    <string name="settings_kernelsu_toolkit">KernelSU Toolkit</string>
+    <string name="settings_kernelsu_toolkit_summary">Utility tool for KernelSU extra features</string>
+    <string name="settings_kpatch_next">KPatch Next</string>
+    <string name="settings_kpatch_next_summary">Standalone implementation of KPM support</string>
+    <string name="settings_classic_home_ui">Classic Home UI</string>
+    <string name="settings_classic_home_ui_summary">Use classic compact horizontal layout for the Working status card</string>
+    <string name="settings_switch_icon">Switch thumb icon</string>
+    <string name="settings_switch_icon_summary">Show checkmark and cross icons inside toggle switches</string>
 
 </resources>

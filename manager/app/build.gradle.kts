@@ -187,6 +187,20 @@ base {
     )
 }
 
+tasks.register<Copy>("mergeScripts") {
+    into("${project.projectDir}/src/main/resources/META-INF/com/google/android")
+    from(rootProject.file("scripts/update_binary.sh")) {
+        rename { "update-binary" }
+    }
+    from(rootProject.file("scripts/updater_script.sh")) {
+        rename { "updater-script" }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn("mergeScripts")
+}
+
 configurations.all {
     exclude(group = "androidx.navigationevent", module = "navigationevent-compose")
 }
