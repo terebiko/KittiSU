@@ -84,7 +84,7 @@ fun LanguageSelectionDialog(
             // Dynamically detect available locales by checking resource directories
             // FIXME From manifest
             val resourceDirs = listOf(
-                "ar", "bg", "de", "fa", "fr", "hu", "in", "it",
+                "ar", "bg", "de", "en", "fa", "fr", "hu", "in", "it",
                 "ja", "ko", "pl", "pt-rBR", "ru", "th", "tr",
                 "uk", "vi", "zh-rCN", "zh-rTW"
             )

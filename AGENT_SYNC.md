@@ -83,6 +83,12 @@ Tài liệu này dùng để đồng bộ trạng thái codebase, các quyết �
 ---
 
 ## 📝 4. Nhật ký Phiên làm việc (Session Changelog)
+- **[2026-11-23 - Antigravity (Việt hóa 100%)]**:
+  - **Hoàn thiện Việt hóa 100% toàn bộ ứng dụng (`863/863` khóa chuỗi trong `values-vi/strings.xml`, 0 chuỗi thiếu, 0 lỗi định dạng)**:
+    - Dịch đầy đủ toàn bộ **177 chuỗi còn thiếu** sang tiếng Việt tự nhiên cho các tính năng mới: Nhật ký SU (`sulog`), Seccomp, Jailbreak & cảnh báo flash, Ẩn chỉnh sửa SELinux, Kênh cập nhật (`Ổn định` / `Beta` / `Nightly`), Hiệu ứng làm mờ & Độ tương phản cao & Độ trong suốt thẻ, Cử chỉ quay lại dự đoán (`Predictive Back`), Kho mô-đun (`Module Repo`), Bộ cài sẵn (`Preset` & tập lệnh sau cài đặt), Lối tắt mô-đun màn hình chính, Tải xuống & quyền thông báo/bộ nhớ, SuSFS & Umount.
+    - Cập nhật đồng bộ thương hiệu `SukiSU Ultra` cũ sang `SovaSU` và Việt hóa các chuỗi tiếng Anh còn sót (`Bảng điều khiển Root`, `Bộ cài sẵn Mô-đun`, `Gỡ gắn kết mô-đun`, `Đang flash Kernel…`, `Mã lỗi`).
+    - Bổ sung `"en"` vào danh sách ngôn ngữ trong `MoreSettingsDialogs.kt` cho Android < 13 (Android 13+ dùng sẵn `generateLocaleConfig = true` và chọn ngôn ngữ riêng cho ứng dụng).
+    - Đã build lại bản APK release (`out/SovaSU-release.apk`, `out/SovaSU-arm64-v8a-release.apk`, `out/SovaSU-universal-release.apk`) và kiểm thử trực quan giao diện tiếng Việt trên `emulator-5554` (0 crash).
 - **[2026-11-23 - Antigravity (Tiếp theo)]**:
   - **Thêm menu quản lý KPM (KernelPatch Modules), mục Ứng dụng mới cài đặt kiểu BakaSU trên trang SuperUser, và Bảng điều khiển Root (`su`) tích hợp theo Material Design 3 Expressive**:
     - **Quản lý KPM (`kp_jni.c`, `KernelPatchManager.kt`, `KpmScreen.kt`, `SettingsPage.kt`, `HomePage.kt`, `ModulePage.kt`, `Routes.kt`, `MainActivity.kt`)**:
