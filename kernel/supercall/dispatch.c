@@ -155,23 +155,6 @@ static int do_get_info_legacy(void __user *arg)
     return 0;
 }
 
-static int do_get_info_legacy(void __user *arg)
-{
-    struct ksu_get_info_legacy_cmd cmd = { .version = KERNEL_SU_VERSION, .flags = 0 };
-#ifdef MODULE
-    cmd.flags |= KSU_GET_INFO_FLAG_LKM;
-#endif
-    if (is_manager())
-        cmd.flags |= KSU_GET_INFO_FLAG_MANAGER;
-    if (ksu_late_loaded)
-        cmd.flags |= KSU_GET_INFO_FLAG_LATE_LOAD;
-#ifdef EXPECTED_PR_BUILD_SIZE
-    cmd.flags |= KSU_GET_INFO_FLAG_PR_BUILD;
-#endif
-    cmd.features = KSU_FEATURE_MAX;
-    return copy_to_user(arg, &cmd, sizeof(cmd)) ? -EFAULT : 0;
-}
-
 static int do_report_event(void __user *arg)
 {
     static bool services_started = false;
@@ -919,12 +902,6 @@ static int do_get_sulog_fd(void __user *arg)
     }
 
     return ksu_install_sulog_fd();
-}
-
-static int do_disable_escape_to_root(void __user *arg)
-{
-    set_thread_flag(TIF_KSU_DISABLE_ESCAPE_WITH_ROOT);
-    return 0;
 }
 
 /*
