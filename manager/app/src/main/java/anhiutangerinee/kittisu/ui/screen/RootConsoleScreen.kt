@@ -6,7 +6,6 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,8 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -943,184 +939,174 @@ fun RootConsoleScreen() {
                         FilledIconButton(
                             onClick = { submitCurrentCommand() },
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                containerColor = if (isRoot) Color(0xFF1F3A26) else Color(0xFF21262D),
+                                contentColor = if (isRoot) terminalCmdColor else terminalFg
                             ),
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(26.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.TwoTone.Send,
                                 contentDescription = stringResource(R.string.root_console_run),
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                     }
-                }
-            }
 
-            // Sleek 2x7 Symmetrical M3 Expressive Extra Keys Dock (zero clipping, crisp proportions)
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 2.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = m3CardContainerColor().copy(alpha = CardConfig.cardAlpha.coerceAtLeast(0.95f)),
-                border = BorderStroke(
-                    width = 0.6.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
-                ),
-                tonalElevation = 1.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp, vertical = 5.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Row 1 (7 equal-width keys): ESC | CTRL | ALT | SHIFT | TAB | / | ^C
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ConsoleExtraKey(
-                            label = "ESC",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                ctrlActive = false
-                                altActive = false
-                                shiftActive = false
-                                inputValue = inputValue.copy(selection = TextRange(inputValue.text.length))
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "CTRL",
-                            active = ctrlActive,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                ctrlActive = !ctrlActive
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "ALT",
-                            active = altActive,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                altActive = !altActive
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "SHIFT",
-                            active = shiftActive,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                shiftActive = !shiftActive
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "TAB",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                handleTabComplete()
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "/",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                insertAtCursor("/")
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "^C",
-                            active = false,
-                            isDanger = true,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
-                                scope.launch(Dispatchers.IO) { shell.sendInterrupt() }
-                            }
-                        )
-                    }
+                    HorizontalDivider(thickness = 0.5.dp, color = terminalDivider.copy(alpha = 0.6f))
 
-                    // Row 2 (7 equal-width keys): ◀ | ▲ | ▼ | ▶ | - | | | ~
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Seamless Dark Termux-Pro 2x7 Extra Keys Strip (integrated directly inside terminal)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(terminalHeaderBg)
+                            .padding(horizontal = 6.dp, vertical = 5.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        ConsoleArrowKey(
-                            icon = Icons.AutoMirrored.TwoTone.KeyboardArrowLeft,
-                            contentDesc = "Left",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                handleCursorMove(-1)
-                            }
-                        )
-                        ConsoleArrowKey(
-                            icon = Icons.TwoTone.KeyboardArrowUp,
-                            contentDesc = "Up",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                handleHistoryUp()
-                            }
-                        )
-                        ConsoleArrowKey(
-                            icon = Icons.TwoTone.KeyboardArrowDown,
-                            contentDesc = "Down",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                handleHistoryDown()
-                            }
-                        )
-                        ConsoleArrowKey(
-                            icon = Icons.AutoMirrored.TwoTone.KeyboardArrowRight,
-                            contentDesc = "Right",
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                handleCursorMove(1)
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "-",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                insertAtCursor("-")
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "|",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                insertAtCursor("|")
-                            }
-                        )
-                        ConsoleExtraKey(
-                            label = "~",
-                            active = false,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                insertAtCursor("~")
-                            }
-                        )
+                        // Row 1 (7 equal-width flat keycaps): ESC | CTRL | ALT | SHIFT | TAB | / | ^C
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ConsoleExtraKey(
+                                label = "ESC",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    ctrlActive = false
+                                    altActive = false
+                                    shiftActive = false
+                                    inputValue = inputValue.copy(selection = TextRange(inputValue.text.length))
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "CTRL",
+                                active = ctrlActive,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    ctrlActive = !ctrlActive
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "ALT",
+                                active = altActive,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    altActive = !altActive
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "SHIFT",
+                                active = shiftActive,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    shiftActive = !shiftActive
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "TAB",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    handleTabComplete()
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "/",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    insertAtCursor("/")
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "^C",
+                                active = false,
+                                isDanger = true,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+                                    scope.launch(Dispatchers.IO) { shell.sendInterrupt() }
+                                }
+                            )
+                        }
+
+                        // Row 2 (7 equal-width flat keycaps): ◀ | ▲ | ▼ | ▶ | - | | | ~
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            ConsoleArrowKey(
+                                icon = Icons.AutoMirrored.TwoTone.KeyboardArrowLeft,
+                                contentDesc = "Left",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    handleCursorMove(-1)
+                                }
+                            )
+                            ConsoleArrowKey(
+                                icon = Icons.TwoTone.KeyboardArrowUp,
+                                contentDesc = "Up",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    handleHistoryUp()
+                                }
+                            )
+                            ConsoleArrowKey(
+                                icon = Icons.TwoTone.KeyboardArrowDown,
+                                contentDesc = "Down",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    handleHistoryDown()
+                                }
+                            )
+                            ConsoleArrowKey(
+                                icon = Icons.AutoMirrored.TwoTone.KeyboardArrowRight,
+                                contentDesc = "Right",
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    handleCursorMove(1)
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "-",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    insertAtCursor("-")
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "|",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    insertAtCursor("|")
+                                }
+                            )
+                            ConsoleExtraKey(
+                                label = "~",
+                                active = false,
+                                modifier = Modifier.weight(1f),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    insertAtCursor("~")
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -1132,7 +1118,7 @@ fun RootConsoleScreen() {
 private fun ModifierStatusTag(label: String) {
     Surface(
         shape = RoundedCornerShape(4.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
+        color = Color(0xFF1F6FEB).copy(alpha = 0.28f)
     ) {
         Text(
             text = label,
@@ -1141,7 +1127,7 @@ private fun ModifierStatusTag(label: String) {
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = Color(0xFF79C0FF),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
         )
     }
@@ -1156,29 +1142,27 @@ private fun ConsoleExtraKey(
     onClick: () -> Unit,
 ) {
     val containerColor = when {
-        active -> MaterialTheme.colorScheme.primaryContainer
-        isDanger -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f)
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        active -> Color(0xFF1F6FEB)
+        isDanger -> Color(0xFF3E1F22)
+        else -> Color(0xFF21262D)
     }
     val contentColor = when {
-        active -> MaterialTheme.colorScheme.onPrimaryContainer
-        isDanger -> MaterialTheme.colorScheme.onErrorContainer
-        else -> MaterialTheme.colorScheme.onSurface
+        active -> Color.White
+        isDanger -> Color(0xFFFF7B72)
+        else -> Color(0xFFD0D7DE)
     }
     val border = if (active) {
-        BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
-    } else {
-        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-    }
+        BorderStroke(0.8.dp, Color(0xFF79C0FF))
+    } else null
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(6.dp),
         color = containerColor,
         contentColor = contentColor,
         border = border,
         modifier = modifier
-            .height(32.dp)
+            .height(26.dp)
             .semantics {
                 role = Role.Button
                 selected = active
@@ -1192,8 +1176,8 @@ private fun ConsoleExtraKey(
                 softWrap = false,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontFamily = FontFamily.Monospace,
-                    fontSize = 10.5.sp,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold
+                    fontSize = 9.5.sp,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
                 )
             )
         }
@@ -1209,17 +1193,16 @@ private fun ConsoleArrowKey(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-        modifier = modifier.height(32.dp)
+        shape = RoundedCornerShape(6.dp),
+        color = Color(0xFF21262D),
+        contentColor = Color(0xFFD0D7DE),
+        modifier = modifier.height(26.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDesc,
-                modifier = Modifier.size(17.dp)
+                modifier = Modifier.size(15.dp)
             )
         }
     }
