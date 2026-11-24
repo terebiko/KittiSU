@@ -54,6 +54,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -686,47 +687,28 @@ fun RootConsoleScreen() {
         inputValue = newValue
     }
 
-    val terminalBg = Color(0xFF0E1117)
+    val terminalBg = Color(0xFF0D1117)
+    val terminalHeaderBg = Color(0xFF161B22)
+    val terminalInputBg = Color(0xFF131922)
+    val terminalDivider = Color(0xFF30363D)
     val terminalFg = Color(0xFFE6EDF3)
     val terminalCmdColor = Color(0xFF7EE787)
     val terminalSysColor = Color(0xFF8B949E)
     val terminalErrColor = Color(0xFFFF7B72)
+    val terminalWarnBg = Color(0xFF2A1D12)
+    val terminalWarnFg = Color(0xFFF2CC60)
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.root_console_title),
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isRoot) {
-                                MaterialTheme.colorScheme.primaryContainer
-                            } else {
-                                MaterialTheme.colorScheme.errorContainer
-                            }
-                        ) {
-                            Text(
-                                text = if (isRoot) "ROOT #" else "USER $",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isRoot) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.onErrorContainer
-                                },
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = stringResource(R.string.root_console_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 },
                 navigationIcon = {
                     AppBackButton(onClick = { navigator.pop() })
@@ -740,13 +722,15 @@ fun RootConsoleScreen() {
                     }) {
                         Icon(
                             imageVector = Icons.TwoTone.ContentCopy,
-                            contentDescription = stringResource(R.string.root_console_copy)
+                            contentDescription = stringResource(R.string.root_console_copy),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(onClick = { lines.clear() }) {
                         Icon(
                             imageVector = Icons.TwoTone.DeleteSweep,
-                            contentDescription = stringResource(R.string.root_console_clear)
+                            contentDescription = stringResource(R.string.root_console_clear),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(onClick = {
@@ -754,7 +738,8 @@ fun RootConsoleScreen() {
                     }) {
                         Icon(
                             imageVector = Icons.TwoTone.Refresh,
-                            contentDescription = stringResource(R.string.root_console_restart)
+                            contentDescription = stringResource(R.string.root_console_restart),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
@@ -778,114 +763,230 @@ fun RootConsoleScreen() {
                 .padding(top = innerPadding.calculateTopPadding())
                 .navigationBarsPadding()
                 .imePadding()
+                .padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Compact M3 caution strip reminding user of root privileges
+            // Unified M3 Expressive Terminal Window (Header + Inline Caution + Output + Prompt)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.72f),
-                contentColor = MaterialTheme.colorScheme.onErrorContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.TwoTone.Warning,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.root_console_caution_banner),
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = currentDir,
-                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Floating M3 Expressive Terminal Output Island
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                shape = MaterialTheme.shapes.large,
+                    .weight(1f),
+                shape = RoundedCornerShape(18.dp),
                 color = terminalBg,
                 border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f)
+                    width = 0.8.dp,
+                    color = terminalDivider.copy(alpha = 0.7f)
                 )
             ) {
-                SelectionContainer {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Integrated Terminal Status Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(terminalHeaderBg)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(lines) { _, line ->
-                            val lineColor = when {
-                                line.isCommand -> terminalCmdColor
-                                line.isError -> terminalErrColor
-                                line.isSystem -> terminalSysColor
-                                else -> terminalFg
-                            }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isRoot) Color(0xFF1F3A26) else Color(0xFF3E1F22)
+                        ) {
                             Text(
-                                text = parseAnsiText(line.text, lineColor),
-                                style = MaterialTheme.typography.bodySmall.copy(
+                                text = if (isRoot) "ROOT #" else "USER $",
+                                style = MaterialTheme.typography.labelSmall.copy(
                                     fontFamily = FontFamily.Monospace,
-                                    fontSize = fontSizeSp.sp,
-                                    lineHeight = (fontSizeSp + 4f).sp,
-                                    fontWeight = if (line.isCommand) FontWeight.SemiBold else FontWeight.Normal
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 ),
-                                color = lineColor
+                                color = if (isRoot) terminalCmdColor else terminalErrColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = currentDir,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp
+                            ),
+                            color = terminalSysColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Active modifier status pills
+                        if (ctrlActive || altActive || shiftActive) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (ctrlActive) ModifierStatusTag("CTRL")
+                                if (altActive) ModifierStatusTag("ALT")
+                                if (shiftActive) ModifierStatusTag("SHIFT")
+                            }
+                        }
+                    }
+
+                    // Slim 1-line inline caution reminder
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(terminalWarnBg)
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.TwoTone.Warning,
+                            contentDescription = null,
+                            tint = terminalWarnFg,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.root_console_caution_banner),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp),
+                            color = terminalWarnFg,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    HorizontalDivider(thickness = 0.5.dp, color = terminalDivider.copy(alpha = 0.5f))
+
+                    // Terminal Output Stream
+                    SelectionContainer(modifier = Modifier.weight(1f)) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                        ) {
+                            itemsIndexed(lines) { _, line ->
+                                val lineColor = when {
+                                    line.isCommand -> terminalCmdColor
+                                    line.isError -> terminalErrColor
+                                    line.isSystem -> terminalSysColor
+                                    else -> terminalFg
+                                }
+                                Text(
+                                    text = parseAnsiText(line.text, lineColor),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = fontSizeSp.sp,
+                                        lineHeight = (fontSizeSp + 3.5f).sp,
+                                        fontWeight = if (line.isCommand) FontWeight.SemiBold else FontWeight.Normal
+                                    ),
+                                    color = lineColor
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(thickness = 0.6.dp, color = terminalDivider.copy(alpha = 0.7f))
+
+                    // Integrated Inline Command Input Dock (uses user's native Android IME keyboard)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(terminalInputBg)
+                            .padding(start = 12.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isRoot) "#" else "$",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            ),
+                            color = if (isRoot) terminalCmdColor else terminalErrColor
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (inputValue.text.isEmpty()) {
+                                Text(
+                                    text = stringResource(R.string.root_console_input_hint),
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 13.sp
+                                    ),
+                                    color = terminalSysColor.copy(alpha = 0.75f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            BasicTextField(
+                                value = inputValue,
+                                onValueChange = { handleInputChange(it) },
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 13.sp,
+                                    color = terminalFg
+                                ),
+                                cursorBrush = SolidColor(terminalCmdColor),
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.None,
+                                    autoCorrectEnabled = false,
+                                    keyboardType = KeyboardType.Ascii,
+                                    imeAction = ImeAction.Send
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSend = { submitCurrentCommand() }
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester)
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        FilledIconButton(
+                            onClick = { submitCurrentCommand() },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.TwoTone.Send,
+                                contentDescription = stringResource(R.string.root_console_run),
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
                 }
             }
 
-            // M3 Expressive Extra Keys Toolbar (ESC, CTRL, ALT, SHIFT, TAB, 4 Arrows, ^C, symbols)
+            // Sleek 2x7 Symmetrical M3 Expressive Extra Keys Dock (zero clipping, crisp proportions)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(18.dp),
+                    .padding(bottom = 2.dp),
+                shape = RoundedCornerShape(14.dp),
                 color = m3CardContainerColor().copy(alpha = CardConfig.cardAlpha.coerceAtLeast(0.95f)),
                 border = BorderStroke(
-                    width = 0.7.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    width = 0.6.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
                 ),
                 tonalElevation = 1.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                        .padding(horizontal = 6.dp, vertical = 5.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Row 1: ESC, CTRL, ALT, SHIFT, TAB, ^C
+                    // Row 1 (7 equal-width keys): ESC | CTRL | ALT | SHIFT | TAB | / | ^C
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ConsoleExtraKey(
                             label = "ESC",
                             active = false,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 ctrlActive = false
@@ -897,6 +998,7 @@ fun RootConsoleScreen() {
                         ConsoleExtraKey(
                             label = "CTRL",
                             active = ctrlActive,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 ctrlActive = !ctrlActive
@@ -905,6 +1007,7 @@ fun RootConsoleScreen() {
                         ConsoleExtraKey(
                             label = "ALT",
                             active = altActive,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 altActive = !altActive
@@ -913,6 +1016,7 @@ fun RootConsoleScreen() {
                         ConsoleExtraKey(
                             label = "SHIFT",
                             active = shiftActive,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 shiftActive = !shiftActive
@@ -921,15 +1025,26 @@ fun RootConsoleScreen() {
                         ConsoleExtraKey(
                             label = "TAB",
                             active = false,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 handleTabComplete()
                             }
                         )
                         ConsoleExtraKey(
+                            label = "/",
+                            active = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                insertAtCursor("/")
+                            }
+                        )
+                        ConsoleExtraKey(
                             label = "^C",
                             active = false,
                             isDanger = true,
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
                                 scope.launch(Dispatchers.IO) { shell.sendInterrupt() }
@@ -937,17 +1052,16 @@ fun RootConsoleScreen() {
                         )
                     }
 
-                    // Row 2: 4 Arrow Keys (Left, Up, Down, Right) + handy shell symbols
+                    // Row 2 (7 equal-width keys): ◀ | ▲ | ▼ | ▶ | - | | | ~
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ConsoleArrowKey(
                             icon = Icons.AutoMirrored.TwoTone.KeyboardArrowLeft,
                             contentDesc = "Left",
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 handleCursorMove(-1)
@@ -956,6 +1070,7 @@ fun RootConsoleScreen() {
                         ConsoleArrowKey(
                             icon = Icons.TwoTone.KeyboardArrowUp,
                             contentDesc = "Up",
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 handleHistoryUp()
@@ -964,6 +1079,7 @@ fun RootConsoleScreen() {
                         ConsoleArrowKey(
                             icon = Icons.TwoTone.KeyboardArrowDown,
                             contentDesc = "Down",
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 handleHistoryDown()
@@ -972,104 +1088,38 @@ fun RootConsoleScreen() {
                         ConsoleArrowKey(
                             icon = Icons.AutoMirrored.TwoTone.KeyboardArrowRight,
                             contentDesc = "Right",
+                            modifier = Modifier.weight(1f),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 handleCursorMove(1)
                             }
                         )
-                        Spacer(Modifier.width(4.dp))
-                        listOf("/", "-", "|", "~", "*").forEach { sym ->
-                            ConsoleExtraKey(
-                                label = sym,
-                                active = false,
-                                minWidthDp = 40,
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    insertAtCursor(sym)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // M3 Command Input Bar (uses the user's native Android IME keyboard)
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 10.dp),
-                shape = CircleShape,
-                color = m3CardContainerColor().copy(alpha = CardConfig.cardAlpha.coerceAtLeast(0.96f)),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                ),
-                tonalElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isRoot) "#" else "$",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = if (isRoot) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (inputValue.text.isEmpty()) {
-                            Text(
-                                text = stringResource(R.string.root_console_input_hint),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        BasicTextField(
-                            value = inputValue,
-                            onValueChange = { handleInputChange(it) },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colorScheme.onSurface
-                            ),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            keyboardOptions = KeyboardOptions(
-                                capitalization = KeyboardCapitalization.None,
-                                autoCorrectEnabled = false,
-                                keyboardType = KeyboardType.Ascii,
-                                imeAction = ImeAction.Send
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onSend = { submitCurrentCommand() }
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester)
+                        ConsoleExtraKey(
+                            label = "-",
+                            active = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                insertAtCursor("-")
+                            }
                         )
-                    }
-                    Spacer(Modifier.width(6.dp))
-                    FilledIconButton(
-                        onClick = { submitCurrentCommand() },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ),
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.TwoTone.Send,
-                            contentDescription = stringResource(R.string.root_console_run),
-                            modifier = Modifier.size(18.dp)
+                        ConsoleExtraKey(
+                            label = "|",
+                            active = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                insertAtCursor("|")
+                            }
+                        )
+                        ConsoleExtraKey(
+                            label = "~",
+                            active = false,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                insertAtCursor("~")
+                            }
                         )
                     }
                 }
@@ -1079,16 +1129,35 @@ fun RootConsoleScreen() {
 }
 
 @Composable
+private fun ModifierStatusTag(label: String) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = MaterialTheme.colorScheme.primaryContainer
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontFamily = FontFamily.Monospace,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+        )
+    }
+}
+
+@Composable
 private fun ConsoleExtraKey(
     label: String,
     active: Boolean,
     isDanger: Boolean = false,
-    minWidthDp: Int = 52,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val containerColor = when {
         active -> MaterialTheme.colorScheme.primaryContainer
-        isDanger -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+        isDanger -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f)
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val contentColor = when {
@@ -1097,33 +1166,33 @@ private fun ConsoleExtraKey(
         else -> MaterialTheme.colorScheme.onSurface
     }
     val border = if (active) {
-        BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary)
+        BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
     } else {
-        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+        BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
     }
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         color = containerColor,
         contentColor = contentColor,
         border = border,
-        modifier = Modifier
-            .defaultMinSize(minWidth = minWidthDp.dp, minHeight = 38.dp)
+        modifier = modifier
+            .height(32.dp)
             .semantics {
                 role = Role.Button
                 selected = active
                 contentDescription = label
             }
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium.copy(
+                maxLines = 1,
+                softWrap = false,
+                style = MaterialTheme.typography.labelSmall.copy(
                     fontFamily = FontFamily.Monospace,
+                    fontSize = 10.5.sp,
                     fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold
                 )
             )
@@ -1135,24 +1204,22 @@ private fun ConsoleExtraKey(
 private fun ConsoleArrowKey(
     icon: ImageVector,
     contentDesc: String,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)),
-        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 38.dp)
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        modifier = modifier.height(32.dp)
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             Icon(
                 imageVector = icon,
                 contentDescription = contentDesc,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(17.dp)
             )
         }
     }
