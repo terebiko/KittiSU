@@ -79,6 +79,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -93,6 +94,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -126,7 +128,11 @@ import anhiutangerinee.kittisu.KernelVersion
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.R
 import anhiutangerinee.kittisu.data.update.UpdateChannel
+import anhiutangerinee.kittisu.data.update.UpdateDownloadProgress
+import anhiutangerinee.kittisu.data.update.UpdateDownloadStage
 import anhiutangerinee.kittisu.data.update.checkManagerUpdate
+import anhiutangerinee.kittisu.data.update.downloadAndPrepareManagerUpdate
+import anhiutangerinee.kittisu.data.update.installDownloadedApk
 import anhiutangerinee.kittisu.magica.MagicaService
 import anhiutangerinee.kittisu.ui.component.KsuIsValid
 import anhiutangerinee.kittisu.ui.component.SwipeableSnackbarHost
@@ -149,10 +155,13 @@ import anhiutangerinee.kittisu.ui.util.LocalSnackbarHost
 import anhiutangerinee.kittisu.ui.util.module.LatestVersionInfo
 import anhiutangerinee.kittisu.ui.util.reboot
 import anhiutangerinee.kittisu.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 /**
  * @author ShirkNeko
@@ -500,14 +509,22 @@ fun HomePage(
 @Composable
 fun UpdateCard() {
     val context = LocalContext.current
-    val channel = remember {
-        UpdateChannel.fromPreference(
-            context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                .getString("update_channel", null)
-        )
+    val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+    var channel by remember {
+        mutableStateOf(UpdateChannel.fromPreference(prefs.getString("update_channel", null)))
     }
-    val latestVersionInfo = remember { LatestVersionInfo() }
-    val newVersion by produceState(initialValue = latestVersionInfo, channel) {
+
+    DisposableEffect(prefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sp, key ->
+            if (key == "update_channel") {
+                channel = UpdateChannel.fromPreference(sp.getString("update_channel", null))
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    val newVersion by produceState(initialValue = LatestVersionInfo(), channel) {
         value = withContext(Dispatchers.IO) {
             checkManagerUpdate(channel)
         }
@@ -516,10 +533,216 @@ fun UpdateCard() {
     val currentVersionCode = remember { getManagerVersion(context).second }
     val newVersionUrl = newVersion.downloadUrl
     val changelog = newVersion.changelog
+    val versionLabel = newVersion.versionName.ifBlank { newVersion.versionCode.toString() }
 
     val uriHandler = LocalUriHandler.current
-    val title = stringResource(id = R.string.module_changelog)
-    val updateText = stringResource(id = R.string.module_update)
+    val scope = rememberCoroutineScope()
+
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var downloadJob by remember { mutableStateOf<Job?>(null) }
+    var downloadProgress by remember { mutableStateOf<UpdateDownloadProgress?>(null) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+
+    val isDownloading = downloadJob?.isActive == true
+
+    fun startInAppUpdate() {
+        if (isDownloading) return
+        downloadError = null
+        downloadProgress = UpdateDownloadProgress(UpdateDownloadStage.DOWNLOADING, 0L, -1L)
+        downloadJob = scope.launch {
+            try {
+                val result = downloadAndPrepareManagerUpdate(context, newVersion) { progress ->
+                    downloadProgress = progress
+                }
+                result.onSuccess { apkFile ->
+                    downloadProgress = null
+                    showUpdateDialog = false
+                    installDownloadedApk(context, apkFile).onFailure { err ->
+                        Toast.makeText(
+                            context,
+                            err.message ?: "Failed to launch APK installer",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }.onFailure { err ->
+                    if (err !is CancellationException) {
+                        downloadProgress = null
+                        downloadError = err.message ?: err.javaClass.simpleName
+                    }
+                }
+            } finally {
+                downloadJob = null
+            }
+        }
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isDownloading) {
+                    showUpdateDialog = false
+                    downloadError = null
+                }
+            },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = {
+                Icon(
+                    imageVector = Icons.TwoTone.Download,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.module_update),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ) {
+                        Text(
+                            text = versionLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (changelog.isNotBlank()) {
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.65f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = changelog,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
+                    downloadProgress?.let { progress ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val statusText = when (progress.stage) {
+                                UpdateDownloadStage.DOWNLOADING -> {
+                                    val dlMb = progress.downloadedBytes / (1024.0 * 1024.0)
+                                    if (progress.totalBytes > 0L) {
+                                        val totalMb = progress.totalBytes / (1024.0 * 1024.0)
+                                        val pct = ((progress.fraction ?: 0f) * 100f).toInt()
+                                        String.format(
+                                            Locale.US,
+                                            "%s (%.1f / %.1f MB · %d%%)",
+                                            stringResource(R.string.update_downloading),
+                                            dlMb,
+                                            totalMb,
+                                            pct
+                                        )
+                                    } else {
+                                        String.format(
+                                            Locale.US,
+                                            "%s (%.1f MB)",
+                                            stringResource(R.string.update_downloading),
+                                            dlMb
+                                        )
+                                    }
+                                }
+                                UpdateDownloadStage.EXTRACTING ->
+                                    stringResource(R.string.update_extracting_apk)
+                            }
+                            Text(
+                                text = statusText,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            val frac = progress.fraction
+                            if (progress.stage == UpdateDownloadStage.DOWNLOADING && frac != null) {
+                                LinearProgressIndicator(
+                                    progress = { frac },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            }
+                        }
+                    }
+
+                    downloadError?.let { err ->
+                        Surface(
+                            shape = MaterialTheme.shapes.medium,
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = stringResource(R.string.update_download_failed, err),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(10.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled = !isDownloading,
+                    onClick = { startInAppUpdate() }
+                ) {
+                    Text(
+                        text = if (downloadError != null) {
+                            stringResource(R.string.network_retry)
+                        } else {
+                            stringResource(R.string.update_download_and_install)
+                        }
+                    )
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (!isDownloading && newVersionUrl.isNotBlank()) {
+                        TextButton(
+                            onClick = {
+                                showUpdateDialog = false
+                                runCatching { uriHandler.openUri(newVersionUrl) }
+                            }
+                        ) {
+                            Text(stringResource(R.string.update_open_browser))
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            downloadJob?.cancel()
+                            downloadJob = null
+                            downloadProgress = null
+                            downloadError = null
+                            showUpdateDialog = false
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+            }
+        )
+    }
 
     AnimatedVisibility(
         visible = newVersion.isNewerThan(currentVersionCode, BuildConfig.GIT_COMMIT),
@@ -531,31 +754,22 @@ fun UpdateCard() {
         ),
         exit = shrinkVertically() + fadeOut()
     ) {
-        val updateDialog = rememberConfirmDialog(onConfirm = { uriHandler.openUri(newVersionUrl) })
         WarningCard(
             message = stringResource(
                 R.string.manager_update_available,
-                newVersion.versionName.ifBlank { newVersion.versionCode.toString() }
+                versionLabel
             ),
-            color = MaterialTheme.colorScheme.outlineVariant,
+            color = MaterialTheme.colorScheme.secondaryContainer,
             icon = {
                 Icon(
-                    imageVector = Icons.TwoTone.Info,
+                    imageVector = Icons.TwoTone.Download,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp)
                 )
             },
             onClick = {
-                if (changelog.isEmpty()) {
-                    uriHandler.openUri(newVersionUrl)
-                } else {
-                    updateDialog.showConfirm(
-                        title = title,
-                        content = changelog,
-                        markdown = true,
-                        confirm = updateText
-                    )
-                }
+                downloadError = null
+                showUpdateDialog = true
             }
         )
     }
