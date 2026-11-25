@@ -280,8 +280,11 @@ class ModuleViewModel : ViewModel() {
     }
 
     fun checkUpdate(updateUrl: String, versionCode: Int): ModuleUpdateInfo? {
-        val isCheckUpdateEnabled = ksuApp.getSharedPreferences("settings", Context.MODE_PRIVATE)
-            .getBoolean("check_update", true)
+        val prefs = ksuApp.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val isCheckUpdateEnabled = prefs.getBoolean(
+            "check_module_update",
+            prefs.getBoolean("check_update", true)
+        )
         if (!isCheckUpdateEnabled) {
             return null
         }

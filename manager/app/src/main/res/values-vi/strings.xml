@@ -887,4 +887,27 @@ Hãy đảm bảo bootloader đã được mở khóa trước khi tiếp tục!
     <string name="preset_post_install_confirm_content">Bộ cài sẵn này có %1$d tập lệnh sau cài đặt. Chạy chúng sau lần khởi động lại tới? Đầu tiên: %2$s</string>
     <string name="preset_post_install_saved">Đã lưu %1$d tập lệnh sau cài đặt</string>
     <string name="preset_running_script">Đang chạy tập lệnh %1$d/%2$d: %3$s</string>
+
+    <!-- BakaSU Ports: Module Update Toggle, Custom Repo Sources & Root Script Runner -->
+    <string name="settings_check_module_update">Kiểm tra cập nhật mô-đun</string>
+    <string name="settings_check_module_update_summary">Tự động kiểm tra bản cập nhật cho các mô-đun đã cài đặt</string>
+    <string name="repo_sources_title">Nguồn kho mô-đun</string>
+    <string name="repo_sources_add">Thêm kho tùy chỉnh</string>
+    <string name="repo_sources_url_hint">URL kho MMRL / Magisk (VD: https://gr.dergoogler.com/gmr/)</string>
+    <string name="repo_sources_name_hint">Tên hiển thị (tùy chọn)</string>
+    <string name="repo_sources_invalid">URL kho không hợp lệ hoặc đã tồn tại</string>
+    <string name="script_runner_title">Trình chạy Script Root</string>
+    <string name="script_runner_summary">Tạo, nhập và chạy nhanh tập lệnh .sh với quyền root</string>
+    <string name="script_runner_add">Tạo script mới</string>
+    <string name="script_runner_edit">Sửa script</string>
+    <string name="script_runner_import">Nhập file .sh</string>
+    <string name="script_import_failed">Không thể đọc tệp script đã chọn</string>
+    <string name="script_runner_name">Tên script</string>
+    <string name="script_runner_desc_optional">Mô tả (tùy chọn)</string>
+    <string name="script_runner_content">Nội dung tập lệnh shell</string>
+    <string name="script_runner_delete_title">Xóa script</string>
+    <string name="script_runner_delete_msg">Bạn có chắc muốn xóa script \"%1$s\"?</string>
+    <string name="script_runner_empty_title">Chưa có script nào</string>
+    <string name="script_runner_empty_desc">Tạo tập lệnh shell root tùy chỉnh hoặc nhập file .sh để chạy lại bất cứ lúc nào chỉ với 1 chạm.</string>
+    <string name="script_runner_no_output">(Không có đầu ra)</string>
 </resources>

@@ -40,6 +40,7 @@ import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material.icons.twotone.Adb
 import androidx.compose.material.icons.twotone.BookmarkBorder
 import androidx.compose.material.icons.twotone.BugReport
+import androidx.compose.material.icons.twotone.Code
 import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material.icons.twotone.DeleteForever
 import androidx.compose.material.icons.twotone.Fence
@@ -753,6 +754,17 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Code,
+                                title = stringResource(R.string.script_runner_title),
+                                description = stringResource(R.string.script_runner_summary),
+                                onClick = {
+                                    navigator.push(Route.ScriptRunner)
+                                }
+                            )
+                        }
+
+                        item {
                             val kpActive = anhiutangerinee.kittisu.KernelPatchManager.isKernelPatchActive
                             val kpVer = anhiutangerinee.kittisu.KernelPatchManager.formatVersion()
                             SettingsJumpPageWidget(
@@ -909,6 +921,28 @@ fun SettingsPage(bottomPadding: Dp) {
                                 onCheckedChange = { enabled ->
                                     prefs.edit { putBoolean("check_update", enabled) }
                                     checkUpdate = enabled
+                                }
+                            )
+                        }
+
+                        item {
+                            // 模块更新检查开关 (BakaSU)
+                            var checkModuleUpdate by rememberSaveable {
+                                mutableStateOf(
+                                    prefs.getBoolean(
+                                        "check_module_update",
+                                        prefs.getBoolean("check_update", true)
+                                    )
+                                )
+                            }
+                            SettingsSwitchWidget(
+                                icon = Icons.TwoTone.Update,
+                                title = stringResource(R.string.settings_check_module_update),
+                                description = stringResource(R.string.settings_check_module_update_summary),
+                                checked = checkModuleUpdate,
+                                onCheckedChange = { enabled ->
+                                    prefs.edit { putBoolean("check_module_update", enabled) }
+                                    checkModuleUpdate = enabled
                                 }
                             )
                         }

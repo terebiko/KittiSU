@@ -897,4 +897,27 @@ Important Note:\n
     <string name="root_console_clear">Clear console</string>
     <string name="root_console_restart">Restart shell</string>
 
+    <!-- BakaSU Ports: Module Update Toggle, Custom Repo Sources & Root Script Runner -->
+    <string name="settings_check_module_update">Check module updates</string>
+    <string name="settings_check_module_update_summary">Automatically check updates for installed modules</string>
+    <string name="repo_sources_title">Repository sources</string>
+    <string name="repo_sources_add">Add custom repo</string>
+    <string name="repo_sources_url_hint">MMRL / Magisk repo URL (e.g. https://gr.dergoogler.com/gmr/)</string>
+    <string name="repo_sources_name_hint">Display name (optional)</string>
+    <string name="repo_sources_invalid">Invalid or duplicate repository URL</string>
+    <string name="script_runner_title">Root Script Runner</string>
+    <string name="script_runner_summary">Create, import, and run custom .sh scripts as root</string>
+    <string name="script_runner_add">New script</string>
+    <string name="script_runner_edit">Edit script</string>
+    <string name="script_runner_import">Import .sh</string>
+    <string name="script_import_failed">Failed to read selected script file</string>
+    <string name="script_runner_name">Script name</string>
+    <string name="script_runner_desc_optional">Description (optional)</string>
+    <string name="script_runner_content">Shell script content</string>
+    <string name="script_runner_delete_title">Delete script</string>
+    <string name="script_runner_delete_msg">Are you sure you want to delete \"%1$s\"?</string>
+    <string name="script_runner_empty_title">No scripts yet</string>
+    <string name="script_runner_empty_desc">Create a custom root shell script or import a .sh file to run anytime with one tap.</string>
+    <string name="script_runner_no_output">(No output)</string>
+
 </resources>

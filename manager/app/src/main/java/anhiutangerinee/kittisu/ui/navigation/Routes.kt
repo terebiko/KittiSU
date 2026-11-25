@@ -130,4 +130,8 @@ sealed interface Route : NavKey, Parcelable {
     @Parcelize
     @Serializable
     data object RootConsole : Route
+
+    @Parcelize
+    @Serializable
+    data object ScriptRunner : Route
 }

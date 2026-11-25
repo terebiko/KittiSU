@@ -31,13 +31,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.twotone.Add
 import androidx.compose.material.icons.twotone.Check
 import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Delete
 import androidx.compose.material.icons.twotone.MoreVert
 import androidx.compose.material.icons.twotone.SignalWifiOff
 import androidx.compose.material.icons.twotone.Download
 import androidx.compose.material.icons.twotone.WebAsset
 import androidx.compose.material.icons.twotone.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
@@ -50,6 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
@@ -399,6 +403,144 @@ private fun ModuleRepoBottomSheetContent(
                     }
                 )
             }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp, horizontal = 24.dp))
+
+        // Custom Repository Sources (MMRL / Magisk / KernelSU JSON Repos)
+        val context = LocalContext.current
+        var showAddSourceDialog by remember { mutableStateOf(false) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.repo_sources_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            FilledTonalButton(
+                onClick = { showAddSourceDialog = true },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.TwoTone.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.repo_sources_add))
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            viewModel.sources.forEach { src ->
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = src.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = src.url,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (!src.isBuiltIn) {
+                            IconButton(
+                                onClick = { viewModel.removeCustomSource(src.url) },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.TwoTone.Delete,
+                                    contentDescription = stringResource(R.string.uninstall),
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = src.enabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.toggleSource(src.url, enabled)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showAddSourceDialog) {
+            var urlInput by remember { mutableStateOf("") }
+            var nameInput by remember { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = { showAddSourceDialog = false },
+                shape = MaterialTheme.shapes.extraLarge,
+                title = { Text(stringResource(R.string.repo_sources_add)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = urlInput,
+                            onValueChange = { urlInput = it },
+                            label = { Text(stringResource(R.string.repo_sources_url_hint)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = nameInput,
+                            onValueChange = { nameInput = it },
+                            label = { Text(stringResource(R.string.repo_sources_name_hint)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        enabled = urlInput.isNotBlank(),
+                        onClick = {
+                            if (viewModel.addCustomSource(urlInput, nameInput)) {
+                                showAddSourceDialog = false
+                            } else {
+                                Toast.makeText(context, R.string.repo_sources_invalid, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text(stringResource(android.R.string.ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAddSourceDialog = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                }
+            )
         }
     }
 }
