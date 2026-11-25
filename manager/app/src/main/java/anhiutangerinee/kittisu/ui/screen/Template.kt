@@ -362,15 +362,20 @@ fun LabelText(
     contentColor: Color = contentColorFor(containerColor),
     border: androidx.compose.foundation.BorderStroke? = null
 ) {
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
     Surface(
-        shape = MaterialTheme.shapes.extraSmall,
+        shape = if (isBakaSu) androidx.compose.foundation.shape.RoundedCornerShape(4.dp) else MaterialTheme.shapes.extraSmall,
         color = containerColor,
-        border = border
+        border = if (isBakaSu) null else border
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmallEmphasized,
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+            modifier = if (isBakaSu) {
+                Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+            } else {
+                Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
+            },
             color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

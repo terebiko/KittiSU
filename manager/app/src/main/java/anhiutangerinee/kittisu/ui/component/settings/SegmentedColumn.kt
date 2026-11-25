@@ -152,17 +152,23 @@ fun SegmentedColumn(
 
     if (allItems.isEmpty()) return
 
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
+
     Column(modifier = modifier.padding(contentPadding)) {
         if (title.isNotEmpty()) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                ),
+                style = if (isBakaSu) {
+                    MaterialTheme.typography.titleSmall
+                } else {
+                    MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    )
+                },
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(
                     start = PADDING_HORIZONTAL.dp,
-                    top = 10.dp,
+                    top = if (isBakaSu) PADDING_VERTICAL.dp else 10.dp,
                     bottom = 8.dp
                 )
             )
@@ -193,8 +199,10 @@ fun SegmentedColumn(
                         val isLast =
                             index == lastVisibleIndex || (index == allItems.lastIndex && !itemData.visible)
 
-                        val baseTopRadius = if (isFirst) 20.dp else 6.dp
-                        val baseBottomRadius = if (isLast) 20.dp else 6.dp
+                        val outerRadius = if (isBakaSu) 16.dp else 20.dp
+                        val innerRadius = if (isBakaSu) 5.dp else 6.dp
+                        val baseTopRadius = if (isFirst) outerRadius else innerRadius
+                        val baseBottomRadius = if (isLast) outerRadius else innerRadius
 
                         val targetTopRadius = if (itemData.forceFlatTop) 0.dp else baseTopRadius
                         val targetBottomRadius =

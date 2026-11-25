@@ -920,4 +920,16 @@ Important Note:\n
     <string name="script_runner_empty_desc">Create a custom root shell script or import a .sh file to run anytime with one tap.</string>
     <string name="script_runner_no_output">(No output)</string>
 
+    <!-- UI Theme Switcher & BakaSU Theme -->
+    <string name="ui_theme_title">Themes</string>
+    <string name="ui_theme_summary">Switch interface layout between Default (SovaSU) and BakaSU</string>
+    <string name="ui_theme_default">Default (SovaSU)</string>
+    <string name="ui_theme_default_desc">Floating pill bar &amp; hero cards</string>
+    <string name="ui_theme_bakasu">BakaSU</string>
+    <string name="ui_theme_bakasu_desc">Classic BakaSU UI &amp; docked bar</string>
+    <string name="home_version_info">Version Info</string>
+    <string name="home_status_info">Status Info</string>
+    <string name="home_short_info">SuperUser: %1$d, Modules: %2$d</string>
+    <string name="home_kernel_version">Kernel driver version</string>
+
 </resources>

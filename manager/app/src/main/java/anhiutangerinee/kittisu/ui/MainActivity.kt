@@ -82,6 +82,7 @@ import androidx.navigationevent.compose.NavigationEventState
 import androidx.navigationevent.compose.rememberNavigationEventState
 import anhiutangerinee.kittisu.Natives
 import anhiutangerinee.kittisu.ui.activity.PermissionRequestInterface
+import anhiutangerinee.kittisu.ui.activity.component.BakaSuBottomNavigationBar
 import anhiutangerinee.kittisu.ui.activity.component.BottomBar
 import anhiutangerinee.kittisu.ui.activity.component.BottomBarHeight
 import anhiutangerinee.kittisu.ui.activity.component.NavigationBar
@@ -937,54 +938,89 @@ fun MainScreen() {
             val isCompactWidth = maxWidth < 600.dp
 
             if (isCompactWidth) {
-                val bottomBarScrollConnection = rememberScrollConnection(
-                    isScrollingDown = isScrollingDown,
-                    scrollOffset = scrollOffset,
-                    previousScrollOffset = previousScrollOffset
-                )
-                val showBottomBar = !isScrollingDown.value
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = Color.Transparent,
-                ) { innerPadding ->
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        HorizontalPager(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .blurSource()
-                                .nestedScroll(bottomBarScrollConnection),
-                            state = pagerState,
-                            beyondViewportPageCount = 0,
-                            userScrollEnabled = userScrollEnabled,
-                        ) { pageIndex ->
-                            if (pages.isEmpty()) return@HorizontalPager
-
-                            val snackBarHostState = remember { SnackbarHostState() }
-                            CompositionLocalProvider(
-                                LocalSnackbarHost provides snackBarHostState,
-                                LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
-                            ) {
-                                val destination = pages[pageIndex]
-                                destination.direction(
-                                    innerPadding.calculateBottomPadding() + BottomBarHeight
-                                )
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = showBottomBar,
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .windowInsetsPadding(WindowInsets.navigationBars),
-                            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-                        ) {
-                            BottomBar(
+                if (ThemeConfig.isBakaSuTheme) {
+                    Scaffold(
+                        contentWindowInsets = WindowInsets(),
+                        modifier = Modifier.fillMaxSize(),
+                        bottomBar = {
+                            BakaSuBottomNavigationBar(
                                 destinations = pages,
                                 selectedPage = uiSelectedPage,
                                 onPageChange = handlePageChange
                             )
+                        },
+                        containerColor = Color.Transparent,
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.fillMaxSize().blurSource()) {
+                            HorizontalPager(
+                                modifier = Modifier.fillMaxSize(),
+                                state = pagerState,
+                                beyondViewportPageCount = 0,
+                                userScrollEnabled = userScrollEnabled,
+                            ) { pageIndex ->
+                                if (pages.isEmpty()) return@HorizontalPager
+
+                                val snackBarHostState = remember { SnackbarHostState() }
+                                CompositionLocalProvider(
+                                    LocalSnackbarHost provides snackBarHostState,
+                                    LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
+                                ) {
+                                    val destination = pages[pageIndex]
+                                    destination.direction(innerPadding.calculateBottomPadding())
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    val bottomBarScrollConnection = rememberScrollConnection(
+                        isScrollingDown = isScrollingDown,
+                        scrollOffset = scrollOffset,
+                        previousScrollOffset = previousScrollOffset
+                    )
+                    val showBottomBar = !isScrollingDown.value
+
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        containerColor = Color.Transparent,
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            HorizontalPager(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blurSource()
+                                    .nestedScroll(bottomBarScrollConnection),
+                                state = pagerState,
+                                beyondViewportPageCount = 0,
+                                userScrollEnabled = userScrollEnabled,
+                            ) { pageIndex ->
+                                if (pages.isEmpty()) return@HorizontalPager
+
+                                val snackBarHostState = remember { SnackbarHostState() }
+                                CompositionLocalProvider(
+                                    LocalSnackbarHost provides snackBarHostState,
+                                    LocalBlurState provides rememberMaterial3BlurBackdrop(ThemeConfig.isEnableBlur),
+                                ) {
+                                    val destination = pages[pageIndex]
+                                    destination.direction(
+                                        innerPadding.calculateBottomPadding() + BottomBarHeight
+                                    )
+                                }
+                            }
+
+                            AnimatedVisibility(
+                                visible = showBottomBar,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .windowInsetsPadding(WindowInsets.navigationBars),
+                                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+                            ) {
+                                BottomBar(
+                                    destinations = pages,
+                                    selectedPage = uiSelectedPage,
+                                    onPageChange = handlePageChange
+                                )
+                            }
                         }
                     }
                 }

@@ -84,6 +84,7 @@ fun SettingsBaseWidget(
     icon: ImageVector? = null,
     iconColor: Color? = null,
     iconPlaceholder: Boolean = true,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp,
     title: String?,
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
     description: String? = null,
@@ -97,10 +98,12 @@ fun SettingsBaseWidget(
     clickHaptic: HapticFeedbackType? = HapticFeedbackType.ContextClick,
     leadingContent: (@Composable () -> Unit)? = null,
     foreContent: @Composable BoxScope.() -> Unit = {},
+    titleRowContent: (@Composable androidx.compose.foundation.layout.RowScope.() -> Unit)? = null,
     descriptionColumnContent: (@Composable ColumnScope.() -> Unit)? = null,
     containerColor: Color? = null,
     trailingContent: (@Composable BoxScope.(interactionSource: MutableInteractionSource) -> Unit)? = null,
 ) {
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
     val hapticFeedback = LocalHapticFeedback.current
     val alpha = if (enabled) 1f else 0.38f
 
@@ -113,7 +116,7 @@ fun SettingsBaseWidget(
 
     val backgroundColor = run {
         if (containerColor != null)
-            containerColor
+            containerColor.copy(alpha = CardConfig.cardAlpha)
         else {
             val color = if (selected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -127,14 +130,16 @@ fun SettingsBaseWidget(
         }
     }
 
-    val baseContentColor = if (selected) {
+    val baseContentColor = if (containerColor != null && isBakaSu) {
+        MaterialTheme.colorScheme.contentColorFor(containerColor)
+    } else if (selected) {
         MaterialTheme.colorScheme.contentColorFor(MaterialTheme.colorScheme.primaryContainer)
     } else {
         MaterialTheme.colorScheme.onSurface
     }
 
     val resolvedIconColor = iconColor
-        ?: if (selected) {
+        ?: if (isBakaSu || selected) {
             baseContentColor
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
@@ -142,6 +147,7 @@ fun SettingsBaseWidget(
 
     val finalDescriptionColor = when {
         isError -> MaterialTheme.colorScheme.error
+        isBakaSu && containerColor != null -> baseContentColor
         else -> descriptionColor
     }
 
@@ -174,7 +180,7 @@ fun SettingsBaseWidget(
 
     val shapes = ListItemDefaults.shapes(
         shape = baseShape,
-        pressedShape = RoundedCornerShape(28.dp),
+        pressedShape = if (isBakaSu) RoundedCornerShape(16.dp) else RoundedCornerShape(28.dp),
         selectedShape = baseShape,
         focusedShape = baseShape,
         hoveredShape = baseShape
@@ -189,7 +195,7 @@ fun SettingsBaseWidget(
             {
                 leadingContent?.invoke()
 
-                if (icon != null || iconPlaceholder) {
+                if (icon != null || (iconPlaceholder && leadingContent == null)) {
                     Box(
                         modifier = Modifier
                             .size(24.dp)
@@ -200,7 +206,8 @@ fun SettingsBaseWidget(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = resolvedIconColor
+                                tint = resolvedIconColor,
+                                modifier = Modifier.size(iconSize)
                             )
                         } else {
                             Spacer(modifier = Modifier.size(24.dp))
@@ -249,11 +256,25 @@ fun SettingsBaseWidget(
                     bottom = if (description == null) dynamicInternalPadding else 0.dp
                 )
         ) {
-            title?.let {
-                Text(
-                    text = it,
-                    style = titleStyle
-                )
+            if (titleRowContent != null) {
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    title?.let {
+                        Text(
+                            text = it,
+                            style = titleStyle
+                        )
+                    }
+                    titleRowContent()
+                }
+            } else {
+                title?.let {
+                    Text(
+                        text = it,
+                        style = titleStyle
+                    )
+                }
             }
 
             foreContent()

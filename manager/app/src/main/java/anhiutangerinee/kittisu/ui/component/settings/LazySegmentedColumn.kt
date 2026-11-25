@@ -30,8 +30,11 @@ inline fun <T> LazyListScope.lazySegmentColumn(
         val isFirst = index == 0
         val isLast = index == items.lastIndex
 
-        val topRadius = if (isFirst) 24.dp else 8.dp
-        val bottomRadius = if (isLast) 24.dp else 8.dp
+        val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
+        val outerRadius = if (isBakaSu) 16.dp else 24.dp
+        val innerRadius = if (isBakaSu) 5.dp else 8.dp
+        val topRadius = if (isFirst) outerRadius else innerRadius
+        val bottomRadius = if (isLast) outerRadius else innerRadius
 
         val shape = RoundedCornerShape(
             topStart = topRadius,

@@ -77,9 +77,23 @@ import java.io.File
 import java.io.FileOutputStream
 import dev.kdrag0n.monet.theme.ColorScheme as MonetCompatColorScheme
 
+enum class AppUiTheme(val prefValue: String) {
+    DEFAULT("default"),
+    BAKASU("bakasu");
+
+    companion object {
+        fun fromPref(value: String?): AppUiTheme =
+            entries.find { it.prefValue.equals(value, ignoreCase = true) } ?: DEFAULT
+    }
+}
+
 @Stable
 object ThemeConfig {
     // 主题状态
+    var uiTheme by mutableStateOf(AppUiTheme.DEFAULT)
+    val isBakaSuTheme: Boolean
+        get() = uiTheme == AppUiTheme.BAKASU
+
     var customBackgroundUri by mutableStateOf<Uri?>(null)
     var backgroundDim by mutableFloatStateOf(0f)
     var forceDarkMode by mutableStateOf<Boolean?>(null)
@@ -230,6 +244,19 @@ object ThemeManager {
         val name = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getString("dynamic_palette_style", PaletteStyle.TonalSpot.name)
         ThemeConfig.dynamicPaletteStyle = parseDynamicPaletteStyle(name)
+    }
+
+    fun saveUiTheme(context: Context, theme: AppUiTheme) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString("app_ui_theme", theme.prefValue)
+        }
+        ThemeConfig.uiTheme = theme
+    }
+
+    fun loadUiTheme(context: Context) {
+        val value = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getString("app_ui_theme", AppUiTheme.DEFAULT.prefValue)
+        ThemeConfig.uiTheme = AppUiTheme.fromPref(value)
     }
 }
 
@@ -535,7 +562,7 @@ fun KernelSUTheme(
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             motionScheme = motionScheme,
-            shapes = AppShapes,
+            shapes = if (ThemeConfig.isBakaSuTheme) androidx.compose.material3.Shapes() else AppShapes,
             typography = typography
         ) {
             MonetColorsProvider.UpdateCss()
@@ -575,6 +602,7 @@ private fun ThemeInitializer(context: Context, systemIsDark: Boolean) {
         // These are all SharedPreferences reads; keep them off the main thread so
         // the first frame is not delayed by theme loading.
         scope.launch(Dispatchers.IO) {
+            ThemeManager.loadUiTheme(context)
             ThemeManager.loadThemeMode(context)
             ThemeManager.loadThemeColors(context)
             ThemeManager.loadDynamicColorState(context)

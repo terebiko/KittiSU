@@ -910,4 +910,16 @@ Hãy đảm bảo bootloader đã được mở khóa trước khi tiếp tục!
     <string name="script_runner_empty_title">Chưa có script nào</string>
     <string name="script_runner_empty_desc">Tạo tập lệnh shell root tùy chỉnh hoặc nhập file .sh để chạy lại bất cứ lúc nào chỉ với 1 chạm.</string>
     <string name="script_runner_no_output">(Không có đầu ra)</string>
+
+    <!-- Chuyển đổi chủ đề giao diện & Chủ đề BakaSU -->
+    <string name="ui_theme_title">Chủ đề giao diện (Themes)</string>
+    <string name="ui_theme_summary">Chuyển đổi bố cục giữa giao diện Mặc định (SovaSU) và BakaSU</string>
+    <string name="ui_theme_default">Mặc định (SovaSU)</string>
+    <string name="ui_theme_default_desc">Thanh nổi dạng viên thuốc &amp; thẻ nổi bật</string>
+    <string name="ui_theme_bakasu">BakaSU</string>
+    <string name="ui_theme_bakasu_desc">Giao diện y hệt BakaSU &amp; thanh điều hướng gắn đáy</string>
+    <string name="home_version_info">Thông tin phiên bản</string>
+    <string name="home_status_info">Thông tin trạng thái</string>
+    <string name="home_short_info">SuperUser: %1$d, Mô-đun: %2$d</string>
+    <string name="home_kernel_version">Phiên bản trình điều khiển kernel</string>
 </resources>

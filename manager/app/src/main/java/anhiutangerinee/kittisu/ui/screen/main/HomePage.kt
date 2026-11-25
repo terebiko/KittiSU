@@ -21,6 +21,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -62,7 +63,13 @@ import androidx.compose.material.icons.twotone.Tune
 import androidx.compose.material.icons.twotone.Visibility
 import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Block
+import androidx.compose.material.icons.twotone.DeveloperBoard
+import androidx.compose.material.icons.twotone.FilterList
+import androidx.compose.material.icons.twotone.Settings
+import androidx.compose.material.icons.twotone.Smartphone
+import androidx.compose.material.icons.twotone.Tag
 import androidx.compose.material.icons.twotone.TaskAlt
+import androidx.compose.material.icons.twotone.VolunteerActivism
 import androidx.compose.material.icons.twotone.Warning
 import androidx.compose.material.icons.twotone.Error
 import androidx.compose.material3.AlertDialog
@@ -140,6 +147,9 @@ import anhiutangerinee.kittisu.ui.component.WarningCard
 import anhiutangerinee.kittisu.ui.component.ksuIsValid
 import anhiutangerinee.kittisu.ui.component.rememberConfirmDialog
 import anhiutangerinee.kittisu.ui.component.rememberLoadingDialog
+import anhiutangerinee.kittisu.ui.component.settings.LocalSegmentedItemShape
+import anhiutangerinee.kittisu.ui.component.settings.SegmentedColumn
+import anhiutangerinee.kittisu.ui.component.settings.SettingsBaseWidget
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
 import anhiutangerinee.kittisu.ui.navigation.Route
 import anhiutangerinee.kittisu.ui.screen.LabelText
@@ -186,7 +196,11 @@ fun HomePage(
         }
     }
 
-    val topAppBarState = rememberTopAppBarState()
+    val isBakaSu = ThemeConfig.isBakaSuTheme
+    val topAppBarState = rememberTopAppBarState(
+        initialHeightOffset = if (isBakaSu) -154f else 0f,
+        initialHeightOffsetLimit = if (isBakaSu) -154f else -Float.MAX_VALUE,
+    )
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
     val scrollState = rememberScrollState()
     val navigator = LocalNavigator.current
@@ -316,52 +330,58 @@ fun HomePage(
                         start = 16.dp,
                         end = 16.dp
                     ),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isBakaSu) 0.dp else 12.dp)
             ) {
                 // 状态卡片
                 if (viewModel.isCoreDataLoaded) {
                     val apdInstallSuccess = stringResource(R.string.home_apd_install_success)
                     val apdInstallFailed = stringResource(R.string.home_apd_install_failed)
-                    StatusCard(
-                        systemStatus = viewModel.systemStatus,
-                        onClickInstall = {
-                            navigator.push(Route.Install(preselectedKernelUri = null))
-                        },
-                        onClickSuperKey = {
-                            showSuperKeyDialog = true
-                        },
-                        onClickKpm = {
-                            navigator.push(Route.Kpm)
-                        },
-                        onClickInstallApd = {
-                            loadingDialog.showLoading()
-                            viewModel.installApdDaemon(context) { ok ->
+                    val onClickInstallAction = {
+                        navigator.push(Route.Install(preselectedKernelUri = null))
+                    }
+                    val onClickSuperKeyAction = {
+                        showSuperKeyDialog = true
+                    }
+                    val onClickKpmAction = {
+                        navigator.push(Route.Kpm)
+                    }
+                    val onClickInstallApdAction = {
+                        loadingDialog.showLoading()
+                        viewModel.installApdDaemon(context) { ok ->
+                            loadingDialog.hide()
+                            Toast.makeText(
+                                context,
+                                if (ok) apdInstallSuccess else apdInstallFailed,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    val onClickJailbreakAction: () -> Unit = {
+                        loadingDialog.showLoading()
+                        context.startService(Intent(context, MagicaService::class.java))
+                        scope.launch(Dispatchers.IO) {
+                            delay(30_000)
+                            withContext(Dispatchers.Main) {
                                 loadingDialog.hide()
                                 Toast.makeText(
                                     context,
-                                    if (ok) apdInstallSuccess else apdInstallFailed,
-                                    Toast.LENGTH_SHORT
+                                    R.string.jailbreak_timeout,
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
-                        },
-                        onClickJailbreak = {
-                            loadingDialog.showLoading()
-                            context.startService(Intent(context, MagicaService::class.java))
-                            // Manager will be force-stopped and restarted by late-load on success.
-                            // If that doesn't happen within timeout, jailbreak likely failed.
-                            scope.launch(Dispatchers.IO) {
-                                delay(30_000)
-                                withContext(Dispatchers.Main) {
-                                    loadingDialog.hide()
-                                    Toast.makeText(
-                                        context,
-                                        R.string.jailbreak_timeout,
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
                         }
-                    )
+                    }
+
+                    if (!isBakaSu) {
+                        StatusCard(
+                            systemStatus = viewModel.systemStatus,
+                            onClickInstall = onClickInstallAction,
+                            onClickSuperKey = onClickSuperKeyAction,
+                            onClickKpm = onClickKpmAction,
+                            onClickInstallApd = onClickInstallApdAction,
+                            onClickJailbreak = onClickJailbreakAction
+                        )
+                    }
 
                     if (viewModel.systemStatus.requireNewKernel) {
                         WarningCard(
@@ -379,6 +399,7 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     // 警告信息
@@ -394,6 +415,7 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     if (!viewModel.systemStatus.isOfficialSignature) {
@@ -411,6 +433,7 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     if (BuildConfig.IS_PR_BUILD || Natives.isPrBuild) {
@@ -427,6 +450,7 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     if (viewModel.systemStatus.ksuVersion != null &&
@@ -445,6 +469,7 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
                     }
 
                     if (viewModel.systemStatus.ksuVersion != null && !viewModel.systemStatus.isRootAvailable) {
@@ -459,6 +484,20 @@ fun HomePage(
                                 )
                             }
                         )
+                        if (isBakaSu) Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    if (isBakaSu) {
+                        BakaSuStatusCard(
+                            systemStatus = viewModel.systemStatus,
+                            systemInfo = viewModel.systemInfo,
+                            onClickInstall = onClickInstallAction,
+                            onClickSuperKey = onClickSuperKeyAction,
+                            onClickKpm = onClickKpmAction,
+                            onClickInstallApd = onClickInstallApdAction,
+                            onClickJailbreak = onClickJailbreakAction
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                 }
 
@@ -468,6 +507,7 @@ fun HomePage(
                 }
                 if (checkUpdate) {
                     UpdateCard()
+                    if (isBakaSu) Spacer(modifier = Modifier.height(4.dp))
                 }
 
                 AnimatedVisibility(
@@ -485,22 +525,38 @@ fun HomePage(
                     ),
                     exit = shrinkVertically() + fadeOut()
                 ) {
-                    InfoCard(
-                        systemInfo = viewModel.systemInfo,
-                        isSimpleMode = viewModel.isSimpleMode,
-                        isHideSusfsStatus = viewModel.isHideSusfsStatus,
-                        isHideZygiskImplement = viewModel.isHideZygiskImplement,
-                        isHideMetaModuleImplement = viewModel.isHideMetaModuleImplement,
-                    )
+                    if (isBakaSu) {
+                        BakaSuInfoCard(
+                            systemStatus = viewModel.systemStatus,
+                            systemInfo = viewModel.systemInfo,
+                            isSimpleMode = viewModel.isSimpleMode,
+                            isHideSusfsStatus = viewModel.isHideSusfsStatus,
+                            isHideZygiskImplement = viewModel.isHideZygiskImplement,
+                            isHideMetaModuleImplement = viewModel.isHideMetaModuleImplement,
+                        )
+                    } else {
+                        InfoCard(
+                            systemInfo = viewModel.systemInfo,
+                            isSimpleMode = viewModel.isSimpleMode,
+                            isHideSusfsStatus = viewModel.isHideSusfsStatus,
+                            isHideZygiskImplement = viewModel.isHideZygiskImplement,
+                            isHideMetaModuleImplement = viewModel.isHideMetaModuleImplement,
+                        )
+                    }
                 }
 
                 // 链接卡片
                 if (!viewModel.isSimpleMode && !viewModel.isHideLinkCard) {
-                    DonateCard()
-                    LearnMoreCard()
+                    if (isBakaSu) {
+                        BakaSuDonateCard()
+                        BakaSuLearnMoreCard()
+                    } else {
+                        DonateCard()
+                        LearnMoreCard()
+                    }
                 }
 
-                Spacer(Modifier.height(bottomPadding + 16.dp))
+                Spacer(Modifier.height(if (isBakaSu) bottomPadding else bottomPadding + 16.dp))
             }
         }
     }
@@ -800,57 +856,64 @@ private fun TopBar(
     val navigator = LocalNavigator.current
     val appName = stringResource(R.string.app_name)
     val primaryColor = MaterialTheme.colorScheme.primary
+    val isBakaSu = ThemeConfig.isBakaSuTheme
 
     LargeFlexibleTopAppBar(
         modifier = Modifier.blurEffect(),
         title = {
-            val styledTitle = remember(appName, primaryColor) {
-                androidx.compose.ui.text.buildAnnotatedString {
-                    if (appName.endsWith("SU", ignoreCase = true) && appName.length > 2) {
-                        val prefix = appName.dropLast(2)
-                        val suffix = appName.takeLast(2)
-                        pushStyle(
-                            androidx.compose.ui.text.SpanStyle(
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+            if (isBakaSu) {
+                Text(text = appName)
+            } else {
+                val styledTitle = remember(appName, primaryColor) {
+                    androidx.compose.ui.text.buildAnnotatedString {
+                        if (appName.endsWith("SU", ignoreCase = true) && appName.length > 2) {
+                            val prefix = appName.dropLast(2)
+                            val suffix = appName.takeLast(2)
+                            pushStyle(
+                                androidx.compose.ui.text.SpanStyle(
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                                )
                             )
-                        )
-                        append(prefix)
-                        pop()
-                        pushStyle(
-                            androidx.compose.ui.text.SpanStyle(
-                                color = primaryColor,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                            append(prefix)
+                            pop()
+                            pushStyle(
+                                androidx.compose.ui.text.SpanStyle(
+                                    color = primaryColor,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Black
+                                )
                             )
-                        )
-                        append(suffix)
-                        pop()
-                    } else {
-                        pushStyle(
-                            androidx.compose.ui.text.SpanStyle(
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                            append(suffix)
+                            pop()
+                        } else {
+                            pushStyle(
+                                androidx.compose.ui.text.SpanStyle(
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
+                                )
                             )
-                        )
-                        append(appName)
-                        pop()
+                            append(appName)
+                            pop()
+                        }
                     }
                 }
-            }
-            Text(
-                text = styledTitle,
-                letterSpacing = androidx.compose.ui.unit.TextUnit(
-                    -0.5f,
-                    androidx.compose.ui.unit.TextUnitType.Sp
-                )
-            )
-        },
-        subtitle = {
-            if (viewModel.isExtendedDataLoaded) {
                 Text(
-                    text = "${viewModel.systemInfo.managerVersion.first} (${viewModel.systemInfo.managerVersion.second.toInt()})",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = styledTitle,
+                    letterSpacing = androidx.compose.ui.unit.TextUnit(
+                        -0.5f,
+                        androidx.compose.ui.unit.TextUnitType.Sp
+                    )
                 )
+            }
+        },
+        subtitle = if (isBakaSu) null else {
+            {
+                if (viewModel.isExtendedDataLoaded) {
+                    Text(
+                        text = "${viewModel.systemInfo.managerVersion.first} (${viewModel.systemInfo.managerVersion.second.toInt()})",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -858,12 +921,16 @@ private fun TopBar(
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer,
+                    MaterialTheme.colorScheme.surfaceContainer.copy(
+                        alpha = if (isBakaSu) CardConfig.cardAlpha else 1f
+                    ),
             scrolledContainerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer,
+                    MaterialTheme.colorScheme.surfaceContainer.copy(
+                        alpha = if (isBakaSu) CardConfig.cardAlpha else 1f
+                    ),
         ),
         actions = {
             if (viewModel.isCoreDataLoaded) {
@@ -1749,6 +1816,380 @@ fun getManagerVersion(context: Context): Pair<String, Long> {
     val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)!!
     val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
     return Pair(packageInfo.versionName!!, versionCode)
+}
+
+@Composable
+private fun BakaSuStatusCard(
+    systemStatus: HomeViewModel.SystemStatus,
+    systemInfo: HomeViewModel.SystemInfo,
+    onClickInstall: () -> Unit = {},
+    onClickSuperKey: () -> Unit = {},
+    onClickKpm: () -> Unit = {},
+    onClickInstallApd: () -> Unit = {},
+    onClickJailbreak: () -> Unit = {},
+) {
+    val isSafeMode = remember { Natives.isSafeMode } || anhiutangerinee.kittisu.KernelPatchManager.isSafeMode
+    val isLateLoadMode = remember { Natives.isLateLoadMode }
+    val machine = remember { Os.uname().machine }
+    val isWorking = systemStatus.ksuVersion != null || systemStatus.isKernelPatchActive
+    val cardShape = RoundedCornerShape(16.dp)
+
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSegmentedItemShape provides cardShape
+    ) {
+        when {
+            isWorking -> {
+                val workingModeText = if (isSafeMode) {
+                    stringResource(id = R.string.safe_mode)
+                } else {
+                    stringResource(id = R.string.home_working)
+                }
+                val workingModeSurfaceText = when {
+                    systemStatus.isKernelPatchActive -> "KernelPatch"
+                    systemStatus.lkmMode == true -> "LKM"
+                    else -> "Built-in"
+                }
+
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.TaskAlt,
+                    iconSize = 18.dp,
+                    title = workingModeText,
+                    description = stringResource(
+                        R.string.home_short_info,
+                        systemInfo.superuserCount,
+                        systemInfo.moduleCount
+                    ),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleRowContent = {
+                        Spacer(Modifier.width(8.dp))
+                        LabelText(
+                            label = workingModeSurfaceText,
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        )
+                        if (systemStatus.isKernelPatchActive) {
+                            Spacer(Modifier.width(6.dp))
+                            LabelText(
+                                label = "APatch",
+                                containerColor = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        if (isLateLoadMode) {
+                            Spacer(Modifier.width(6.dp))
+                            LabelText(
+                                label = stringResource(id = R.string.jailbreak_mode),
+                                containerColor = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        if (machine != "aarch64") {
+                            Spacer(Modifier.width(6.dp))
+                            LabelText(
+                                label = machine,
+                                containerColor = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    },
+                    descriptionColumnContent = if (systemStatus.isKernelPatchActive) {
+                        {
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = onClickKpm) {
+                                    Text("KPM")
+                                }
+                                if (!systemStatus.isApdInstalled) {
+                                    Button(onClick = onClickInstallApd) {
+                                        Text(stringResource(R.string.home_apd_install_button))
+                                    }
+                                }
+                            }
+                        }
+                    } else null,
+                    onClick = { onClickInstall() },
+                    onLongClick = null
+                )
+            }
+
+            else -> {
+                SettingsBaseWidget(
+                    icon = if (systemStatus.kernelVersion.isGKI()) Icons.TwoTone.Warning else Icons.TwoTone.Block,
+                    iconSize = 18.dp,
+                    isError = true,
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    title = stringResource(R.string.home_not_installed),
+                    description = stringResource(R.string.home_click_to_install),
+                    onClick = { onClickInstall() },
+                    onLongClick = null,
+                    trailingContent = {
+                        if (systemStatus.kernelVersion.isGKI() && systemStatus.isSELinuxPermissive) {
+                            Button(
+                                onClick = onClickJailbreak,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = MaterialTheme.colorScheme.onError,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.home_jailbreak))
+                            }
+                        } else {
+                            TextButton(onClick = onClickSuperKey) {
+                                Text("SuperKey")
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BakaSuInfoCard(
+    systemStatus: HomeViewModel.SystemStatus,
+    systemInfo: HomeViewModel.SystemInfo,
+    isSimpleMode: Boolean,
+    isHideSusfsStatus: Boolean,
+    isHideZygiskImplement: Boolean,
+    isHideMetaModuleImplement: Boolean,
+) {
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val hookType = remember { if (ksuIsValid()) Natives.getHookType() else "" }
+    val managersList = systemInfo.managersList
+
+    fun copyInfo(label: String, value: String) {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        cm?.setPrimaryClip(ClipData.newPlainText(label, value))
+        haptic.performHapticFeedback(HapticFeedbackType.ContextClick)
+        Toast.makeText(context, "$label: $value", Toast.LENGTH_SHORT).show()
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        SegmentedColumn(
+            title = stringResource(R.string.home_version_info),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+        ) {
+            item {
+                val label = stringResource(R.string.home_device_model)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Smartphone,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.deviceModel,
+                    onClick = { copyInfo(label, systemInfo.deviceModel) },
+                    onLongClick = null
+                )
+            }
+
+            item {
+                val label = stringResource(R.string.home_kernel)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.DeveloperBoard,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.kernelRelease,
+                    onClick = { copyInfo(label, systemInfo.kernelRelease) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isSimpleMode) {
+                val label = stringResource(R.string.home_android_version)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Android,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.androidVersion,
+                    onClick = { copyInfo(label, systemInfo.androidVersion) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = systemStatus.isManager && !systemStatus.ksuFullVersion.isNullOrBlank()) {
+                val label = stringResource(R.string.home_kernel_version)
+                val value = systemStatus.ksuFullVersion.orEmpty()
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Memory,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = value,
+                    onClick = { copyInfo(label, value) },
+                    onLongClick = null
+                )
+            }
+
+            item {
+                val label = stringResource(R.string.home_manager_version)
+                val value = "${systemInfo.managerVersion.first} (${systemInfo.managerVersion.second.toInt()})"
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Tag,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = value,
+                    onClick = { copyInfo(label, value) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isSimpleMode && !isHideSusfsStatus && systemInfo.susfsEnabled && systemInfo.susfsVersion.isNotEmpty()) {
+                val label = stringResource(R.string.home_susfs_version)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Settings,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.susfsVersion,
+                    onClick = { copyInfo(label, systemInfo.susfsVersion) },
+                    onLongClick = null
+                )
+            }
+        }
+
+        SegmentedColumn(
+            title = stringResource(R.string.home_status_info),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+        ) {
+            item {
+                val label = stringResource(R.string.home_selinux_status)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Security,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.selinuxStatus,
+                    onClick = { copyInfo(label, systemInfo.selinuxStatus) },
+                    onLongClick = null
+                )
+            }
+
+            item {
+                val seccompDisplay = when (systemInfo.seccompStatus) {
+                    -1 -> stringResource(R.string.seccomp_status_not_supported)
+                    0 -> stringResource(R.string.seccomp_status_disabled)
+                    1 -> stringResource(R.string.seccomp_status_strict)
+                    2 -> stringResource(R.string.seccomp_status_filter)
+                    else -> stringResource(R.string.seccomp_status_unknown)
+                }
+                val label = stringResource(R.string.home_seccomp_status)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.FilterList,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = seccompDisplay,
+                    onClick = { copyInfo(label, seccompDisplay) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isSimpleMode && managersList != null) {
+                val signatureMap = managersList?.managers.orEmpty().groupBy { it.signatureIndex }
+                val managersText = buildString {
+                    signatureMap.toSortedMap().forEach { (signatureIndex, managers) ->
+                        append(managers.joinToString(", ") { "UID: ${it.uid}" })
+                        append(" ")
+                        append(
+                            when (signatureIndex) {
+                                0 -> "(${stringResource(R.string.app_name)})"
+                                255 -> "(${stringResource(R.string.dynamic_managerature)})"
+                                else -> if (signatureIndex >= 1) {
+                                    "(${stringResource(R.string.signature_index, signatureIndex)})"
+                                } else {
+                                    "(${stringResource(R.string.unknown_signature)})"
+                                }
+                            }
+                        )
+                        append(" | ")
+                    }
+                }.trimEnd(' ', '|').ifEmpty { stringResource(R.string.no_active_manager) }
+                val label = stringResource(R.string.multi_manager_list)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Group,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = managersText,
+                    onClick = { copyInfo(label, managersText) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isSimpleMode && ksuIsValid() && hookType.isNotEmpty()) {
+                val label = stringResource(R.string.home_hook_type)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Tune,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = hookType,
+                    onClick = { copyInfo(label, hookType) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isHideZygiskImplement && !isSimpleMode && systemInfo.zygiskImplement.isNotEmpty() && systemInfo.zygiskImplement != "None") {
+                val label = stringResource(R.string.home_zygisk_implement)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Extension,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.zygiskImplement,
+                    onClick = { copyInfo(label, systemInfo.zygiskImplement) },
+                    onLongClick = null
+                )
+            }
+
+            item(visible = !isHideMetaModuleImplement && !isSimpleMode && systemInfo.metaModuleImplement.isNotEmpty() && systemInfo.metaModuleImplement != "None") {
+                val label = stringResource(R.string.home_meta_module_implement)
+                SettingsBaseWidget(
+                    icon = Icons.TwoTone.Extension,
+                    iconPlaceholder = false,
+                    title = label,
+                    description = systemInfo.metaModuleImplement,
+                    onClick = { copyInfo(label, systemInfo.metaModuleImplement) },
+                    onLongClick = null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BakaSuDonateCard() {
+    val uriHandler = LocalUriHandler.current
+    SegmentedColumn(
+        modifier = Modifier.fillMaxWidth(),
+        title = stringResource(R.string.home_support_title),
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+    ) {
+        item {
+            SettingsBaseWidget(
+                icon = Icons.TwoTone.VolunteerActivism,
+                iconPlaceholder = false,
+                title = stringResource(R.string.home_support_title),
+                description = stringResource(R.string.home_support_content),
+                onClick = { uriHandler.openUri("https://patreon.com/weishu") },
+                onLongClick = null
+            )
+        }
+    }
+}
+
+@Composable
+private fun BakaSuLearnMoreCard() {
+    val uriHandler = LocalUriHandler.current
+    val url = stringResource(R.string.home_learn_kernelsu_url)
+    SegmentedColumn(
+        modifier = Modifier.fillMaxWidth(),
+        title = stringResource(R.string.learn_more),
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+    ) {
+        item {
+            SettingsBaseWidget(
+                icon = Icons.AutoMirrored.TwoTone.MenuBook,
+                iconPlaceholder = false,
+                title = stringResource(R.string.home_learn_kernelsu),
+                description = stringResource(R.string.home_click_to_learn_kernelsu),
+                onClick = { uriHandler.openUri(url) },
+                onLongClick = null
+            )
+        }
+    }
 }
 
 @Preview

@@ -139,6 +139,7 @@ private fun CompactSearchBar(
         textFieldState.clearText()
     }
 
+    val isBakaSu = ThemeConfig.isBakaSuTheme
     val borderColor by animateColorAsState(
         targetValue = if (focused) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
@@ -147,20 +148,33 @@ private fun CompactSearchBar(
         },
         label = "search_bar_border"
     )
-    val baseContainer = m3CardContainerColor().copy(alpha = CardConfig.cardAlpha)
+    val baseContainer = if (isBakaSu) {
+        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = CardConfig.cardAlpha)
+    } else {
+        m3CardContainerColor().copy(alpha = CardConfig.cardAlpha)
+    }
 
     BasicTextField(
         state = textFieldState,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp, max = 52.dp)
-            .clip(CircleShape)
-            .border(width = 1.dp, color = borderColor, shape = CircleShape)
+            .then(
+                if (isBakaSu) {
+                    Modifier
+                        .heightIn(min = 44.dp, max = 45.dp)
+                        .clip(CircleShape)
+                } else {
+                    Modifier
+                        .heightIn(min = 48.dp, max = 52.dp)
+                        .clip(CircleShape)
+                        .border(width = 1.dp, color = borderColor, shape = CircleShape)
+                }
+            )
             .focusRequester(focusRequester)
             .focusProperties {
                 canFocus = allowFocus
             },
-        textStyle = MaterialTheme.typography.bodyLarge.copy(
+        textStyle = (if (isBakaSu) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge).copy(
             color = MaterialTheme.colorScheme.onSurface
         ),
         interactionSource = interactionSource,
@@ -190,7 +204,7 @@ private fun CompactSearchBar(
                     { Box(Modifier.offset(x = (-4).dp)) { trailing() } }
                 },
             colors = colors,
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 12.dp),
+            contentPadding = if (isBakaSu) PaddingValues(horizontal = 4.dp, vertical = 10.dp) else PaddingValues(horizontal = 4.dp, vertical = 12.dp),
             container = {
                 val containerColor =
                     animateColorAsState(
@@ -222,6 +236,7 @@ fun SearchAppBar(
     searchBarPlaceHolderText: String,
     haze: Boolean = true,
 ) {
+    val isBakaSu = ThemeConfig.isBakaSuTheme
     val textFieldState = rememberTextFieldState(initialText = searchText)
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -236,7 +251,9 @@ fun SearchAppBar(
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer
+                    MaterialTheme.colorScheme.surfaceContainer.copy(
+                        alpha = if (isBakaSu) CardConfig.cardAlpha else 1f
+                    )
             )
             .then(
                 if (haze) {
@@ -248,10 +265,14 @@ fun SearchAppBar(
         LargeFlexibleTopAppBar(
             scrollBehavior = scrollBehavior,
             title = {
-                Text(
-                    text = title,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
+                if (isBakaSu) {
+                    Text(text = title)
+                } else {
+                    Text(
+                        text = title,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                }
             },
             navigationIcon = {
                 if (onBackClick != null) {
@@ -271,17 +292,25 @@ fun SearchAppBar(
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor =
                     if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
-                    else MaterialTheme.colorScheme.surfaceContainer,
+                    else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (isBakaSu) CardConfig.cardAlpha else 1f),
                 scrolledContainerColor =
                     if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled) Color.Transparent
-                    else MaterialTheme.colorScheme.surfaceContainer,
+                    else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = if (isBakaSu) CardConfig.cardAlpha else 1f),
             ),
         )
 
         CompactSearchBar(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 2.dp),
+                .then(
+                    if (isBakaSu) {
+                        Modifier
+                            .padding(top = 12.dp)
+                            .padding(horizontal = 16.dp)
+                    } else {
+                        Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                    }
+                ),
             textFieldState = textFieldState,
             onSearch = {
                 keyboardController?.hide()
@@ -290,14 +319,14 @@ fun SearchAppBar(
                 Text(
                     text = searchBarPlaceHolderText,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isBakaSu) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             leadingIcon = {
                 Icon(
                     Icons.TwoTone.Search,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isBakaSu) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             },
@@ -315,7 +344,7 @@ fun SearchAppBar(
             } else null,
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(if (isBakaSu) 14.dp else 8.dp))
     }
 }
 

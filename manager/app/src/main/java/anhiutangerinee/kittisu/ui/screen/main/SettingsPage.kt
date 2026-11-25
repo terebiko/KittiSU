@@ -49,6 +49,7 @@ import androidx.compose.material.icons.twotone.Info
 import androidx.compose.material.icons.twotone.Memory
 import androidx.compose.material.icons.twotone.NewReleases
 import androidx.compose.material.icons.twotone.NotificationsActive
+import androidx.compose.material.icons.twotone.Palette
 import androidx.compose.material.icons.twotone.Policy
 import androidx.compose.material.icons.twotone.RadioButtonChecked
 import androidx.compose.material.icons.twotone.RadioButtonUnchecked
@@ -981,6 +982,28 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
+                            val uiThemes = listOf(
+                                stringResource(R.string.ui_theme_default),
+                                stringResource(R.string.ui_theme_bakasu),
+                            )
+                            val selectedThemeIdx = anhiutangerinee.kittisu.ui.theme.AppUiTheme.entries
+                                .indexOf(ThemeConfig.uiTheme)
+                                .coerceAtLeast(0)
+                            SettingsDropdownWidget(
+                                icon = Icons.TwoTone.Palette,
+                                title = stringResource(R.string.ui_theme_title),
+                                description = stringResource(R.string.ui_theme_summary),
+                                items = uiThemes,
+                                selectedIndex = selectedThemeIdx,
+                                onSelectedIndexChange = { index ->
+                                    val chosen = anhiutangerinee.kittisu.ui.theme.AppUiTheme.entries
+                                        .getOrElse(index) { anhiutangerinee.kittisu.ui.theme.AppUiTheme.DEFAULT }
+                                    anhiutangerinee.kittisu.ui.theme.ThemeManager.saveUiTheme(context, chosen)
+                                }
+                            )
+                        }
+
+                        item {
                             // 更多设置
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.Settings,
@@ -1312,26 +1335,35 @@ fun rememberUninstallDialog(onSelected: (UninstallType) -> Unit): DialogHandle {
 private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
+    val isBakaSu = ThemeConfig.isBakaSuTheme
     LargeFlexibleTopAppBar(
         modifier = Modifier.blurEffect(
         ),
         title = {
-            Text(
-                text = stringResource(R.string.settings),
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            )
+            if (isBakaSu) {
+                Text(text = stringResource(R.string.settings))
+            } else {
+                Text(
+                    text = stringResource(R.string.settings),
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+            }
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer,
+                    MaterialTheme.colorScheme.surfaceContainer.copy(
+                        alpha = if (isBakaSu) anhiutangerinee.kittisu.ui.theme.CardConfig.cardAlpha else 1f
+                    ),
             scrolledContainerColor =
                 if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
                     Color.Transparent
                 else
-                    MaterialTheme.colorScheme.surfaceContainer
+                    MaterialTheme.colorScheme.surfaceContainer.copy(
+                        alpha = if (isBakaSu) anhiutangerinee.kittisu.ui.theme.CardConfig.cardAlpha else 1f
+                    )
         ),
         windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
         scrollBehavior = scrollBehavior

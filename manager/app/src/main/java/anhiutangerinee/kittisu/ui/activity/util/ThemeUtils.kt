@@ -49,6 +49,7 @@ object ThemeUtils {
         }
 
         // 加载保存的背景设置
+        anhiutangerinee.kittisu.ui.theme.ThemeManager.loadUiTheme(activity.applicationContext)
         loadThemeMode()
         loadThemeColors()
         loadDynamicColorState()

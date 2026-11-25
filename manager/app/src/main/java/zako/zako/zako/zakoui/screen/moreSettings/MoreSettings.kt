@@ -106,10 +106,12 @@ import anhiutangerinee.kittisu.ui.component.settings.SettingsDropdownWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsJumpPageWidget
 import anhiutangerinee.kittisu.ui.component.settings.SettingsSwitchWidget
 import anhiutangerinee.kittisu.ui.navigation.LocalNavigator
+import anhiutangerinee.kittisu.ui.theme.AppUiTheme
 import anhiutangerinee.kittisu.ui.theme.BackgroundManager
 import anhiutangerinee.kittisu.ui.theme.CardConfig
 import anhiutangerinee.kittisu.ui.theme.ThemeColors
 import anhiutangerinee.kittisu.ui.theme.ThemeConfig
+import anhiutangerinee.kittisu.ui.theme.ThemeManager
 import anhiutangerinee.kittisu.ui.theme.blurEffect
 import anhiutangerinee.kittisu.ui.theme.blurSource
 import com.materialkolor.PaletteStyle
@@ -473,6 +475,10 @@ private fun AppearanceSettings(
     coroutineScope: CoroutineScope
 ) {
     SegmentedColumn(title = stringResource(R.string.appearance_settings)) {
+        item {
+            UiThemeSelectorCard()
+        }
+
         item {
             // 语言设置
             LanguageSetting(state = state)
@@ -1212,6 +1218,222 @@ private fun LanguageSetting(state: MoreSettingsState) {
             },
             onDismiss = { state.showLanguageDialog = false }
         )
+    }
+}
+
+@Composable
+private fun UiThemeSelectorCard() {
+    val context = LocalContext.current
+    val currentUiTheme = ThemeConfig.uiTheme
+    val shape = anhiutangerinee.kittisu.ui.component.settings.LocalSegmentedItemShape.current
+
+    Surface(
+        color = anhiutangerinee.kittisu.ui.theme.m3CardContainerColor().copy(alpha = CardConfig.cardAlpha),
+        shape = shape,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.TwoTone.Palette,
+                    contentDescription = null,
+                    tint = if (ThemeConfig.isBakaSuTheme) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.ui_theme_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.ui_theme_summary),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)
+            ) {
+                UiThemePreviewTile(
+                    title = stringResource(R.string.ui_theme_default),
+                    subtitle = stringResource(R.string.ui_theme_default_desc),
+                    selected = currentUiTheme == AppUiTheme.DEFAULT,
+                    isBakaSuPreview = false,
+                    onClick = { ThemeManager.saveUiTheme(context, AppUiTheme.DEFAULT) },
+                    modifier = Modifier.weight(1f)
+                )
+                UiThemePreviewTile(
+                    title = stringResource(R.string.ui_theme_bakasu),
+                    subtitle = stringResource(R.string.ui_theme_bakasu_desc),
+                    selected = currentUiTheme == AppUiTheme.BAKASU,
+                    isBakaSuPreview = true,
+                    onClick = { ThemeManager.saveUiTheme(context, AppUiTheme.BAKASU) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UiThemePreviewTile(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    isBakaSuPreview: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+    }
+    val containerColor = if (selected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f)
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = containerColor,
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (selected) 1.8.dp else 0.8.dp,
+            color = borderColor
+        ),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+        ) {
+            // Mini UI wireframe preview
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(74.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(6.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                ) {
+                    if (isBakaSuPreview) {
+                        // BakaSU: compact status row + segmented list + docked bottom bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        )
+                        Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp, bottomStart = 2.dp, bottomEnd = 2.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceBright)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 5.dp, bottomEnd = 5.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceBright)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(11.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                        )
+                    } else {
+                        // SovaSU Default: hero card + info card + floating pill bottom bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(22.dp)
+                                .clip(RoundedCornerShape(9.dp))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.72f)
+                                .height(10.dp)
+                                .align(Alignment.CenterHorizontally)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
+                        )
+                    }
+                }
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.TwoTone.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
     }
 }
 

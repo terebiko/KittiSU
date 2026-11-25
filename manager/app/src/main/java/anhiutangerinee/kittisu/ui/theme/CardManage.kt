@@ -224,6 +224,9 @@ fun getCardElevation() = CardStyleProvider.getCardElevation()
  */
 @Composable
 fun m3CardContainerColor(): Color {
+    if (ThemeConfig.isBakaSuTheme) {
+        return androidx.compose.material3.MaterialTheme.colorScheme.surfaceBright
+    }
     val isDark = isInDarkTheme(ThemeConfig.forceDarkMode)
     return if (isDark) {
         androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainerHigh

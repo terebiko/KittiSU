@@ -4,22 +4,27 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRail
 import androidx.compose.material3.WideNavigationRailColors
 import androidx.compose.material3.WideNavigationRailDefaults
 import androidx.compose.material3.WideNavigationRailItem
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -111,6 +116,105 @@ fun NavigationBar(
     }
 }
 
+@SuppressLint("ContextCastToActivity")
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun BakaSuBottomNavigationBar(
+    destinations: List<BottomBarDestination>,
+    selectedPage: Int,
+    onPageChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val activity = LocalContext.current as MainActivity
+
+    val isHideOtherInfo by remember(activity.settingsStateFlow) {
+        activity.settingsStateFlow.map { it.isHideOtherInfo }
+    }.collectAsState(initial = false)
+
+    var superuserCountSaved by rememberSaveable { mutableIntStateOf(0) }
+    var moduleCountSaved by rememberSaveable { mutableIntStateOf(0) }
+
+    val superuserCount by produceState(initialValue = superuserCountSaved) {
+        withContext(Dispatchers.IO) {
+            value = getSuperuserCount()
+            superuserCountSaved = value
+        }
+    }
+    val moduleCount by produceState(initialValue = moduleCountSaved) {
+        withContext(Dispatchers.IO) {
+            value = getModuleCount()
+            moduleCountSaved = value
+        }
+    }
+
+    FlexibleBottomAppBar(
+        modifier = modifier
+            .windowInsetsPadding(
+                WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
+            )
+            .blurEffect(),
+        containerColor =
+            if (ThemeConfig.isEnableBlur || ThemeConfig.isFullScreenBackgroundEnabled)
+                Color.Transparent
+            else
+                MaterialTheme.colorScheme.surfaceContainer.copy(CardConfig.cardAlpha),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        destinations.forEachIndexed { index, destination ->
+            BakaSuBottomBarItem(
+                isSelected = index == selectedPage,
+                destination = destination,
+                onClick = { onPageChange(index) },
+                superuserCount = superuserCount,
+                moduleCount = moduleCount,
+                isHideOtherInfo = isHideOtherInfo,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RowScope.BakaSuBottomBarItem(
+    isSelected: Boolean,
+    destination: BottomBarDestination,
+    onClick: () -> Unit,
+    superuserCount: Int,
+    moduleCount: Int,
+    isHideOtherInfo: Boolean,
+) {
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = onClick,
+        icon = {
+            BadgedBox(
+                badge = {
+                    DestinationBadge(
+                        dest = destination,
+                        superUser = superuserCount,
+                        module = moduleCount,
+                        isHideOtherInfo = isHideOtherInfo,
+                    )
+                }
+            ) {
+                Icon(
+                    imageVector = destination.bakaSuIcon,
+                    contentDescription = stringResource(destination.label)
+                )
+            }
+        },
+        label = {
+            Text(
+                text = stringResource(destination.label),
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Visible,
+            )
+        },
+        alwaysShowLabel = false,
+    )
+}
+
 @Composable
 private fun NavigationRailItem(
     isSelected: Boolean,
@@ -120,6 +224,7 @@ private fun NavigationRailItem(
     moduleCount: Int,
     isHideOtherInfo: Boolean
 ) {
+    val isBakaSu = ThemeConfig.isBakaSuTheme
     WideNavigationRailItem(
         railExpanded = false,
         selected = isSelected,
@@ -135,14 +240,27 @@ private fun NavigationRailItem(
                     )
                 }
             ) {
-                if (isSelected) {
-                    Icon(destination.iconSelected, stringResource(destination.label))
+                val icon = if (isBakaSu) {
+                    destination.bakaSuIcon
+                } else if (isSelected) {
+                    destination.iconSelected
                 } else {
-                    Icon(destination.iconNotSelected, stringResource(destination.label))
+                    destination.iconNotSelected
                 }
+                Icon(icon, stringResource(destination.label))
             }
         },
-        label = { }
+        label = {
+            if (isBakaSu) {
+                Text(
+                    stringResource(destination.label),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Visible,
+                )
+            }
+        }
     )
 }
 

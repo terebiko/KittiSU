@@ -21,6 +21,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,18 +63,24 @@ import androidx.compose.material.icons.twotone.Refresh
 import androidx.compose.material.icons.twotone.Warning
 import androidx.compose.material.icons.twotone.Photo
 import androidx.compose.material.icons.twotone.Restore
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuGroup
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
@@ -182,9 +189,10 @@ private enum class ShortcutType {
  * @date 2025/9/29.
  */
 @SuppressLint("ResourceType", "AutoboxingStateCreation")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ModulePage(bottomPadding: Dp) {
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val viewModel = viewModel<ModuleViewModel>(
@@ -199,6 +207,7 @@ fun ModulePage(bottomPadding: Dp) {
         skipPartiallyExpanded = true
     )
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showBakaDropdown by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     var showConfirmationDialog by remember { mutableStateOf(false) }
@@ -325,13 +334,49 @@ fun ModulePage(bottomPadding: Dp) {
                             )
                         }
                     }
-                    IconButton(
-                        onClick = { showBottomSheet = true },
-                    ) {
-                        Icon(
-                            imageVector = Icons.TwoTone.MoreVert,
-                            contentDescription = stringResource(id = R.string.settings),
-                        )
+                    if (isBakaSu) {
+                        IconButton(onClick = { showBakaDropdown = true }) {
+                            Icon(
+                                imageVector = Icons.TwoTone.MoreVert,
+                                contentDescription = stringResource(id = R.string.settings),
+                            )
+                            DropdownMenuPopup(
+                                expanded = showBakaDropdown,
+                                onDismissRequest = { showBakaDropdown = false }
+                            ) {
+                                DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                    DropdownMenuItem(
+                                        selected = viewModel.sortActionFirst,
+                                        onClick = {
+                                            val next = !viewModel.sortActionFirst
+                                            viewModel.sortActionFirst = next
+                                            prefs.edit { putBoolean("module_sort_action_first", next) }
+                                        },
+                                        text = { Text(stringResource(R.string.module_sort_action_first)) },
+                                        shapes = MenuDefaults.itemShape(index = 0, count = 2)
+                                    )
+                                    DropdownMenuItem(
+                                        selected = viewModel.sortEnabledFirst,
+                                        onClick = {
+                                            val next = !viewModel.sortEnabledFirst
+                                            viewModel.sortEnabledFirst = next
+                                            prefs.edit { putBoolean("module_sort_enabled_first", next) }
+                                        },
+                                        text = { Text(stringResource(R.string.module_sort_enabled_first)) },
+                                        shapes = MenuDefaults.itemShape(index = 1, count = 2)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { showBottomSheet = true },
+                        ) {
+                            Icon(
+                                imageVector = Icons.TwoTone.MoreVert,
+                                contentDescription = stringResource(id = R.string.settings),
+                            )
+                        }
                     }
                 },
                 navigationContent = {
@@ -353,32 +398,54 @@ fun ModulePage(bottomPadding: Dp) {
         floatingActionButton = {
             if (hideInstallButton) return@Scaffold
 
-            ExtendedFloatingActionButton(
-                modifier = Modifier.padding(bottom = bottomPadding + 5.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                onClick = {
-                    selectZipLauncher.launch(
-                        Intent(Intent.ACTION_GET_CONTENT).apply {
-                            type = "application/zip"
-                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        }
-                    )
-                },
-                icon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.package_import),
-                        contentDescription = null
-                    )
-                },
-                text = {
-                    Text(
-                        text = stringResource(R.string.install),
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                }
-            )
+            if (isBakaSu) {
+                FloatingActionButton(
+                    modifier = Modifier.padding(bottom = bottomPadding + 5.dp),
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    onClick = {
+                        selectZipLauncher.launch(
+                            Intent(Intent.ACTION_GET_CONTENT).apply {
+                                type = "application/zip"
+                                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                            }
+                        )
+                    },
+                    content = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.package_import),
+                            contentDescription = null
+                        )
+                    }
+                )
+            } else {
+                ExtendedFloatingActionButton(
+                    modifier = Modifier.padding(bottom = bottomPadding + 5.dp),
+                    shape = MaterialTheme.shapes.extraLarge,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    onClick = {
+                        selectZipLauncher.launch(
+                            Intent(Intent.ACTION_GET_CONTENT).apply {
+                                type = "application/zip"
+                                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                            }
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.package_import),
+                            contentDescription = null
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = stringResource(R.string.install),
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                )
+            }
         },
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -1287,10 +1354,11 @@ fun ModuleItem(
     val clipboardManager = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
     val hapticFeedback = LocalHapticFeedback.current
 
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
     Surface(
         color = anhiutangerinee.kittisu.ui.theme.m3CardContainerColor().copy(CardConfig.cardAlpha),
-        shape = MaterialTheme.shapes.large,
-        border = androidx.compose.foundation.BorderStroke(
+        shape = if (isBakaSu) RoundedCornerShape(16.dp) else MaterialTheme.shapes.large,
+        border = if (isBakaSu) null else androidx.compose.foundation.BorderStroke(
             width = 0.5.dp,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
         )
@@ -1374,7 +1442,13 @@ fun ModuleItem(
                             this
                         }
                     }
-                    .padding(22.dp, 18.dp, 22.dp, 12.dp)
+                    .then(
+                        if (isBakaSu) {
+                            Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
+                        } else {
+                            Modifier.padding(22.dp, 18.dp, 22.dp, 12.dp)
+                        }
+                    )
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1492,8 +1566,8 @@ fun ModuleItem(
     
                 Text(
                     text = module.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = if (isBakaSu) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                    color = if (isBakaSu) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 4,
                     textDecoration = textDecoration,
@@ -1527,92 +1601,235 @@ fun ModuleItem(
                 Spacer(modifier = Modifier.height(16.dp))
     
                 HorizontalDivider(thickness = Dp.Hairline)
-    
-                Spacer(modifier = Modifier.height(8.dp))
-    
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (module.hasActionScript) {
+
+                if (!isBakaSu) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                if (isBakaSu) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (module.hasActionScript) {
+                            Surface(
+                                modifier = Modifier
+                                    .padding(vertical = 5.dp)
+                                    .defaultMinSize(minWidth = 52.dp, minHeight = 32.dp)
+                                    .clip(ButtonDefaults.filledTonalShape)
+                                    .combinedClickable(
+                                        enabled = !module.remove && module.enabled,
+                                        onClick = {
+                                            navigator.push(Route.ExecuteModuleAction(module.dirId))
+                                            viewModel.markNeedRefresh()
+                                        },
+                                        onLongClick = { onModuleAddShortcut(module) }
+                                    ),
+                                color = if (!module.remove && module.enabled) {
+                                    ButtonDefaults.filledTonalButtonColors().containerColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContainerColor
+                                },
+                                contentColor = if (!module.remove && module.enabled) {
+                                    ButtonDefaults.filledTonalButtonColors().contentColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContentColor
+                                }
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(12.dp, 7.dp, 12.dp, 7.dp),
+                                    imageVector = Icons.TwoTone.PlayArrow,
+                                    contentDescription = stringResource(R.string.action)
+                                )
+                            }
+                        }
+
+                        if (module.hasWebUi) {
+                            Surface(
+                                modifier = Modifier
+                                    .padding(vertical = 5.dp)
+                                    .defaultMinSize(minWidth = 52.dp, minHeight = 32.dp)
+                                    .clip(ButtonDefaults.filledTonalShape)
+                                    .combinedClickable(
+                                        enabled = !module.remove && module.enabled,
+                                        onClick = { onClick(module) },
+                                        onLongClick = { onModuleAddShortcut(module) }
+                                    ),
+                                color = if (!module.remove && module.enabled) {
+                                    ButtonDefaults.filledTonalButtonColors().containerColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContainerColor
+                                },
+                                contentColor = if (!module.remove && module.enabled) {
+                                    ButtonDefaults.filledTonalButtonColors().contentColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContentColor
+                                }
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(12.dp, 7.dp, 12.dp, 7.dp),
+                                    imageVector = Icons.AutoMirrored.TwoTone.Wysiwyg,
+                                    contentDescription = stringResource(R.string.open)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f, true))
+
+                        if (updateUrl.isNotEmpty()) {
+                            Surface(
+                                modifier = Modifier
+                                    .padding(vertical = 5.dp)
+                                    .defaultMinSize(minWidth = 52.dp, minHeight = 32.dp)
+                                    .clip(ButtonDefaults.filledTonalShape)
+                                    .clickable(enabled = !module.remove) { onUpdate(module) },
+                                color = if (!module.remove) {
+                                    ButtonDefaults.filledTonalButtonColors().containerColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContainerColor
+                                },
+                                contentColor = if (!module.remove) {
+                                    ButtonDefaults.filledTonalButtonColors().contentColor
+                                } else {
+                                    ButtonDefaults.filledTonalButtonColors().disabledContentColor
+                                }
+                            ) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(12.dp, 7.dp, 12.dp, 7.dp),
+                                    imageVector = Icons.TwoTone.Download,
+                                    contentDescription = stringResource(R.string.module_update)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .padding(vertical = 5.dp)
+                                .defaultMinSize(minWidth = 52.dp, minHeight = 32.dp)
+                                .clip(ButtonDefaults.filledTonalShape)
+                                .clickable { onUninstallClicked(module) },
+                            color = if (!module.remove) {
+                                ButtonDefaults.filledTonalButtonColors().containerColor
+                            } else {
+                                ButtonDefaults.filledTonalButtonColors().disabledContainerColor
+                            },
+                            contentColor = if (!module.remove) {
+                                ButtonDefaults.filledTonalButtonColors().contentColor
+                            } else {
+                                ButtonDefaults.filledTonalButtonColors().disabledContentColor
+                            }
+                        ) {
+                            if (!module.remove) {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .padding(12.dp, 7.dp, 12.dp, 7.dp),
+                                    imageVector = Icons.TwoTone.Delete,
+                                    contentDescription = stringResource(R.string.uninstall),
+                                )
+                            } else {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .rotate(180f)
+                                        .padding(12.dp, 7.dp, 12.dp, 7.dp),
+                                    imageVector = Icons.TwoTone.Refresh,
+                                    contentDescription = stringResource(R.string.restore)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (module.hasActionScript) {
+                            FilledTonalButton(
+                                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
+                                enabled = !module.remove && module.enabled,
+                                onClick = {
+                                    navigator.push(Route.ExecuteModuleAction(module.dirId))
+                                    viewModel.markNeedRefresh()
+                                },
+                                contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.TwoTone.PlayArrow,
+                                    contentDescription = stringResource(R.string.action)
+                                )
+                            }
+                        }
+
+                        if (module.hasWebUi) {
+                            FilledTonalButton(
+                                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
+                                enabled = !module.remove && module.enabled,
+                                onClick = { onClick(module) },
+                                interactionSource = interactionSource,
+                                contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.AutoMirrored.TwoTone.Wysiwyg,
+                                    contentDescription = stringResource(R.string.open)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.weight(1f, true))
+
+                        if (updateUrl.isNotEmpty()) {
+                            Button(
+                                modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
+                                enabled = !module.remove,
+                                onClick = { onUpdate(module) },
+                                shape = ButtonDefaults.textShape,
+                                contentPadding = ButtonDefaults.TextButtonContentPadding,
+                            ) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.TwoTone.Download,
+                                    contentDescription = stringResource(R.string.module_update)
+                                )
+                            }
+                        }
+
                         FilledTonalButton(
                             modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
-                            enabled = !module.remove && module.enabled,
-                            onClick = {
-                                navigator.push(Route.ExecuteModuleAction(module.dirId))
-                                viewModel.markNeedRefresh()
+                            onClick = { onUninstallClicked(module) },
+                            colors = if (!module.remove) {
+                                ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f),
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            } else {
+                                ButtonDefaults.filledTonalButtonColors()
                             },
                             contentPadding = ButtonDefaults.TextButtonContentPadding,
                         ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.TwoTone.PlayArrow,
-                                contentDescription = stringResource(R.string.action)
-                            )
-                        }
-                    }
-    
-                    if (module.hasWebUi) {
-                        FilledTonalButton(
-                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
-                            enabled = !module.remove && module.enabled,
-                            onClick = { onClick(module) },
-                            interactionSource = interactionSource,
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.AutoMirrored.TwoTone.Wysiwyg,
-                                contentDescription = stringResource(R.string.open)
-                            )
-                        }
-                    }
-    
-                    Spacer(modifier = Modifier.weight(1f, true))
-    
-                    if (updateUrl.isNotEmpty()) {
-                        Button(
-                            modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
-                            enabled = !module.remove,
-                            onClick = { onUpdate(module) },
-                            shape = ButtonDefaults.textShape,
-                            contentPadding = ButtonDefaults.TextButtonContentPadding,
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.TwoTone.Download,
-                                contentDescription = stringResource(R.string.module_update)
-                            )
-                        }
-                    }
-    
-                    FilledTonalButton(
-                        modifier = Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 40.dp),
-                        onClick = { onUninstallClicked(module) },
-                        colors = if (!module.remove) {
-                            ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.75f),
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        } else {
-                            ButtonDefaults.filledTonalButtonColors()
-                        },
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
-                    ) {
-                        if (!module.remove) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.TwoTone.Delete,
-                                contentDescription = stringResource(R.string.uninstall),
-                            )
-                        } else {
-                            Icon(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .rotate(180f),
-                                imageVector = Icons.TwoTone.Refresh,
-                                contentDescription = stringResource(R.string.restore)
-                            )
+                            if (!module.remove) {
+                                Icon(
+                                    modifier = Modifier.size(20.dp),
+                                    imageVector = Icons.TwoTone.Delete,
+                                    contentDescription = stringResource(R.string.uninstall),
+                                )
+                            } else {
+                                Icon(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .rotate(180f),
+                                    imageVector = Icons.TwoTone.Refresh,
+                                    contentDescription = stringResource(R.string.restore)
+                                )
+                            }
                         }
                     }
                 }

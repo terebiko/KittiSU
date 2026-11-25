@@ -3,6 +3,7 @@ package anhiutangerinee.kittisu.ui.screen
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.twotone.AdminPanelSettings
+import androidx.compose.material.icons.twotone.Extension
 import androidx.compose.material.icons.twotone.Home
 import androidx.compose.material.icons.twotone.Layers
 import androidx.compose.material.icons.twotone.Settings
@@ -22,6 +23,7 @@ enum class BottomBarDestination(
     val iconSelected: ImageVector,
     val iconNotSelected: ImageVector,
     val rootRequired: Boolean,
+    val bakaSuIcon: ImageVector = iconSelected,
 ) {
     Home(
         { bottomPadding -> HomePage(bottomPadding) },
@@ -42,7 +44,8 @@ enum class BottomBarDestination(
         R.string.module,
         Icons.TwoTone.Layers,
         Icons.TwoTone.Layers,
-        true
+        true,
+        bakaSuIcon = Icons.TwoTone.Extension
     ),
     Settings(
         { bottomPadding -> SettingsPage(bottomPadding) },

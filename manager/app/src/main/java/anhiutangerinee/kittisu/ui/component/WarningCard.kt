@@ -109,6 +109,46 @@ private fun WarningCardInner(
     onClose: (() -> Unit)? = null,
     icon: (@Composable () -> Unit)? = null
 ) {
+    if (anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme) {
+        val bakaShape = RoundedCornerShape(16.dp)
+        androidx.compose.runtime.CompositionLocalProvider(
+            anhiutangerinee.kittisu.ui.component.settings.LocalSegmentedItemShape provides bakaShape
+        ) {
+            anhiutangerinee.kittisu.ui.component.settings.SettingsBaseWidget(
+                modifier = modifier,
+                title = null,
+                containerColor = color ?: MaterialTheme.colorScheme.errorContainer,
+                leadingContent = icon ?: {
+                    Icon(
+                        imageVector = Icons.TwoTone.Error,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                foreContent = {
+                    content()
+                },
+                trailingContent = {
+                    onClose?.let {
+                        Icon(
+                            imageVector = Icons.TwoTone.Close,
+                            contentDescription = stringResource(android.R.string.cancel),
+                            modifier = Modifier
+                                .clickable { onClose() }
+                                .size(18.dp)
+                                .align(Alignment.TopEnd)
+                        )
+                    }
+                    end()
+                },
+                iconPlaceholder = false,
+                onClick = if (onClick != null) { { onClick.invoke() } } else null,
+                onLongClick = null
+            )
+        }
+        return
+    }
+
     val cardColors = when (color) {
         null -> {
             CardDefaults.cardColors(

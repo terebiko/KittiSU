@@ -58,6 +58,9 @@ import androidx.compose.material.icons.twotone.VisibilityOff
 import androidx.compose.material.icons.twotone.Archive
 import androidx.compose.material.icons.twotone.SearchOff
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuGroup
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
@@ -66,6 +69,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
@@ -136,13 +140,14 @@ data class BottomSheetMenuItem(
     val onClick: () -> Unit
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SuperUserPage(bottomPadding: Dp) {
     val context = LocalContext.current
     val viewModel = viewModel<SuperUserViewModel>(
         viewModelStoreOwner = ksuApp
     )
+    val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
     val scope = rememberCoroutineScope()
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
@@ -151,6 +156,7 @@ fun SuperUserPage(bottomPadding: Dp) {
 
     val bottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showBottomSheet by remember { mutableStateOf(false) }
+    var showBakaDropdown by remember { mutableStateOf(false) }
 
     val backupLauncher = ModuleModify.rememberAllowlistBackupLauncher(context, snackBarHostState)
     val restoreLauncher = ModuleModify.rememberAllowlistRestoreLauncher(context, snackBarHostState)
@@ -233,11 +239,69 @@ fun SuperUserPage(bottomPadding: Dp) {
                 searchText = viewModel.search,
                 onSearchTextChange = { viewModel.search = it },
                 dropdownContent = {
-                    IconButton(onClick = { showBottomSheet = true }) {
-                        Icon(
-                            imageVector = Icons.TwoTone.MoreVert,
-                            contentDescription = stringResource(id = R.string.settings),
-                        )
+                    if (isBakaSu) {
+                        IconButton(onClick = { showBakaDropdown = true }) {
+                            Icon(
+                                imageVector = Icons.TwoTone.MoreVert,
+                                contentDescription = stringResource(id = R.string.settings),
+                            )
+                            DropdownMenuPopup(
+                                expanded = showBakaDropdown,
+                                onDismissRequest = { showBakaDropdown = false }
+                            ) {
+                                DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                    SortType.entries.forEachIndexed { index, sortType ->
+                                        DropdownMenuItem(
+                                            selected = viewModel.currentSortType == sortType,
+                                            onClick = {
+                                                viewModel.updateCurrentSortType(sortType)
+                                            },
+                                            text = { Text(stringResource(sortType.displayNameRes)) },
+                                            shapes = MenuDefaults.itemShape(
+                                                index = index,
+                                                count = SortType.entries.size
+                                            )
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                                    DropdownMenuItem(
+                                        selected = viewModel.showSystemApps,
+                                        onClick = {
+                                            viewModel.updateShowSystemApps(!viewModel.showSystemApps)
+                                        },
+                                        text = { Text(stringResource(R.string.show_system_apps)) },
+                                        shapes = MenuDefaults.itemShape(index = 0, count = 3)
+                                    )
+                                    DropdownMenuItem(
+                                        selected = false,
+                                        onClick = {
+                                            showBakaDropdown = false
+                                            backupLauncher.launch(ModuleModify.createAllowlistBackupIntent())
+                                        },
+                                        text = { Text(stringResource(R.string.backup_allowlist)) },
+                                        shapes = MenuDefaults.itemShape(index = 1, count = 3)
+                                    )
+                                    DropdownMenuItem(
+                                        selected = false,
+                                        onClick = {
+                                            showBakaDropdown = false
+                                            restoreLauncher.launch(ModuleModify.createAllowlistRestoreIntent())
+                                        },
+                                        text = { Text(stringResource(R.string.restore_allowlist)) },
+                                        shapes = MenuDefaults.itemShape(index = 2, count = 3)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        IconButton(onClick = { showBottomSheet = true }) {
+                            Icon(
+                                imageVector = Icons.TwoTone.MoreVert,
+                                contentDescription = stringResource(id = R.string.settings),
+                            )
+                        }
                     }
                 },
                 navigationContent = {
@@ -261,7 +325,9 @@ fun SuperUserPage(bottomPadding: Dp) {
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         floatingActionButton = {
-            SuperUserFab(viewModel, filteredAndSortedAppGroups, listState, scope, bottomPadding)
+            if (!isBakaSu || (viewModel.showBatchActions && viewModel.selectedApps.isNotEmpty())) {
+                SuperUserFab(viewModel, filteredAndSortedAppGroups, listState, scope, bottomPadding)
+            }
         }
     ) { innerPadding ->
         SuperUserContent(
@@ -426,7 +492,7 @@ private fun SuperUserContent(
                 )
             },
         ) {
-            if (recentlyInstalledGroups.isNotEmpty()) {
+            if (!anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme && recentlyInstalledGroups.isNotEmpty()) {
                 item(key = "recently_installed_section") {
                     RecentlyInstalledAppsSection(
                         groups = recentlyInstalledGroups,
@@ -804,8 +870,12 @@ private fun AppGroupItem(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
+                val isBakaSu = anhiutangerinee.kittisu.ui.theme.ThemeConfig.isBakaSuTheme
                 if (appGroup.allowSu) {
-                    LabelText(label = "ROOT")
+                    LabelText(
+                        label = "ROOT",
+                        containerColor = if (isBakaSu) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer
+                    )
                 } else if (appGroup.shouldUmount) {
                     LabelText(
                         label = "UMOUNT",
@@ -820,14 +890,26 @@ private fun AppGroupItem(
                 } else if (!appGroup.allowSu) {
                     LabelText(
                         label = "DEFAULT",
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        containerColor = if (isBakaSu) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 }
                 if (appGroup.apps.size > 1) {
                     appGroup.userName?.let {
                         LabelText(
                             label = it,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            containerColor = if (isBakaSu) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.primaryContainer,
+                        )
+                    }
+                }
+                if (isBakaSu) {
+                    val isRecent = remember(mainApp.packageInfo.firstInstallTime) {
+                        val t = mainApp.packageInfo.firstInstallTime
+                        t > 0L && (System.currentTimeMillis() - t) < 7L * 24L * 60L * 60L * 1000L
+                    }
+                    if (isRecent) {
+                        LabelText(
+                            label = stringResource(R.string.superuser_recently_installed),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         )
                     }
                 }
