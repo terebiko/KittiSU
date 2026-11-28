@@ -95,13 +95,54 @@ fun ExecuteModuleActionScreen(moduleId: String) {
         DeepLinkResolver.parseModuleDeepLink(context, activity?.intent?.data) is ModuleDeepLink.Action
     }
 
-    LaunchedEffect(Unit) {
-        if (text.isNotEmpty()) {
+    var antiBrickScanDone by remember(moduleId) { mutableStateOf(false) }
+    var antiBrickApproved by remember(moduleId) { mutableStateOf(false) }
+    var antiBrickBlocked by remember(moduleId) { mutableStateOf(false) }
+    var antiBrickFindings by remember(moduleId) {
+        mutableStateOf<List<anhiutangerinee.kittisu.ui.util.AntiBrickFinding>>(emptyList())
+    }
+    val blockedTimeoutMsg = stringResource(R.string.anti_brick_blocked_timeout)
+    val blockedCancelMsg = stringResource(R.string.anti_brick_blocked_cancel)
+
+    LaunchedEffect(moduleId) {
+        if (!anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isEnabled(context)) {
+            antiBrickScanDone = true
+            antiBrickApproved = true
+            return@LaunchedEffect
+        }
+        val scan = withContext(Dispatchers.IO) {
+            anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanFile("/data/adb/modules/$moduleId/action.sh")
+        }
+        antiBrickFindings = scan.findings
+        if (!scan.isDangerous) {
+            antiBrickApproved = true
+        }
+        antiBrickScanDone = true
+    }
+
+    if (antiBrickScanDone && antiBrickFindings.isNotEmpty() && !antiBrickApproved && !antiBrickBlocked) {
+        anhiutangerinee.kittisu.ui.component.AntiBrickConfirmDialog(
+            targetLabel = "$moduleId/action.sh",
+            findings = antiBrickFindings,
+            onConfirm = { antiBrickApproved = true },
+            onTimeoutOrCancel = { timedOut ->
+                antiBrickBlocked = true
+                isActionRunning = false
+                val msg = if (timedOut) blockedTimeoutMsg else blockedCancelMsg
+                text = "[SovaSU Anti-Brick] $msg\n"
+                logContent.append(text)
+            }
+        )
+    }
+
+    LaunchedEffect(antiBrickScanDone, antiBrickApproved) {
+        if (!antiBrickScanDone || !antiBrickApproved || text.isNotEmpty()) {
             return@LaunchedEffect
         }
         withContext(Dispatchers.IO) {
             runModuleAction(
                 moduleId = moduleId,
+                antiBrickConfirmed = antiBrickFindings.isNotEmpty() && antiBrickApproved,
                 onStdout = {
                     tempText = "$it\n"
                     if (tempText.startsWith("[H[J")) { // clear command

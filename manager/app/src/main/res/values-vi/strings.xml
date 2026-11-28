@@ -922,4 +922,14 @@ Hãy đảm bảo bootloader đã được mở khóa trước khi tiếp tục!
     <string name="home_status_info">Thông tin trạng thái</string>
     <string name="home_short_info">SuperUser: %1$d, Mô-đun: %2$d</string>
     <string name="home_kernel_version">Phiên bản trình điều khiển kernel</string>
+
+    <!-- Bảo vệ chống Brick phân vùng hệ thống -->
+    <string name="settings_anti_brick_title">Chống Brick phân vùng hệ thống</string>
+    <string name="settings_anti_brick_summary">Chặn lệnh phá hoại (dd/rm/zero/wipe) vào phân vùng quan trọng (edl, bootloader, abl, xbl, tz, ocdt...) nếu không xác nhận trong 10 giây</string>
+    <string name="anti_brick_dialog_title">Cảnh báo chống Brick máy</string>
+    <string name="anti_brick_dialog_desc">Phát hiện lệnh root nguy hiểm trong \"%1$s\". Bạn có thực sự cần chạy không? Tự động DỪNG sau %2$d giây nếu không xác nhận.</string>
+    <string name="anti_brick_confirm_run">Vẫn chạy (%1$ds)</string>
+    <string name="anti_brick_stop">Dừng ngay</string>
+    <string name="anti_brick_blocked_timeout">Hết 10 giây chưa xác nhận — đã tự động chặn lệnh để bảo vệ máy!</string>
+    <string name="anti_brick_blocked_cancel">Đã chặn bởi tính năng Chống Brick</string>
 </resources>

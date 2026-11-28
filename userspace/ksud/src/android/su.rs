@@ -337,7 +337,10 @@ pub fn root_shell() -> Result<()> {
     // WARNING!!! This cause some root shell hang forever!
     // command = command.process_group(0);
 
-    command.args(args).arg0(arg0);
+    // Strip pre-confirm env var so child processes cannot inherit a blanket bypass
+    command.env_remove(crate::android::anti_brick::ANTI_BRICK_CONFIRMED_ENV);
+
+    command.args(args.clone()).arg0(arg0);
     umask(0o22);
     utils::switch_cgroups();
 
@@ -350,6 +353,23 @@ pub fn root_shell() -> Result<()> {
         wrap_tty(0);
         wrap_tty(1);
         wrap_tty(2);
+    }
+
+    // Anti-Brick Guard: inspect commands passed via `su -c` or direct exec args
+    // (run after wrap_tty so interactive TTY confirmation works under strict SELinux)
+    if let Some(cmd_str) = matches.opt_str("c") {
+        let findings = crate::android::anti_brick::scan_command_line(&cmd_str);
+        if let Err(e) = crate::android::anti_brick::enforce("su -c", &findings) {
+            error!("Anti-Brick blocked su -c: {e}");
+            std::process::exit(126);
+        }
+    } else if !args.is_empty() {
+        let joined = format!("{executable} {}", args.join(" "));
+        let findings = crate::android::anti_brick::scan_command_line(&joined);
+        if let Err(e) = crate::android::anti_brick::enforce("su exec", &findings) {
+            error!("Anti-Brick blocked su exec: {e}");
+            std::process::exit(126);
+        }
     }
 
     if identity_requested {

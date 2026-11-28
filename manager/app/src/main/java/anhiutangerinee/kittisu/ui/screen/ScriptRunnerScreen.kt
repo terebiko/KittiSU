@@ -183,6 +183,14 @@ fun ScriptRunnerScreen() {
     var runDurationMs by remember { mutableStateOf(0L) }
     val runOutputLines = remember { mutableStateListOf<String>() }
 
+    // Anti-Brick confirmation state
+    var pendingDangerousScript by remember { mutableStateOf<SavedRootScript?>(null) }
+    var pendingDangerousFindings by remember {
+        mutableStateOf<List<anhiutangerinee.kittisu.ui.util.AntiBrickFinding>>(emptyList())
+    }
+    val antiBrickTimeoutToast = stringResource(R.string.anti_brick_blocked_timeout)
+    val antiBrickCancelToast = stringResource(R.string.anti_brick_blocked_cancel)
+
     fun persist(updated: List<SavedRootScript>) {
         scripts = updated
         scope.launch(Dispatchers.IO) { RootScriptStore.save(context, updated) }
@@ -227,7 +235,7 @@ fun ScriptRunnerScreen() {
         }
     }
 
-    fun executeScript(script: SavedRootScript) {
+    fun runScriptInternal(script: SavedRootScript, preConfirmed: Boolean = false) {
         runningScript = script
         isRunning = true
         runExitCode = null
@@ -258,8 +266,11 @@ fun ScriptRunnerScreen() {
                         }
                     }
                 }
+                val envPrefix = if (preConfirmed) {
+                    "${anhiutangerinee.kittisu.ui.util.AntiBrickGuard.CONFIRMED_ENV}=1 "
+                } else ""
                 val res = getRootShell().newJob()
-                    .add("sh ${tempScript.absolutePath.shellQuote()}")
+                    .add("${envPrefix}sh ${tempScript.absolutePath.shellQuote()}")
                     .to(outCb, errCb)
                     .exec()
                 res.code
@@ -283,6 +294,39 @@ fun ScriptRunnerScreen() {
                 persist(updated)
             }
         }
+    }
+
+    fun executeScript(script: SavedRootScript) {
+        if (anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isEnabled(context)) {
+            val scan = anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanText(script.name, script.content)
+            if (scan.isDangerous) {
+                pendingDangerousFindings = scan.findings
+                pendingDangerousScript = script
+                return
+            }
+        }
+        runScriptInternal(script, preConfirmed = false)
+    }
+
+    pendingDangerousScript?.let { script ->
+        anhiutangerinee.kittisu.ui.component.AntiBrickConfirmDialog(
+            targetLabel = script.name,
+            findings = pendingDangerousFindings,
+            onConfirm = {
+                pendingDangerousScript = null
+                pendingDangerousFindings = emptyList()
+                runScriptInternal(script, preConfirmed = true)
+            },
+            onTimeoutOrCancel = { timedOut ->
+                pendingDangerousScript = null
+                pendingDangerousFindings = emptyList()
+                Toast.makeText(
+                    context,
+                    if (timedOut) antiBrickTimeoutToast else antiBrickCancelToast,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
     }
 
     // Create / Edit Script Dialog

@@ -404,6 +404,12 @@ fun RootConsoleScreen() {
     val scope = rememberCoroutineScope()
 
     var warningAccepted by remember { mutableStateOf(false) }
+    var pendingBlockedCommand by remember { mutableStateOf<String?>(null) }
+    var pendingBlockedFindings by remember {
+        mutableStateOf<List<anhiutangerinee.kittisu.ui.util.AntiBrickFinding>>(emptyList())
+    }
+    val blockedTimeoutMsg = stringResource(R.string.anti_brick_blocked_timeout)
+    val blockedCancelMsg = stringResource(R.string.anti_brick_blocked_cancel)
     var isRoot by remember { mutableStateOf(false) }
     var currentDir by remember { mutableStateOf("/") }
     var isShellRunning by remember { mutableStateOf(false) }
@@ -513,6 +519,28 @@ fun RootConsoleScreen() {
         )
     }
 
+    pendingBlockedCommand?.let { dangerousCmd ->
+        anhiutangerinee.kittisu.ui.component.AntiBrickConfirmDialog(
+            targetLabel = dangerousCmd.trim().take(64),
+            findings = pendingBlockedFindings,
+            onConfirm = {
+                val cmdToRun = dangerousCmd
+                pendingBlockedCommand = null
+                pendingBlockedFindings = emptyList()
+                scope.launch(Dispatchers.IO) {
+                    shell.sendCommand(cmdToRun)
+                }
+            },
+            onTimeoutOrCancel = { timedOut ->
+                pendingBlockedCommand = null
+                pendingBlockedFindings = emptyList()
+                val msg = if (timedOut) blockedTimeoutMsg else blockedCancelMsg
+                lines.add(ConsoleLine("[Anti-Brick] $msg", isError = true))
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
+        )
+    }
+
     fun submitCurrentCommand() {
         val cmd = inputValue.text
         inputValue = TextFieldValue("")
@@ -530,8 +558,22 @@ fun RootConsoleScreen() {
         if (trimmed.isNotEmpty() && history.lastOrNull() != trimmed) {
             history.add(trimmed)
         }
-        scope.launch(Dispatchers.IO) {
-            shell.sendCommand(cmd)
+        if (trimmed.isNotEmpty() && anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isEnabled(context)) {
+            scope.launch(Dispatchers.IO) {
+                val scan = anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanCommandLine(cmd)
+                if (scan.isDangerous) {
+                    withContext(Dispatchers.Main) {
+                        pendingBlockedFindings = scan.findings
+                        pendingBlockedCommand = cmd
+                    }
+                } else {
+                    shell.sendCommand(cmd)
+                }
+            }
+        } else {
+            scope.launch(Dispatchers.IO) {
+                shell.sendCommand(cmd)
+            }
         }
     }
 

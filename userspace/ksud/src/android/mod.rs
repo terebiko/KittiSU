@@ -1,3 +1,4 @@
+pub mod anti_brick;
 pub mod cli;
 mod debug;
 mod dynamic_manager;

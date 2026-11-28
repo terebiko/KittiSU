@@ -306,9 +306,81 @@ fun FlashScreen(flashIt: FlashIt) {
         }
     }
 
-    // 处理更新模块安装
+    var antiBrickScanDone by remember(flashIt) { mutableStateOf(false) }
+    var antiBrickApproved by remember(flashIt) { mutableStateOf(false) }
+    var antiBrickFindings by remember(flashIt) {
+        mutableStateOf<List<anhiutangerinee.kittisu.ui.util.AntiBrickFinding>>(emptyList())
+    }
+    val antiBrickTimeoutMsg = stringResource(R.string.anti_brick_blocked_timeout)
+    val antiBrickCancelMsg = stringResource(R.string.anti_brick_blocked_cancel)
+
     LaunchedEffect(flashIt) {
+        if (!anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isEnabled(context)) {
+            antiBrickApproved = true
+            antiBrickScanDone = true
+            return@LaunchedEffect
+        }
+        val scan = withContext(Dispatchers.IO) {
+            when (flashIt) {
+                is FlashIt.FlashModule -> anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanModuleZip(context, flashIt.uri)
+                is FlashIt.FlashModuleUpdate -> anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanModuleZip(context, flashIt.uri)
+                is FlashIt.FlashModules -> {
+                    val uri = flashIt.uris.getOrNull(flashIt.currentIndex)
+                    if (uri != null) {
+                        anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanModuleZip(context, uri)
+                    } else {
+                        anhiutangerinee.kittisu.ui.util.AntiBrickScanResult()
+                    }
+                }
+                is FlashIt.FlashScripts -> {
+                    val script = flashIt.scripts.getOrNull(flashIt.currentIndex)
+                    if (script != null) {
+                        val content = runCatching {
+                            downloadScript(resolveScriptUrl(script.path, flashIt.baseUrl))
+                        }.getOrNull()
+                        if (!content.isNullOrBlank()) {
+                            anhiutangerinee.kittisu.ui.util.AntiBrickGuard.scanText(script.name, content)
+                        } else {
+                            anhiutangerinee.kittisu.ui.util.AntiBrickScanResult()
+                        }
+                    } else {
+                        anhiutangerinee.kittisu.ui.util.AntiBrickScanResult()
+                    }
+                }
+                else -> anhiutangerinee.kittisu.ui.util.AntiBrickScanResult()
+            }
+        }
+        antiBrickFindings = scan.findings
+        if (!scan.isDangerous) {
+            antiBrickApproved = true
+        }
+        antiBrickScanDone = true
+    }
+
+    if (antiBrickScanDone && antiBrickFindings.isNotEmpty() && !antiBrickApproved) {
+        val targetLabel = when (flashIt) {
+            is FlashIt.FlashScripts -> flashIt.scripts.getOrNull(flashIt.currentIndex)?.name ?: "script.sh"
+            else -> "Module ZIP"
+        }
+        anhiutangerinee.kittisu.ui.component.AntiBrickConfirmDialog(
+            targetLabel = targetLabel,
+            findings = antiBrickFindings,
+            onConfirm = { antiBrickApproved = true },
+            onTimeoutOrCancel = { timedOut ->
+                android.widget.Toast.makeText(
+                    context,
+                    if (timedOut) antiBrickTimeoutMsg else antiBrickCancelMsg,
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                navigator.pop()
+            }
+        )
+    }
+
+    // 处理更新模块安装
+    LaunchedEffect(flashIt, antiBrickScanDone, antiBrickApproved) {
         if (flashIt !is FlashIt.FlashModuleUpdate) return@LaunchedEffect
+        if (!antiBrickScanDone || !antiBrickApproved) return@LaunchedEffect
         if (hasUpdateExecuted || hasUpdateCompleted || text.isNotEmpty()) {
             return@LaunchedEffect
         }
@@ -324,7 +396,10 @@ fun FlashScreen(flashIt: FlashIt) {
                 logContent.append(text).append("\n")
             }
 
-            flashModuleUpdate(flashIt.uri, onFinish = { showReboot, code ->
+            flashModuleUpdate(
+                flashIt.uri,
+                antiBrickConfirmed = antiBrickFindings.isNotEmpty() && antiBrickApproved,
+                onFinish = { showReboot, code ->
                 if (code != 0) {
                     text += "$errorCodeString $code.\n$checkLogString\n"
                     setFlashingStatus(FlashingStatus.FAILED)
@@ -382,8 +457,9 @@ fun FlashScreen(flashIt: FlashIt) {
     }
 
     // 安装但排除更新模块
-    LaunchedEffect(flashIt, flashEnabled) {
+    LaunchedEffect(flashIt, flashEnabled, antiBrickScanDone, antiBrickApproved) {
         if (flashIt is FlashIt.FlashModuleUpdate) return@LaunchedEffect
+        if (!antiBrickScanDone || !antiBrickApproved) return@LaunchedEffect
         if (hasExecuted || hasFlashCompleted || text.isNotEmpty()) {
             return@LaunchedEffect
         }
@@ -420,7 +496,10 @@ fun FlashScreen(flashIt: FlashIt) {
                 logContent.append(text).append("\n")
             }
 
-            flashIt(flashIt, onFinish = { showReboot, code ->
+            flashIt(
+                flashIt,
+                antiBrickConfirmed = antiBrickFindings.isNotEmpty() && antiBrickApproved,
+                onFinish = { showReboot, code ->
                 if (code != 0) {
                     text += "$errorCodeString $code.\n$checkLogString\n"
                     setFlashingStatus(FlashingStatus.FAILED)
@@ -1113,9 +1192,10 @@ fun flashModuleUpdate(
     uri: Uri,
     onFinish: (Boolean, Int) -> Unit,
     onStdout: (String) -> Unit,
-    onStderr: (String) -> Unit
+    onStderr: (String) -> Unit,
+    antiBrickConfirmed: Boolean = false,
 ) {
-    flashModule(uri, onFinish, onStdout, onStderr)
+    flashModule(uri, onFinish, onStdout, onStderr, antiBrickConfirmed = antiBrickConfirmed)
 }
 
 private fun resolveScriptUrl(path: String, baseUrl: String): String {
@@ -1155,7 +1235,8 @@ fun flashIt(
     flashIt: FlashIt,
     onFinish: (Boolean, Int) -> Unit,
     onStdout: (String) -> Unit,
-    onStderr: (String) -> Unit
+    onStderr: (String) -> Unit,
+    antiBrickConfirmed: Boolean = false,
 ) {
     when (flashIt) {
         is FlashIt.FlashBoot -> installBoot(
@@ -1177,7 +1258,7 @@ fun flashIt(
             onStdout = onStdout,
             onStderr = onStderr
         )
-        is FlashIt.FlashModule -> flashModule(flashIt.uri, onFinish, onStdout, onStderr)
+        is FlashIt.FlashModule -> flashModule(flashIt.uri, onFinish, onStdout, onStderr, antiBrickConfirmed = antiBrickConfirmed)
         is FlashIt.FlashModules -> {
             if (flashIt.uris.isEmpty() || flashIt.currentIndex >= flashIt.uris.size) {
                 onFinish(false, 0)
@@ -1187,7 +1268,7 @@ fun flashIt(
             val currentUri = flashIt.uris[flashIt.currentIndex]
             onStdout("\n")
 
-            flashModule(currentUri, onFinish, onStdout, onStderr)
+            flashModule(currentUri, onFinish, onStdout, onStderr, antiBrickConfirmed = antiBrickConfirmed)
         }
         is FlashIt.FlashModuleUpdate -> {
             onFinish(false, 0)

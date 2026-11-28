@@ -298,6 +298,13 @@ pub fn exec_script_with<T: AsRef<Path>>(
 ) -> Result<()> {
     info!("exec {}", path.as_ref().display());
 
+    // Anti-Brick Guard: scan module script before execution
+    let ab_findings = crate::android::anti_brick::scan_script_file(path.as_ref());
+    crate::android::anti_brick::enforce(
+        &format!("script {}", path.as_ref().display()),
+        &ab_findings,
+    )?;
+
     let is_module_script = path.as_ref().starts_with(defs::MODULE_DIR);
     // Extract module_id from path if it matches /data/adb/modules/{id}/...
     let module_id = if is_module_script {
@@ -865,6 +872,10 @@ fn install_module_to_system(zip: &str) -> Result<String> {
 
 pub fn install_module(zip: &str) -> Result<()> {
     ksucalls::ensure_uapi_version_matched()?;
+
+    // Anti-Brick Guard: scan module ZIP scripts before extracting or running installer.sh
+    let ab_findings = crate::android::anti_brick::scan_module_zip(zip);
+    crate::android::anti_brick::enforce(&format!("module zip {zip}"), &ab_findings)?;
 
     let module_id = install_module_to_system(zip).inspect_err(|e| println!("- Error: {e}"))?;
     if let Err(e) = regenerate_preinit() {

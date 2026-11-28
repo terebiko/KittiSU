@@ -529,7 +529,8 @@ fun flashModule(
     uri: Uri,
     onFinish: (Boolean, Int) -> Unit,
     onStdout: (String) -> Unit,
-    onStderr: (String) -> Unit
+    onStderr: (String) -> Unit,
+    antiBrickConfirmed: Boolean = false,
 ): Boolean {
     val resolver = ksuApp.contentResolver
     with(resolver.openInputStream(uri)) {
@@ -538,8 +539,9 @@ fun flashModule(
             this?.copyTo(output)
         }
         try {
+            val envPrefix = if (antiBrickConfirmed) "${AntiBrickGuard.CONFIRMED_ENV}=1 " else ""
             val cmd = "module install ${file.absolutePath.shellQuote()}"
-            val result = flashWithIO("${getActiveModuleDaemonPath()} $cmd", onStdout, onStderr)
+            val result = flashWithIO("${envPrefix}${getActiveModuleDaemonPath()} $cmd", onStdout, onStderr)
             Log.i("KernelSU", "install module $uri result: $result")
 
             onFinish(result.isSuccess && moduleNeedsReboot(file), result.code)
@@ -570,7 +572,10 @@ private fun moduleNeedsReboot(zip: File): Boolean {
 }
 
 fun runModuleAction(
-    moduleId: String, onStdout: (String) -> Unit, onStderr: (String) -> Unit
+    moduleId: String,
+    onStdout: (String) -> Unit,
+    onStderr: (String) -> Unit,
+    antiBrickConfirmed: Boolean = false,
 ): Boolean {
     val stdoutCallback: CallbackList<String?> = object : CallbackList<String?>() {
         override fun onAddElement(s: String?) {
@@ -584,8 +589,9 @@ fun runModuleAction(
         }
     }
 
+    val envPrefix = if (antiBrickConfirmed) "${AntiBrickGuard.CONFIRMED_ENV}=1 " else ""
     val result = withNewRootShell(true) {
-        newJob().add("${getActiveModuleDaemonPath()} module action ${moduleId.shellQuote()}")
+        newJob().add("${envPrefix}${getActiveModuleDaemonPath()} module action ${moduleId.shellQuote()}")
             .to(stdoutCallback, stderrCallback).exec()
     }
 

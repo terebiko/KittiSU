@@ -982,6 +982,25 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
+                            // Anti-Brick Guard switch (default ON)
+                            var antiBrickEnabled by rememberSaveable {
+                                mutableStateOf(anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isEnabled(context))
+                            }
+                            SettingsSwitchWidget(
+                                icon = Icons.TwoTone.Security,
+                                title = stringResource(R.string.settings_anti_brick_title),
+                                description = stringResource(R.string.settings_anti_brick_summary),
+                                checked = antiBrickEnabled,
+                                onCheckedChange = { enabled ->
+                                    antiBrickEnabled = enabled
+                                    scope.launch(Dispatchers.IO) {
+                                        anhiutangerinee.kittisu.ui.util.AntiBrickGuard.setEnabled(context, enabled)
+                                    }
+                                }
+                            )
+                        }
+
+                        item {
                             val uiThemes = listOf(
                                 stringResource(R.string.ui_theme_default),
                                 stringResource(R.string.ui_theme_bakasu),
