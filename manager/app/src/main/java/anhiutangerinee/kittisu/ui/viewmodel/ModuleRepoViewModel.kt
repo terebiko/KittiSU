@@ -25,6 +25,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import okhttp3.Request
@@ -38,7 +40,7 @@ import org.json.JSONObject
 class ModuleRepoViewModel : ViewModel() {
     companion object {
         private const val TAG = "ModuleRepoViewModel"
-        const val KERNELSU_REPO_URL = "https://modules.kernelsu.org/modules.json"
+        const val KERNELSU_REPO_URL = "https://modules.kernelsu.org/api/v1/modules.json"
         private const val PREFS_NAME = "settings"
         private const val KEY_CUSTOM_REPOS = "module_repo_custom_sources"
         private const val KEY_OFFICIAL_ENABLED = "module_repo_official_enabled"
@@ -257,16 +259,29 @@ class ModuleRepoViewModel : ViewModel() {
         onFailure: (() -> Unit)? = null
     ): List<RepoModule> {
         return runCatching {
-            val request = Request.Builder().url(KERNELSU_REPO_URL).build()
+            val request = Request.Builder()
+                .url(KERNELSU_REPO_URL)
+                .header("User-Agent", "SovaSU-Manager")
+                .build()
             ksuApp.okhttpClient.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) return emptyList()
-                val body = resp.body?.string() ?: return emptyList()
-                val json = JSONArray(body)
+                if (!resp.isSuccessful) {
+                    onFailure?.invoke()
+                    return emptyList()
+                }
+                val body = resp.body?.string()?.trim() ?: return emptyList()
+                val json = if (body.startsWith("{")) {
+                    JSONObject(body).optJSONArray("modules") ?: return emptyList()
+                } else {
+                    JSONArray(body)
+                }
+                val detailSemaphore = Semaphore(8)
                 coroutineScope {
                     val jobs = (0 until json.length()).map { idx ->
-                        async {
-                            val item = json.optJSONObject(idx)
-                            if (item != null) parseOfficialRepoModule(item) else null
+                        async(Dispatchers.IO) {
+                            val item = json.optJSONObject(idx) ?: return@async null
+                            detailSemaphore.withPermit {
+                                parseOfficialRepoModule(item)
+                            }
                         }
                     }
                     jobs.awaitAll().filterNotNull()
@@ -391,20 +406,25 @@ class ModuleRepoViewModel : ViewModel() {
     }
 
     private suspend fun parseOfficialRepoModule(item: JSONObject): RepoModule? {
-        val moduleId = item.optString("moduleId", "")
+        val moduleId = item.optString("id", item.optString("moduleId", "")).trim()
         if (moduleId.isEmpty()) return null
-        val moduleName = item.optString("moduleName", "")
+        val moduleName = item.optString("name", item.optString("moduleName", moduleId)).trim()
         val authorsArray = item.optJSONArray("authors")
         val authorList = if (authorsArray != null) {
             (0 until authorsArray.length())
                 .mapNotNull { idx ->
-                    val authorObj = authorsArray.optJSONObject(idx) ?: return@mapNotNull null
-                    val name = authorObj.optString("name", "").trim()
-                    var link = authorObj.optString("link", "").trim()
-                    if (link.startsWith("`") && link.endsWith("`") && link.length >= 2) {
-                        link = link.substring(1, link.length - 1)
+                    val authorObj = authorsArray.optJSONObject(idx)
+                    if (authorObj != null) {
+                        val name = authorObj.optString("name", "").trim()
+                        var link = authorObj.optString("url", authorObj.optString("link", "")).trim()
+                        if (link.startsWith("`") && link.endsWith("`") && link.length >= 2) {
+                            link = link.substring(1, link.length - 1)
+                        }
+                        if (name.isEmpty()) null else Author(name = name, link = link)
+                    } else {
+                        val name = authorsArray.optString(idx, "").trim()
+                        if (name.isEmpty()) null else Author(name = name, link = "")
                     }
-                    if (name.isEmpty()) null else Author(name = name, link = link)
                 }
         } else {
             emptyList()
@@ -412,7 +432,7 @@ class ModuleRepoViewModel : ViewModel() {
         val authors = if (authorList.isNotEmpty()) authorList.joinToString(", ") { it.name } else item.optString("authors", "")
         val summary = item.optString("summary", "")
         val metamodule = item.optBoolean("metamodule", false)
-        val stargazerCount = item.optInt("stargazerCount", 0)
+        val stargazerCount = item.optInt("stars", item.optInt("stargazerCount", 0))
         val updatedAt = item.optString("updatedAt", "")
         val createdAt = item.optString("createdAt", "")
 
@@ -421,10 +441,10 @@ class ModuleRepoViewModel : ViewModel() {
         var latestVersionCode = 0
         var latestAsset: ReleaseInfo? = null
         val releases: MutableList<ReleaseInfo> = ArrayList()
-        val lr = item.optJSONObject("latestRelease")
+        val lr = item.optJSONObject("stable") ?: item.optJSONObject("latestRelease")
         if (lr != null) {
-            val lrName = lr.optString("name", lr.optString("version", ""))
-            val lrTime = lr.optString("time", "")
+            val lrName = lr.optString("version", lr.optString("name", ""))
+            val lrTime = lr.optString("publishedAt", lr.optString("time", ""))
             val vcAny = lr.opt("versionCode")
             latestVersionCode = when (vcAny) {
                 is Number -> vcAny.toInt()
@@ -438,10 +458,20 @@ class ModuleRepoViewModel : ViewModel() {
             fetchModuleDetail(moduleId)
         }
 
-        detail?.releases?.forEach { it ->
-            releases.add(it)
-            if (it.name != latestRelease) return@forEach
-            latestAsset = it
+        detail?.releases?.forEach { rel ->
+            releases.add(rel)
+            if (latestAsset == null && (rel.tagName == latestRelease || rel.name == latestRelease)) {
+                latestAsset = rel
+            }
+        }
+        if (latestAsset == null) {
+            latestAsset = releases.firstOrNull()
+        }
+        if (latestRelease.isBlank()) {
+            latestRelease = detail?.latestTag.orEmpty()
+        }
+        if (latestReleaseTime.isBlank()) {
+            latestReleaseTime = detail?.latestTime.orEmpty()
         }
 
         return RepoModule(
@@ -459,7 +489,7 @@ class ModuleRepoViewModel : ViewModel() {
             latestVersionCode = latestVersionCode,
             latestAsset = latestAsset,
             installed = isModuleInstalledSafe(moduleId),
-            readme = detail?.readme.orEmpty(),
+            readme = detail?.readme.orEmpty().ifBlank { summary },
             sourceUrl = detail?.sourceUrl.orEmpty(),
             releases = releases,
             sourceName = "KernelSU",

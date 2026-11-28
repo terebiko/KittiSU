@@ -151,13 +151,20 @@ fun ModuleRepoScreen() {
     val scope = rememberCoroutineScope()
     val pullRefreshState = rememberPullToRefreshState()
 
+    var offline by remember { mutableStateOf(!isNetworkAvailable(context)) }
+
     LaunchedEffect(Unit) {
         scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit
 
         viewModel.sortStargazerCountFirst = prefs.getBoolean("module_repo_sort_star_first", false)
+        if (viewModel.modules.isEmpty() && !offline) {
+            viewModel.refresh(onFailure = {
+                offline = true
+            })
+        }
     }
 
-    val isLoading = viewModel.modules.isEmpty()
+    val isLoading = viewModel.modules.isEmpty() && viewModel.search.isBlank()
 
     Scaffold(
         topBar = {
@@ -192,8 +199,6 @@ fun ModuleRepoScreen() {
         ),
         snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) }
     ) { innerPadding ->
-        var offline by remember { mutableStateOf(!isNetworkAvailable(context)) }
-
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -201,7 +206,9 @@ fun ModuleRepoScreen() {
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                if (offline) {
+                if (viewModel.isRefreshing) {
+                    LoadingIndicator()
+                } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
@@ -234,16 +241,14 @@ fun ModuleRepoScreen() {
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(
                             contentPadding = PaddingValues(horizontal = 50.dp),
-                            onClick = { viewModel.refresh() },
+                            onClick = {
+                                offline = false
+                                viewModel.refresh(onFailure = { offline = true })
+                            },
                         ) {
                             Text(text = stringResource(R.string.network_retry))
                         }
                     }
-                } else {
-                    LoadingIndicator()
-                    viewModel.refresh(onFailure = {
-                        offline = true
-                    })
                 }
             }
         } else {

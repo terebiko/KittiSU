@@ -22,7 +22,7 @@
     <string name="module_empty">Chưa cài đặt module nào</string>
     <string name="module_empty_description">Cài module từ tệp .zip trên máy hoặc duyệt kho module.</string>
     <string name="module">Mô-đun</string>
-    <string name="module_repo">Nguồn mô-đum</string>
+    <string name="module_repo">Nguồn mô-đun</string>
     <string name="module_sort_action_first">Sắp xếp (Theo hành động)</string>
     <string name="module_sort_star_first">Sắp xếp (Số sao trước)</string>
     <string name="module_sort_enabled_first">Sắp xếp (Theo trạng thái)</string>
