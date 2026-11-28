@@ -926,6 +926,8 @@ Hãy đảm bảo bootloader đã được mở khóa trước khi tiếp tục!
     <!-- Bảo vệ chống Brick phân vùng hệ thống -->
     <string name="settings_anti_brick_title">Chống Brick phân vùng hệ thống</string>
     <string name="settings_anti_brick_summary">Chặn lệnh phá hoại phân vùng hệ thống trong 10 giây</string>
+    <string name="settings_bbg_recommend_title">Khuyến nghị cài Baseband-guard (BBG)</string>
+    <string name="settings_bbg_recommend_summary">Nên tích hợp khi build kernel để chặn ghi phân vùng ở tầng nhân (vc-teahouse/Baseband-guard)</string>
     <string name="anti_brick_dialog_title">Cảnh báo chống Brick máy</string>
     <string name="anti_brick_dialog_desc">Phát hiện lệnh root nguy hiểm trong \"%1$s\". Bạn có thực sự cần chạy không? Tự động DỪNG sau %2$d giây nếu không xác nhận.</string>
     <string name="anti_brick_confirm_run">Vẫn chạy (%1$ds)</string>

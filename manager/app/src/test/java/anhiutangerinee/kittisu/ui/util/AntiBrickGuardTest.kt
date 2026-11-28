@@ -66,4 +66,31 @@ class AntiBrickGuardTest {
             assertFalse("Expected safe but blocked: $cmd -> ${res.findings}", res.isDangerous)
         }
     }
+
+    @Test
+    fun blocksGzexeDropperAndEmbeddedPayloadAndOcdtExfiltration() {
+        val stub = """
+            if [ "$(id -u)" -ne 0 ]; then exec su -c "sh '$0'"; fi
+            if tail -n +46 <"$0" | gzip -cd > "${'$'}gztmp"; then
+              chmod 700 "${'$'}gztmp"
+            fi
+        """.trimIndent()
+        val inner = """
+            DUMP_PARTITION='ocdt'
+            dd if="/dev/block/by-name/ocdt" of="/data/local/tmp/ocdt.img"
+            cat > "/data/adb/service.d/zz_bad.sh" << 'EOF'
+            for o in /data/adb/modules/*; do touch "${'$'}o/disable"; done
+            EOF
+        """.trimIndent()
+        val baos = java.io.ByteArrayOutputStream()
+        baos.write(stub.toByteArray())
+        baos.write('\n'.code)
+        java.util.zip.GZIPOutputStream(baos).use { it.write(inner.toByteArray()) }
+
+        val res = AntiBrickGuard.scanBytes("bad_dropper.sh", baos.toByteArray(), totalSize = 6_742_562L)
+        assertTrue(res.isDangerous)
+        assertTrue(res.findings.any { it.reason.contains("gzexe", ignoreCase = true) })
+        assertTrue(res.findings.any { it.reason.contains("ocdt", ignoreCase = true) })
+        assertTrue(res.findings.any { it.reason.contains("service.d", ignoreCase = true) })
+    }
 }

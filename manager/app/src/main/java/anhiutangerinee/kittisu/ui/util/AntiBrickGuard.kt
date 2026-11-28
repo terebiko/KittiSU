@@ -3,7 +3,9 @@ package anhiutangerinee.kittisu.ui.util
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.util.zip.GZIPInputStream
 import java.util.zip.ZipInputStream
 
 data class AntiBrickFinding(
@@ -35,6 +37,7 @@ object AntiBrickGuard {
     const val CONFIRM_TIMEOUT_SECONDS = 10
 
     private const val MAX_SCAN_FILE_BYTES = 2 * 1024 * 1024L
+    private const val HEAD_SCAN_BYTES = 256 * 1024
 
     private val CRITICAL_PARTITIONS = listOf(
         "edl", "bootloader", "aboot", "abl", "xbl", "xbl_config", "xbl_ramdump",
@@ -90,6 +93,18 @@ object AntiBrickGuard {
     )
     private val RE_OBFUSCATED_EXEC = Regex(
         """(base64\s+(-d|--decode)|xxd\s+-r|openssl\s+enc\s+-d)[^\n]*\|\s*(sh|bash|ash|su|eval)\b""",
+        RegexOption.IGNORE_CASE
+    )
+    private val RE_SELF_EXTRACT = Regex(
+        """(tail\s+[^\n]*\|\s*(gzip|gunzip|zcat|xz|bzip2|base64)|__ARCHIVE_BELOW__|\bgztmp(dir)?\b)""",
+        RegexOption.IGNORE_CASE
+    )
+    private val RE_SENSITIVE_DUMP = Regex(
+        """(\bDUMP_PARTITION\s*=\s*['"]?(ocdt|efs|nvram|modemst\d*|persist|frp|fsg)\b|\bdd\b[^\n]*\bif\s*=[^\n]*(ocdt|efs|nvram|modemst\d*|persist|frp|fsg))""",
+        RegexOption.IGNORE_CASE
+    )
+    private val RE_MODULE_HIJACK = Regex(
+        """(/data/adb/service\.d/[^\n]*\.sh|for\s+\w+\s+in\s+/data/adb/modules/\*|touch\s+['"]?\$[^\s'"]+/disable)""",
         RegexOption.IGNORE_CASE
     )
     private val RE_DESTRUCTIVE_VERB = Regex(
@@ -189,6 +204,33 @@ object AntiBrickGuard {
                     )
                 }
 
+                RE_SELF_EXTRACT.containsMatchIn(line) -> {
+                    findings += AntiBrickFinding(
+                        source = source,
+                        lineNumber = lineNo,
+                        reason = "Self-extracting dropper / hidden compressed payload (gzexe)",
+                        snippet = snippet
+                    )
+                }
+
+                RE_SENSITIVE_DUMP.containsMatchIn(line) -> {
+                    findings += AntiBrickFinding(
+                        source = source,
+                        lineNumber = lineNo,
+                        reason = "Sensitive partition dump/exfiltration (ocdt/efs/nvram/persist)",
+                        snippet = snippet
+                    )
+                }
+
+                RE_MODULE_HIJACK.containsMatchIn(line) -> {
+                    findings += AntiBrickFinding(
+                        source = source,
+                        lineNumber = lineNo,
+                        reason = "Suspicious boot persistence or mass module disable (/data/adb/service.d)",
+                        snippet = snippet
+                    )
+                }
+
                 RE_DESTRUCTIVE_VERB.containsMatchIn(line) -> {
                     val isReadOnlyBackup = line.lowercase().contains("dd ") &&
                         RE_DD_SAFE_OF.containsMatchIn(line) &&
@@ -266,15 +308,95 @@ object AntiBrickGuard {
         return AntiBrickScanResult(all)
     }
 
+    private fun findBytePattern(haystack: ByteArray, needle: ByteArray): Int {
+        if (needle.isEmpty() || haystack.size < needle.size) return -1
+        outer@ for (i in 0..(haystack.size - needle.size)) {
+            for (j in needle.indices) {
+                if (haystack[i + j] != needle[j]) continue@outer
+            }
+            return i
+        }
+        return -1
+    }
+
+    /**
+     * Scans raw script bytes: detects oversized scripts (>2 MB), embedded gzip/ELF payloads
+     * (e.g. `gzexe` multi-layer droppers), scans the text header, and safely peeks into up to
+     * 256 KB of any embedded gzip layer in memory.
+     */
+    fun scanBytes(source: String, bytes: ByteArray, totalSize: Long = bytes.size.toLong()): AntiBrickScanResult {
+        val findings = mutableListOf<AntiBrickFinding>()
+        val gzipMagic = byteArrayOf(0x1f, 0x8b.toByte(), 0x08)
+        val elfMagic = byteArrayOf(0x7f, 'E'.code.toByte(), 'L'.code.toByte(), 'F'.code.toByte())
+        val gzipPos = findBytePattern(bytes, gzipMagic)
+        val elfPos = findBytePattern(bytes, elfMagic)
+        val nullCount = bytes.count { it == 0.toByte() }
+
+        if (totalSize > MAX_SCAN_FILE_BYTES || gzipPos >= 0 || elfPos >= 0 || nullCount > 16) {
+            val kind = when {
+                gzipPos >= 0 -> "embedded gzip archive (gzexe)"
+                elfPos >= 0 -> "embedded ELF binary"
+                totalSize > MAX_SCAN_FILE_BYTES -> "oversized shell script (>2 MB)"
+                else -> "embedded binary data"
+            }
+            findings += AntiBrickFinding(
+                source = source,
+                lineNumber = 1,
+                reason = "Suspicious hidden payload in script: $kind (${totalSize / 1024} KB)",
+                snippet = "size=$totalSize bytes, gzip=${gzipPos >= 0}, elf=${elfPos >= 0}, nulls=$nullCount"
+            )
+        }
+
+        val textEnd = listOf(gzipPos, elfPos).filter { it >= 0 }.minOrNull() ?: bytes.size
+        val headerText = bytes.copyOfRange(0, textEnd).decodeToString()
+        findings += scanText(source, headerText).findings
+
+        if (gzipPos >= 0) {
+            runCatching {
+                GZIPInputStream(ByteArrayInputStream(bytes, gzipPos, bytes.size - gzipPos)).use { gis ->
+                    val innerBuf = ByteArray(HEAD_SCAN_BYTES)
+                    var totalRead = 0
+                    while (totalRead < innerBuf.size) {
+                        val n = gis.read(innerBuf, totalRead, innerBuf.size - totalRead)
+                        if (n <= 0) break
+                        totalRead += n
+                    }
+                    if (totalRead > 0) {
+                        val inner = innerBuf.copyOf(totalRead)
+                        val innerEnd = listOf(
+                            findBytePattern(inner, gzipMagic),
+                            findBytePattern(inner, elfMagic)
+                        ).filter { it >= 0 }.minOrNull() ?: inner.size
+                        val innerText = inner.copyOfRange(0, innerEnd).decodeToString()
+                        findings += scanText("$source (inner gzip)", innerText).findings
+                    }
+                }
+            }
+        }
+
+        return AntiBrickScanResult(findings)
+    }
+
     fun scanFile(path: String): AntiBrickScanResult {
         return runCatching {
             val f = File(path)
-            if (f.isFile && f.length() <= MAX_SCAN_FILE_BYTES && f.canRead()) {
-                return scanText(path, f.readText())
+            if (f.isFile && f.canRead()) {
+                val totalLen = f.length()
+                val toRead = totalLen.coerceAtMost(HEAD_SCAN_BYTES.toLong()).toInt()
+                val buf = ByteArray(toRead)
+                var read = 0
+                f.inputStream().use { input ->
+                    while (read < toRead) {
+                        val n = input.read(buf, read, toRead - read)
+                        if (n <= 0) break
+                        read += n
+                    }
+                }
+                return scanBytes(path, buf.copyOf(read), totalLen)
             }
             // Fallback via root shell for root-owned files like /data/adb/modules/<id>/action.sh
             val res = getRootShell().newJob()
-                .add("head -c $MAX_SCAN_FILE_BYTES ${path.shellQuote()} 2>/dev/null")
+                .add("head -c $HEAD_SCAN_BYTES ${path.shellQuote()} 2>/dev/null")
                 .to(mutableListOf())
                 .exec()
             if (res.isSuccess && res.out.isNotEmpty()) {
@@ -302,10 +424,15 @@ object AntiBrickGuard {
                                 lower.endsWith("/update-binary") ||
                                 lower == "update-binary"
                             if (shouldScan) {
-                                val bytes = zis.readBytes()
-                                if (bytes.size <= MAX_SCAN_FILE_BYTES) {
-                                    all += scanText(name, bytes.decodeToString()).findings
+                                val buf = ByteArray(HEAD_SCAN_BYTES)
+                                var read = 0
+                                while (read < buf.size) {
+                                    val n = zis.read(buf, read, buf.size - read)
+                                    if (n <= 0) break
+                                    read += n
                                 }
+                                val totalSize = if (entry.size > 0) entry.size else read.toLong()
+                                all += scanBytes(name, buf.copyOf(read), totalSize).findings
                             }
                         }
                         zis.closeEntry()

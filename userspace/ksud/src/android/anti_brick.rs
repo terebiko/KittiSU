@@ -142,6 +142,9 @@ pub fn scan_text(source: &str, content: &str) -> Vec<Finding> {
     let re_fastboot_erase = Regex::new(r"(?i)\bfastboot\b[^\n]*\b(erase|format|flash)\b").unwrap();
     let re_edl_trigger = Regex::new(r"(?i)(\breboot\b[^\n]*\bedl\b|sys\.powerctl[^\n]*\bedl\b|\bsvc\s+power\s+reboot\s+edl\b|/proc/sysrq-trigger)").unwrap();
     let re_obfuscated_exec = Regex::new(r"(?i)(base64\s+(-d|--decode)|xxd\s+-r|openssl\s+enc\s+-d)[^\n]*\|\s*(sh|bash|ash|su|eval)\b").unwrap();
+    let re_self_extract = Regex::new(r"(?i)(tail\s+[^\n]*\|\s*(gzip|gunzip|zcat|xz|bzip2|base64)|__ARCHIVE_BELOW__|\bgztmp(dir)?\b)").unwrap();
+    let re_sensitive_dump = Regex::new(r"(?i)(\bDUMP_PARTITION\s*=\s*['\x22]?(ocdt|efs|nvram|modemst\d*|persist|frp|fsg)\b|\bdd\b[^\n]*\bif\s*=[^\n]*(ocdt|efs|nvram|modemst\d*|persist|frp|fsg))").unwrap();
+    let re_module_hijack = Regex::new(r"(?i)(/data/adb/service\.d/[^\n]*\.sh|for\s+\w+\s+in\s+/data/adb/modules/\*|touch\s+['\x22]?\$[^\s'\x22]+/disable)").unwrap();
     let re_destructive_verb = Regex::new(r"(?i)(\bdd\b|\bof\s*=|\brm\b|\bwipe\b|\berase\b|\bformat\b|\bmkfs|\bzero\b|/dev/zero|/dev/urandom|>>?|\bcat\b|\becho\b|\btruncate\b|\bshred\b|\bblkdiscard\b|\bwipefs\b|\bsgdisk\b|\bfdisk\b|\bparted\b|\bflash_erase\b|\bnandwrite\b|\bcp\b|\btee\b)").unwrap();
 
     for (idx, raw_line) in content.lines().enumerate() {
@@ -222,6 +225,36 @@ pub fn scan_text(source: &str, content: &str) -> Vec<Finding> {
             continue;
         }
 
+        if re_self_extract.is_match(line) {
+            findings.push(Finding {
+                source: source.to_string(),
+                line_no,
+                reason: "Self-extracting dropper / hidden compressed payload (gzexe)".to_string(),
+                snippet: snippet.clone(),
+            });
+            continue;
+        }
+
+        if re_sensitive_dump.is_match(line) {
+            findings.push(Finding {
+                source: source.to_string(),
+                line_no,
+                reason: "Sensitive partition dump/exfiltration (ocdt/efs/nvram/persist)".to_string(),
+                snippet: snippet.clone(),
+            });
+            continue;
+        }
+
+        if re_module_hijack.is_match(line) {
+            findings.push(Finding {
+                source: source.to_string(),
+                line_no,
+                reason: "Suspicious boot persistence or mass module disable (/data/adb/service.d)".to_string(),
+                snippet: snippet.clone(),
+            });
+            continue;
+        }
+
         // Check for critical partition names in a destructive context
         if re_destructive_verb.is_match(line) {
             // Skip obvious read-only dd backup: `dd if=/dev/block/by-name/boot of=/sdcard/...`
@@ -291,19 +324,64 @@ fn find_critical_partition(line: &str) -> Option<&'static str> {
     None
 }
 
-/// Scan a shell script file on disk if it exists and is reasonably sized (<= 2 MB).
+const HEAD_SCAN_BYTES: usize = 256 * 1024;
+const LARGE_SCRIPT_THRESHOLD: u64 = 2 * 1024 * 1024;
+
+fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() || haystack.len() < needle.len() {
+        return None;
+    }
+    haystack.windows(needle.len()).position(|w| w == needle)
+}
+
+/// Inspect raw bytes of a shell script (handles large files, embedded gzexe/ELF payloads,
+/// and safely peeks into a gzip-compressed layer in memory).
+pub fn scan_script_bytes(source: &str, bytes: &[u8], total_len: u64) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    let gzip_pos = find_subslice(bytes, &[0x1f, 0x8b, 0x08]);
+    let elf_pos = find_subslice(bytes, b"\x7fELF");
+    let null_count = bytes.iter().filter(|&&b| b == 0).count();
+
+    if total_len > LARGE_SCRIPT_THRESHOLD || gzip_pos.is_some() || elf_pos.is_some() || null_count > 16 {
+        let kind = match (gzip_pos.is_some(), elf_pos.is_some()) {
+            (true, _) => "embedded gzip archive (gzexe)",
+            (false, true) => "embedded ELF binary",
+            _ if total_len > LARGE_SCRIPT_THRESHOLD => "oversized shell script (>2 MB)",
+            _ => "embedded binary data",
+        };
+        findings.push(Finding {
+            source: source.to_string(),
+            line_no: 1,
+            reason: format!("Suspicious hidden payload in script: {kind} ({} KB)", total_len / 1024),
+            snippet: format!("size={} bytes, gzip={}, elf={}, nulls={}", total_len, gzip_pos.is_some(), elf_pos.is_some(), null_count),
+        });
+    }
+
+    // Scan the readable text prefix (stop before embedded binary if present)
+    let text_end = gzip_pos.or(elf_pos).unwrap_or(bytes.len()).min(bytes.len());
+    let text = String::from_utf8_lossy(&bytes[..text_end]);
+    findings.extend(scan_text(source, &text));
+
+    findings
+}
+
+/// Scan a shell script file on disk (never skips oversized scripts — reads up to 256 KB head).
 pub fn scan_script_file(path: &Path) -> Vec<Finding> {
     let Ok(meta) = fs::metadata(path) else {
         return Vec::new();
     };
-    if !meta.is_file() || meta.len() > 2 * 1024 * 1024 {
+    if !meta.is_file() {
         return Vec::new();
     }
-    let Ok(bytes) = fs::read(path) else {
+    let total_len = meta.len();
+    let Ok(file) = fs::File::open(path) else {
         return Vec::new();
     };
-    let text = String::from_utf8_lossy(&bytes);
-    scan_text(&path.display().to_string(), &text)
+    let mut buf = Vec::new();
+    if file.take(HEAD_SCAN_BYTES as u64).read_to_end(&mut buf).is_err() {
+        return Vec::new();
+    }
+    scan_script_bytes(&path.display().to_string(), &buf, total_len)
 }
 
 /// Scan a command line passed to `su -c` or `su <exec> <args>`.
@@ -329,10 +407,10 @@ pub fn scan_module_zip(zip_path: &str) -> Vec<Finding> {
         return findings;
     };
     for i in 0..archive.len() {
-        let Ok(mut entry) = archive.by_index(i) else {
+        let Ok(entry) = archive.by_index(i) else {
             continue;
         };
-        if entry.is_dir() || entry.size() > 2 * 1024 * 1024 {
+        if entry.is_dir() {
             continue;
         }
         let name = entry.name().to_string();
@@ -343,10 +421,10 @@ pub fn scan_module_zip(zip_path: &str) -> Vec<Finding> {
         if !should_scan {
             continue;
         }
+        let total_len = entry.size();
         let mut buf = Vec::new();
-        if entry.read_to_end(&mut buf).is_ok() {
-            let text = String::from_utf8_lossy(&buf);
-            findings.extend(scan_text(&name, &text));
+        if entry.take(HEAD_SCAN_BYTES as u64).read_to_end(&mut buf).is_ok() {
+            findings.extend(scan_script_bytes(&name, &buf, total_len));
         }
     }
     findings

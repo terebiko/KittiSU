@@ -935,6 +935,8 @@ Important Note:\n
     <!-- Anti-Brick Protection -->
     <string name="settings_anti_brick_title">Anti-Brick Protection</string>
     <string name="settings_anti_brick_summary">Block destructive system partition commands within 10s</string>
+    <string name="settings_bbg_recommend_title">Kernel Protection: Baseband-guard (BBG)</string>
+    <string name="settings_bbg_recommend_summary">Recommended when building kernel: blocks raw partition writes at kernel LSM level (vc-teahouse/Baseband-guard)</string>
     <string name="anti_brick_dialog_title">Anti-Brick Warning</string>
     <string name="anti_brick_dialog_desc">Dangerous root operation detected in \"%1$s\". Do you REALLY need to run this? Auto-STOP in %2$ds if not confirmed.</string>
     <string name="anti_brick_confirm_run">Run anyway (%1$ds)</string>
