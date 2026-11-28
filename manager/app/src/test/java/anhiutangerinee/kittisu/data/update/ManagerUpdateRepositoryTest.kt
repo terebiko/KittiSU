@@ -60,6 +60,36 @@ class ManagerUpdateRepositoryTest {
     }
 
     @Test
+    fun nightlyRelease_selectsSingleAbiApkDirectlyAndStopsAtCurrentCommit() {
+        val current = "1234567890abcdef"
+        val newerSha = "abcdef1234567890"
+        val release = JSONObject()
+            .put("tag_name", "nightly")
+            .put("name", "SovaSU Nightly (abcdef1)")
+            .put("body", "Workflow SovaSU • abcdef1\nCommit: $newerSha\n\nfeat: anti-brick")
+            .put("assets", JSONArray()
+                .put(JSONObject()
+                    .put("name", "Spoofed-SovaSU_20261128_35500-arm64-v8a-release.apk")
+                    .put("browser_download_url", "https://example.invalid/spoofed-arm64.apk"))
+                .put(JSONObject()
+                    .put("name", "SovaSU_20261128_35500-arm64-v8a-release.apk")
+                    .put("browser_download_url", "https://example.invalid/arm64.apk"))
+                .put(JSONObject()
+                    .put("name", "SovaSU_20261128_35500-universal-release.apk")
+                    .put("browser_download_url", "https://example.invalid/universal.apk")))
+
+        val update = ManagerUpdateParser.nightlyRelease(release, current, listOf("arm64-v8a"))!!
+        assertTrue(update.isNewerThan(35400, current))
+        assertFalse(update.isZipArtifact)
+        assertEquals("https://example.invalid/arm64.apk", update.downloadUrl)
+        assertEquals("SovaSU-abcdef1", update.versionName)
+        assertEquals(35500, update.versionCode)
+
+        val sameCommit = ManagerUpdateParser.nightlyRelease(release, newerSha, listOf("arm64-v8a"))!!
+        assertFalse(sameCommit.isNewerThan(35400, newerSha))
+    }
+
+    @Test
     fun selectBestApkName_fallsBackToUniversalWhenAbiMissing() {
         val entries = listOf(
             "SovaSU_20261124_35481-arm64-v8a-release.apk",

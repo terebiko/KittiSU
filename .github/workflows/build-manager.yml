@@ -439,6 +439,83 @@ jobs:
           name: ${{ steps.determine.outputs.title }}-${{ matrix.build_type }}
           path: dist/*.apk
 
+  publish-nightly:
+    needs: [repack-manager]
+    if: |
+      github.event_name != 'pull_request' &&
+      github.ref_type != 'tag' &&
+      github.ref_name == 'SovaSU' &&
+      needs.repack-manager.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Download Manager release APKs
+        uses: actions/download-artifact@v8
+        with:
+          name: Manager-release
+          path: nightly-raw/normal
+
+      - name: Download Spoofed Manager release APKs
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: Spoofed-Manager-release
+          path: nightly-raw/spoofed
+
+      - name: Prepare individual per-ABI APKs
+        run: |
+          mkdir -p nightly-assets
+          find nightly-raw/normal -type f -name "*.apk" -exec cp -f {} nightly-assets/ \;
+          if [ -d "nightly-raw/spoofed" ]; then
+            for f in $(find nightly-raw/spoofed -type f -name "*.apk"); do
+              base=$(basename "$f")
+              case "${base,,}" in
+                *spoof*) cp -f "$f" "nightly-assets/$base" ;;
+                *) cp -f "$f" "nightly-assets/Spoofed-$base" ;;
+              esac
+            done
+          fi
+          ls -lh nightly-assets/
+
+      - name: Update rolling nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHA="${{ github.sha }}"
+          SHORT_SHA="${SHA:0:7}"
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          NOTES=$(printf "Workflow SovaSU • %s\nCommit: %s\n\n%s\n" "$SHORT_SHA" "$SHA" "$COMMIT_MSG")
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f nightly "$SHA"
+          git push -f origin refs/tags/nightly
+
+          if gh release view nightly >/dev/null 2>&1; then
+            OLD_ASSETS=$(gh release view nightly --json assets --jq '.assets[].name' || true)
+            for asset in $OLD_ASSETS; do
+              gh release delete-asset nightly "$asset" -y || true
+            done
+            gh release edit nightly \
+              --title "SovaSU Nightly ($SHORT_SHA)" \
+              --notes "$NOTES" \
+              --prerelease \
+              --latest=false
+            gh release upload nightly nightly-assets/*.apk --clobber
+          else
+            gh release create nightly nightly-assets/*.apk \
+              --title "SovaSU Nightly ($SHORT_SHA)" \
+              --notes "$NOTES" \
+              --prerelease \
+              --latest=false
+          fi
+
   telegram-bot-api:
     name: Telegram Bot API
     if: github.event_name != 'pull_request' && github.event_name != 'workflow_call'
@@ -680,7 +757,7 @@ jobs:
               releases.sort(key=lambda r: r.get("createdAt", ""), reverse=True)
 
               official = [r for r in releases if not r.get("isPrerelease", False)]
-              prereleases = [r for r in releases if r.get("isPrerelease", False)]
+              prereleases = [r for r in releases if r.get("isPrerelease", False) and r.get("tagName") != "nightly"]
 
               # Keep max 3 official releases
               if len(official) > 3:

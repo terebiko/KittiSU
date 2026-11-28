@@ -25,6 +25,7 @@ private const val REPO_SLUG = "terebiko/KittiSU"
 private const val API_ROOT = "https://api.github.com/repos/$REPO_SLUG"
 private const val WORKFLOW_BRANCH = "SovaSU"
 private const val WORKFLOW_FILE = "build-manager"
+private const val NIGHTLY_RELEASE_TAG = "nightly"
 
 enum class UpdateChannel(val preferenceValue: String) {
     STABLE("stable"),
@@ -71,25 +72,39 @@ fun checkManagerUpdate(channel: UpdateChannel): LatestVersionInfo {
             UpdateChannel.BETA -> requestArray("$API_ROOT/releases?per_page=20")?.let {
                 ManagerUpdateParser.beta(it, Build.SUPPORTED_ABIS.toList(), spoofed)
             }
-            UpdateChannel.NIGHTLY -> requestJson(
-                "$API_ROOT/actions/artifacts?name=$artifactName&per_page=20"
-            )?.let { artifactsJson ->
-                val baseInfo = ManagerUpdateParser.nightly(
-                    response = artifactsJson,
-                    currentCommit = BuildConfig.GIT_COMMIT,
-                    artifactName = artifactName,
-                )
-                if (baseInfo.commitSha.isNotBlank()) {
-                    val commitMsg = fetchCommitMessage(baseInfo.commitSha)
-                    if (!commitMsg.isNullOrBlank()) {
-                        baseInfo.copy(
-                            changelog = "Workflow $WORKFLOW_BRANCH • ${baseInfo.commitSha.take(7)}\n\n$commitMsg"
-                        )
-                    } else {
-                        baseInfo
-                    }
+            UpdateChannel.NIGHTLY -> {
+                val directRelease = requestJson("$API_ROOT/releases/tags/$NIGHTLY_RELEASE_TAG")?.let {
+                    ManagerUpdateParser.nightlyRelease(
+                        release = it,
+                        currentCommit = BuildConfig.GIT_COMMIT,
+                        supportedAbis = Build.SUPPORTED_ABIS.toList(),
+                        preferSpoofed = spoofed,
+                    )
+                }
+                if (directRelease != null) {
+                    directRelease
                 } else {
-                    baseInfo
+                    requestJson(
+                        "$API_ROOT/actions/artifacts?name=$artifactName&per_page=20"
+                    )?.let { artifactsJson ->
+                        val baseInfo = ManagerUpdateParser.nightly(
+                            response = artifactsJson,
+                            currentCommit = BuildConfig.GIT_COMMIT,
+                            artifactName = artifactName,
+                        )
+                        if (baseInfo.commitSha.isNotBlank()) {
+                            val commitMsg = fetchCommitMessage(baseInfo.commitSha)
+                            if (!commitMsg.isNullOrBlank()) {
+                                baseInfo.copy(
+                                    changelog = "Workflow $WORKFLOW_BRANCH • ${baseInfo.commitSha.take(7)}\n\n$commitMsg"
+                                )
+                            } else {
+                                baseInfo
+                            }
+                        } else {
+                            baseInfo
+                        }
+                    }
                 }
             }
         } ?: LatestVersionInfo()
@@ -257,7 +272,9 @@ fun installDownloadedApk(context: Context, apkFile: File): Result<Unit> {
 }
 
 internal object ManagerUpdateParser {
-    private val versionCodePattern = Regex("_(\\d+)(?:[-_]|\\.apk$)")
+    private val versionCodePattern = Regex("_(\\d+)(?=-|\\.apk$)")
+    private val commitLinePattern = Regex("""(?im)^Commit:\s*([0-9a-f]{7,40})\b""")
+    private val fullShaPattern = Regex("""^[0-9a-fA-F]{7,40}$""")
 
     fun selectBestApkName(
         names: List<String>,
@@ -293,6 +310,7 @@ internal object ManagerUpdateParser {
         for (index in 0 until releases.length()) {
             val releaseJson = releases.optJSONObject(index) ?: continue
             if (releaseJson.optBoolean("draft")) continue
+            if (releaseJson.optString("tag_name").equals(NIGHTLY_RELEASE_TAG, ignoreCase = true)) continue
             if (releaseJson.optBoolean("prerelease")) {
                 return release(releaseJson, supportedAbis, preferSpoofed)
             }
@@ -325,6 +343,59 @@ internal object ManagerUpdateParser {
             downloadUrl = asset.optString("browser_download_url"),
             changelog = release.optString("body"),
             versionName = release.optString("tag_name"),
+            isZipArtifact = false,
+        )
+    }
+
+    /**
+     * Parses the rolling `nightly` GitHub Release published by `build-manager.yml`.
+     * Returns a direct per-ABI `.apk` download (no 48 MB zip artifact / no nightly.link),
+     * or null if the release has no usable APK assets (triggering workflow artifact fallback).
+     */
+    fun nightlyRelease(
+        release: JSONObject,
+        currentCommit: String,
+        supportedAbis: List<String> = Build.SUPPORTED_ABIS?.toList().orEmpty(),
+        preferSpoofed: Boolean = false,
+        targetBranch: String = WORKFLOW_BRANCH,
+    ): LatestVersionInfo? {
+        if (release.optBoolean("draft")) return null
+        val assets = release.optJSONArray("assets") ?: return null
+        val assetByName = LinkedHashMap<String, JSONObject>()
+        for (index in 0 until assets.length()) {
+            val asset = assets.optJSONObject(index) ?: continue
+            val name = asset.optString("name")
+            if (name.endsWith(".apk", ignoreCase = true)) {
+                assetByName[name] = asset
+            }
+        }
+        val bestName = selectBestApkName(assetByName.keys.toList(), supportedAbis, preferSpoofed)
+            ?: return null
+        val asset = assetByName[bestName] ?: return null
+        val downloadUrl = asset.optString("browser_download_url")
+        if (downloadUrl.isBlank()) return null
+
+        val body = release.optString("body")
+        val targetCommitish = release.optString("target_commitish").trim()
+        val sha = commitLinePattern.find(body)?.groupValues?.get(1)
+            ?: targetCommitish.takeIf { fullShaPattern.matches(it) }
+            ?: ""
+
+        if (sha.isNotBlank() && currentCommit.isNotBlank() &&
+            (currentCommit.startsWith(sha, ignoreCase = true) || sha.startsWith(currentCommit, ignoreCase = true))
+        ) {
+            return LatestVersionInfo()
+        }
+
+        val versionCode = versionCodePattern.find(bestName)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val shortSha = sha.take(7)
+        val versionLabel = if (shortSha.isNotBlank()) "$targetBranch-$shortSha" else release.optString("name", NIGHTLY_RELEASE_TAG)
+        return LatestVersionInfo(
+            versionCode = versionCode,
+            downloadUrl = downloadUrl,
+            changelog = body.ifBlank { "Workflow $targetBranch • $shortSha" },
+            versionName = versionLabel,
+            commitSha = sha,
             isZipArtifact = false,
         )
     }
