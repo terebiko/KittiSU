@@ -32,6 +32,8 @@ data class AntiBrickScanResult(
  */
 object AntiBrickGuard {
     const val PREF_KEY = "anti_brick_enabled"
+    const val BBG_DISMISSED_KEY = "bbg_recommend_dismissed"
+    const val BBG_GITHUB_URL = "https://github.com/vc-teahouse/Baseband-guard"
     const val DISABLED_FLAG_PATH = "/data/adb/ksu/.anti_brick_disabled"
     const val CONFIRMED_ENV = "SOVASU_ANTI_BRICK_CONFIRMED"
     const val CONFIRM_TIMEOUT_SECONDS = 10
@@ -111,6 +113,44 @@ object AntiBrickGuard {
         """(\bdd\b|\bof\s*=|\brm\b|\bwipe\b|\berase\b|\bformat\b|\bmkfs|\bzero\b|/dev/zero|/dev/urandom|>>?|\bcat\b|\becho\b|\btruncate\b|\bshred\b|\bblkdiscard\b|\bwipefs\b|\bsgdisk\b|\bfdisk\b|\bparted\b|\bflash_erase\b|\bnandwrite\b|\bcp\b|\btee\b)""",
         RegexOption.IGNORE_CASE
     )
+
+    fun isBbgRecommendationDismissed(context: Context): Boolean {
+        return context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            .getBoolean(BBG_DISMISSED_KEY, false)
+    }
+
+    fun dismissBbgRecommendation(context: Context) {
+        context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit {
+            putBoolean(BBG_DISMISSED_KEY, true)
+        }
+    }
+
+    /**
+     * Checks whether Baseband-guard (BBG) LSM is active in the running kernel.
+     */
+    fun isBasebandGuardInstalled(): Boolean {
+        // Fast non-root check first
+        runCatching {
+            val lsmFile = File("/sys/kernel/security/lsm")
+            if (lsmFile.canRead() && lsmFile.readText().contains("baseband_guard", ignoreCase = true)) {
+                return true
+            }
+            if (File("/sys/module/baseband_guard").exists()) {
+                return true
+            }
+        }
+        // Fallback via root shell (reads /sys/kernel/security/lsm, /sys/module, or /proc/config.gz)
+        return runCatching {
+            val res = getRootShell().newJob()
+                .add(
+                    "grep -qi 'baseband_guard' /sys/kernel/security/lsm 2>/dev/null " +
+                        "|| [ -d /sys/module/baseband_guard ] " +
+                        "|| (zcat /proc/config.gz 2>/dev/null | grep -q 'CONFIG_BBG=y')"
+                )
+                .exec()
+            res.isSuccess
+        }.getOrDefault(false)
+    }
 
     fun isEnabled(context: Context): Boolean {
         return context.getSharedPreferences("settings", Context.MODE_PRIVATE)

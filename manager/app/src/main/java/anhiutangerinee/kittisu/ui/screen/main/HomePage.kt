@@ -595,9 +595,69 @@ fun UpdateCard() {
     val scope = rememberCoroutineScope()
 
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var showBbgRecommendDialog by remember { mutableStateOf(false) }
     var downloadJob by remember { mutableStateOf<Job?>(null) }
     var downloadProgress by remember { mutableStateOf<UpdateDownloadProgress?>(null) }
     var downloadError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (!anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isBbgRecommendationDismissed(context)) {
+            val hasBbg = withContext(Dispatchers.IO) {
+                anhiutangerinee.kittisu.ui.util.AntiBrickGuard.isBasebandGuardInstalled()
+            }
+            if (!hasBbg) {
+                showBbgRecommendDialog = true
+            }
+        }
+    }
+
+    if (showBbgRecommendDialog && !showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showBbgRecommendDialog = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            icon = {
+                Icon(
+                    imageVector = Icons.TwoTone.Security,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_bbg_recommend_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.settings_bbg_recommend_summary),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBbgRecommendDialog = false
+                        uriHandler.openUri(anhiutangerinee.kittisu.ui.util.AntiBrickGuard.BBG_GITHUB_URL)
+                    }
+                ) {
+                    Text(stringResource(R.string.bbg_recommend_open_github))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        anhiutangerinee.kittisu.ui.util.AntiBrickGuard.dismissBbgRecommendation(context)
+                        showBbgRecommendDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.bbg_recommend_dismiss))
+                }
+            }
+        )
+    }
 
     val isDownloading = downloadJob?.isActive == true
 

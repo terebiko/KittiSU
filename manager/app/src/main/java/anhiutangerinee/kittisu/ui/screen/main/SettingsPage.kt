@@ -1001,18 +1001,6 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         item {
-                            val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
-                            SettingsJumpPageWidget(
-                                icon = Icons.TwoTone.Security,
-                                title = stringResource(R.string.settings_bbg_recommend_title),
-                                description = stringResource(R.string.settings_bbg_recommend_summary),
-                                onClick = {
-                                    uriHandler.openUri("https://github.com/vc-teahouse/Baseband-guard")
-                                }
-                            )
-                        }
-
-                        item {
                             val uiThemes = listOf(
                                 stringResource(R.string.ui_theme_default),
                                 stringResource(R.string.ui_theme_bakasu),
