@@ -235,32 +235,32 @@ fun ImageCropDialog(
                         val baseDrawW = imgW * baseFillScale
                         val baseDrawH = imgH * baseFillScale
 
-                        val maxPanX = ((baseDrawW * scale - cropW) / 2f).coerceAtLeast(0f)
-                        val maxPanY = ((baseDrawH * scale - cropH) / 2f).coerceAtLeast(0f)
-
-                        val currentPanX = normalizedOffsetX * maxPanX
-                        val currentPanY = normalizedOffsetY * maxPanY
-
                         val imageBitmap = remember(bmp) { bmp.asImageBitmap() }
 
                         Canvas(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .pointerInput(bmp, cropW, cropH) {
+                                .pointerInput(bmp, cropW, cropH, baseDrawW, baseDrawH) {
                                     detectTransformGestures { _, pan, zoom, _ ->
-                                        val newScale = (scale * zoom).coerceIn(1f, 4f)
+                                        val curScale = scale
+                                        val curMaxPanX =
+                                            ((baseDrawW * curScale - cropW) / 2f).coerceAtLeast(0f)
+                                        val curMaxPanY =
+                                            ((baseDrawH * curScale - cropH) / 2f).coerceAtLeast(0f)
+
+                                        val newScale = (curScale * zoom).coerceIn(1f, 4f)
                                         val newMaxPanX =
                                             ((baseDrawW * newScale - cropW) / 2f).coerceAtLeast(0f)
                                         val newMaxPanY =
                                             ((baseDrawH * newScale - cropH) / 2f).coerceAtLeast(0f)
 
                                         val rawPanX =
-                                            (normalizedOffsetX * maxPanX + pan.x).coerceIn(
+                                            (normalizedOffsetX * curMaxPanX + pan.x).coerceIn(
                                                 -newMaxPanX,
                                                 newMaxPanX
                                             )
                                         val rawPanY =
-                                            (normalizedOffsetY * maxPanY + pan.y).coerceIn(
+                                            (normalizedOffsetY * curMaxPanY + pan.y).coerceIn(
                                                 -newMaxPanY,
                                                 newMaxPanY
                                             )
@@ -279,8 +279,10 @@ fun ImageCropDialog(
 
                             val drawW = baseDrawW * animatedScale
                             val drawH = baseDrawH * animatedScale
-                            val left = centerX - drawW / 2f + currentPanX
-                            val top = centerY - drawH / 2f + currentPanY
+                            val drawMaxPanX = ((drawW - cropW) / 2f).coerceAtLeast(0f)
+                            val drawMaxPanY = ((drawH - cropH) / 2f).coerceAtLeast(0f)
+                            val left = centerX - drawW / 2f + normalizedOffsetX * drawMaxPanX
+                            val top = centerY - drawH / 2f + normalizedOffsetY * drawMaxPanY
 
                             drawImage(
                                 image = imageBitmap,
